@@ -1,0 +1,33 @@
+[package]
+name = "edgedns"
+version = "0.1.0"
+authors = ["Frank Denis <github@pureftpd.org>"]
+
+[dependencies]
+bytes = "*"
+civet = "*"
+conduit = "*"
+conduit-middleware = "*"
+conduit-router = "*"
+env_logger = "*"
+rand = "*"
+rustc-serialize = "*"
+slab = "*"
+
+[dependencies.arc-cache]
+git = "https://github.com/jedisct1/rust-arc-cache.git"
+
+[dependencies.clap]
+git = "https://github.com/kbknapp/clap-rs.git"
+
+[dependencies.mio]
+git = "https://github.com/carllerche/mio.git"
+
+[dependencies.nix]
+git = "https://github.com/carllerche/nix-rust.git"
+
+[profile.dev]
+codegen-units = 4
+
+[profile.release]
+lto = true
