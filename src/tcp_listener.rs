@@ -1,5 +1,5 @@
 
-use bytes::{Buf, ByteBuf};
+use bytes::ByteBuf;
 use cache::Cache;
 use client::*;
 use client_query::*;
