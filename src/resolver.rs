@@ -1,6 +1,6 @@
 use cache::Cache;
 use client_query::*;
-use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal, build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet, build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, DNS_HEADER_SIZE};
+use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal, build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet, build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode, DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
 use mio::*;
 use nix::fcntl::FcntlArg::F_SETFL;
 use nix::fcntl::{fcntl, O_NONBLOCK};
@@ -21,7 +21,7 @@ use std::u64;
 use super::RPDNSContext;
 use varz::Varz;
 
-use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS, UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, MIN_TTL};
+use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS, UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, MIN_TTL, FAILURE_TTL};
 
 #[derive(Clone, Debug)]
 pub struct ResolverResponse {
@@ -166,8 +166,12 @@ impl Handler for Resolver {
                 }
                 Ok(ttl) => ttl
             };
-            if self.decrement_ttl && ttl < MIN_TTL {
-                let _ = set_ttl(packet, MIN_TTL);
+            if self.decrement_ttl {
+                if rcode(packet) == DNS_RCODE_SERVFAIL {
+                    let _ = set_ttl(packet, FAILURE_TTL);
+                } else if ttl < MIN_TTL {
+                    let _ = set_ttl(packet, MIN_TTL);
+                }
             }
             let normalized_question_key = normalized_question.key();
             {
