@@ -22,6 +22,7 @@ git = "https://github.com/kbknapp/clap-rs.git"
 
 [dependencies.mio]
 git = "https://github.com/carllerche/mio.git"
+rev = "f4aa49a9d2c4507fb33a4533d5238e0365f67c99"
 
 [dependencies.nix]
 git = "https://github.com/carllerche/nix-rust.git"
