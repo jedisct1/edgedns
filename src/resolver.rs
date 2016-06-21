@@ -164,15 +164,19 @@ impl Handler for Resolver {
                     self.varz.resolver_errors.fetch_add(1, Ordering::Relaxed);
                     continue;
                 }
-                Ok(ttl) => ttl
-            };
-            if self.decrement_ttl {
+                Ok(ttl) =>
                 if rcode(packet) == DNS_RCODE_SERVFAIL {
                     let _ = set_ttl(packet, FAILURE_TTL);
+                    FAILURE_TTL
                 } else if ttl < MIN_TTL {
-                    let _ = set_ttl(packet, MIN_TTL);
+                    if self.decrement_ttl {
+                        let _ = set_ttl(packet, MIN_TTL);
+                    }
+                    MIN_TTL
+                } else {
+                    ttl
                 }
-            }
+            };
             let normalized_question_key = normalized_question.key();
             {
                 let active_query = match self.pending_queries.map.get(&normalized_question_key) {
