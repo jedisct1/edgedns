@@ -1,4 +1,3 @@
-#![feature(rustc_private)]
 #![feature(question_mark)]
 
 #[macro_use] extern crate log;
