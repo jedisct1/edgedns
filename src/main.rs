@@ -3,17 +3,22 @@
 #[macro_use] extern crate log;
 extern crate arc_cache;
 extern crate bytes;
-extern crate civet;
 extern crate clap;
-extern crate conduit_middleware;
-extern crate conduit_router;
-extern crate conduit;
 extern crate env_logger;
 extern crate mio;
 extern crate nix;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate slab;
+
+#[cfg(feature = "webservice")]
+extern crate civet;
+#[cfg(feature = "webservice")]
+extern crate conduit_middleware;
+#[cfg(feature = "webservice")]
+extern crate conduit_router;
+#[cfg(feature = "webservice")]
+extern crate conduit;
 
 mod cache;
 mod client_query;
@@ -23,6 +28,8 @@ mod resolver;
 mod tcp_listener;
 mod udp_listener;
 mod varz;
+
+#[cfg(feature = "webservice")]
 mod webservice;
 
 use cache::Cache;
@@ -34,6 +41,8 @@ use std::str::FromStr;
 use tcp_listener::*;
 use udp_listener::*;
 use varz::*;
+
+#[cfg(feature = "webservice")]
 use webservice::*;
 
 const DNS_MAX_SIZE: usize = 65535;
@@ -56,7 +65,10 @@ const UDP_BUFFER_SIZE: usize = 16 * 1024 * 1024;
 const UPSTREAM_INITIAL_TIMEOUT_MS: u64 = 1 * 1000;
 const UPSTREAM_MAX_TIMEOUT_MS: u64 = 8 * 1000;
 const UPSTREAM_TIMEOUT_MS: u64 = 10 * 1000;
+
+#[cfg(feature = "webservice")]
 const WEBSERVICE_PORT: u16 = 8888;
+#[cfg(feature = "webservice")]
 const WEBSERVICE_THREADS: u32 = 2;
 
 pub struct RPDNSContext {
@@ -69,6 +81,14 @@ pub struct RPDNSContext {
 struct RPDNS;
 
 impl RPDNS {
+    #[cfg(feature = "webservice")]
+    fn webservice_start() {
+        let _ = WebService::spawn(&rpdns_context).expect("Unable to spawn the web service");
+    }
+
+    #[cfg(not(feature = "webservice"))]
+    fn webservice_start() { }
+
     fn new(cache_size: usize, listen_addr: &str, upstream_servers_str: Vec<&str>, decrement_ttl: bool, failover: bool, ports: u16, max_failures: u32) -> RPDNS {
         let varz = Arc::new(Varz::default());
         let cache = Cache::new(cache_size, decrement_ttl);
@@ -81,7 +101,7 @@ impl RPDNS {
         };
         let resolver_tx = Resolver::spawn(&rpdns_context, upstream_servers_str, decrement_ttl, failover, ports, max_failures).expect("Unable to spawn the resolver");
 
-        let _ = WebService::spawn(&rpdns_context).expect("Unable to spawn the web service");
+        Self::webservice_start();
         let udp_listener = UdpListener::spawn(&rpdns_context, resolver_tx.clone()).expect("Unable to spawn a UDP listener");
         let tcp_listener = TcpListener::spawn(&rpdns_context, resolver_tx.clone()).expect("Unable to spawn a TCP listener");
         let _ = udp_listener.join();

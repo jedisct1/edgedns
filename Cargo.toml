@@ -3,17 +3,32 @@ name = "edgedns"
 version = "0.1.0"
 authors = ["Frank Denis <github@pureftpd.org>"]
 
+[features]
+webservice = ["civet", "conduit", "conduit-middleware", "conduit-router"]
+
 [dependencies]
 bytes = "*"
-civet = "*"
-conduit = "*"
-conduit-middleware = "*"
-conduit-router = "*"
 env_logger = "*"
 log = "*"
 rand = "*"
 rustc-serialize = "*"
 slab = "*"
+
+[dependencies.civet]
+version = "*"
+optional = true
+
+[dependencies.conduit]
+version = "*"
+optional = true
+
+[dependencies.conduit-middleware]
+version = "*"
+optional = true
+
+[dependencies.conduit-router]
+version = "*"
+optional = true
 
 [dependencies.arc-cache]
 git = "https://github.com/jedisct1/rust-arc-cache.git"
