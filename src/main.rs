@@ -82,12 +82,12 @@ struct RPDNS;
 
 impl RPDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start() {
+    fn webservice_start(rpdns_context: &RPDNSContext) {
         let _ = WebService::spawn(&rpdns_context).expect("Unable to spawn the web service");
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start() { }
+    fn webservice_start(_rpdns_context: &RPDNSContext) { }
 
     fn new(cache_size: usize, listen_addr: &str, upstream_servers_str: Vec<&str>, decrement_ttl: bool, failover: bool, ports: u16, max_failures: u32) -> RPDNS {
         let varz = Arc::new(Varz::default());
@@ -101,7 +101,7 @@ impl RPDNS {
         };
         let resolver_tx = Resolver::spawn(&rpdns_context, upstream_servers_str, decrement_ttl, failover, ports, max_failures).expect("Unable to spawn the resolver");
 
-        Self::webservice_start();
+        Self::webservice_start(&rpdns_context);
         let udp_listener = UdpListener::spawn(&rpdns_context, resolver_tx.clone()).expect("Unable to spawn a UDP listener");
         let tcp_listener = TcpListener::spawn(&rpdns_context, resolver_tx.clone()).expect("Unable to spawn a TCP listener");
         let _ = udp_listener.join();
