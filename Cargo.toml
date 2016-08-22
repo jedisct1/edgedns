@@ -46,6 +46,9 @@ git = "https://github.com/carllerche/nix-rust.git"
 
 [profile.dev]
 codegen-units = 4
+panic = "unwind"
 
 [profile.release]
 lto = true
+panic = "abort"
+
