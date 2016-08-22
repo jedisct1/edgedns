@@ -8,7 +8,7 @@ use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockT
 use rand::distributions::{IndependentSample, Range};
 use rand;
 use std::collections::HashMap;
-use std::hash::{Hash, SipHasher, Hasher};
+use std::hash::{Hash, SipHasher13, Hasher};
 use std::io;
 use std::net::{UdpSocket, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::{RawFd, FromRawFd};
@@ -473,7 +473,7 @@ impl NormalizedQuestion {
         if failover {
             return Ok(upstream_servers_live[0]);
         }
-        let mut hs = SipHasher::new();
+        let mut hs = SipHasher13::new();
         self.qname.hash(&mut hs);
         let h = hs.finish();
         let mut i = (h / (u64::MAX / (live_count as u64))) as usize;

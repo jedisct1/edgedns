@@ -9,7 +9,7 @@ use rand::distributions::{IndependentSample, Range};
 use rand;
 use resolver::*;
 use slab;
-use std::hash::{Hash, SipHasher, Hasher};
+use std::hash::{Hash, SipHasher13, Hasher};
 use std::io;
 use std::io::{Read, Write};
 use std::net::Shutdown;
@@ -196,7 +196,7 @@ impl TcpListenerHandler {
             }
         };
         let peer_addr = tcp_stream.peer_addr()?.ip();
-        let mut hs = SipHasher::new();
+        let mut hs = SipHasher13::new();
         peer_addr.hash(&mut hs);
         let h = hs.finish();
         let slot = h as usize % self.clients.len();

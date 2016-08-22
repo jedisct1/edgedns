@@ -1,4 +1,5 @@
 #![feature(question_mark)]
+#![feature(sip_hash_13)]
 
 #[macro_use] extern crate log;
 extern crate arc_cache;
