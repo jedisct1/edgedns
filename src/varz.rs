@@ -15,7 +15,7 @@ pub struct Varz {
     pub client_queries_errors: AtomicUsize,
     pub resolver_errors: AtomicUsize,
     pub resolver_received: AtomicUsize,
-    pub resolver_timeout: AtomicUsize
+    pub resolver_timeout: AtomicUsize,
 }
 
 impl Default for StartInstant {

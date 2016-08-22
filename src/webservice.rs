@@ -31,7 +31,7 @@ struct PublicVarz {
     client_queries_udp: usize,
     resolver_errors: usize,
     resolver_received: usize,
-    resolver_timeout: usize
+    resolver_timeout: usize,
 }
 
 impl PublicVarz {
@@ -62,17 +62,17 @@ impl PublicVarz {
             client_queries_errors: varz.client_queries_errors.load(Ordering::Relaxed),
             resolver_errors: varz.resolver_errors.load(Ordering::Relaxed),
             resolver_received: varz.resolver_received.load(Ordering::Relaxed),
-            resolver_timeout: varz.resolver_timeout.load(Ordering::Relaxed)
+            resolver_timeout: varz.resolver_timeout.load(Ordering::Relaxed),
         }
     }
 }
 
 pub struct WebService {
-    varz: Arc<Varz>
+    varz: Arc<Varz>,
 }
 
 impl Middleware for WebService {
-    fn before(&self, req: &mut Request) -> Result<(), Box<Error+Send>> {
+    fn before(&self, req: &mut Request) -> Result<(), Box<Error + Send>> {
         req.mut_extensions().insert(self.varz.clone());
         Ok(())
     }
@@ -80,15 +80,14 @@ impl Middleware for WebService {
 
 impl WebService {
     fn new(rpdns_context: &RPDNSContext) -> WebService {
-        WebService {
-            varz: rpdns_context.varz.clone()
-        }
+        WebService { varz: rpdns_context.varz.clone() }
     }
 
     fn varz(req: &mut Request) -> io::Result<Response> {
         let varz = req.extensions().find::<Arc<Varz>>().unwrap();
         let mut headers = HashMap::new();
-        headers.insert("Content-Type".to_owned(), vec!["application/json".to_owned()]);
+        headers.insert("Content-Type".to_owned(),
+                       vec!["application/json".to_owned()]);
         headers.insert("Server".to_owned(), vec!["EdgeDNS Webservice".to_owned()]);
         let public_varz = PublicVarz::new(varz);
         let body = json::encode(&public_varz).unwrap().into_bytes();

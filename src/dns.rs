@@ -32,7 +32,7 @@ pub struct NormalizedQuestion {
     pub qtype: u16,
     pub qclass: u16,
     pub labels_count: u16,
-    pub dnssec: bool
+    pub dnssec: bool,
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
@@ -40,7 +40,7 @@ pub struct NormalizedQuestionKey {
     pub qname_lc: Vec<u8>,
     pub qtype: u16,
     pub qclass: u16,
-    pub dnssec: bool
+    pub dnssec: bool,
 }
 
 #[derive(Debug, Hash, Eq, PartialEq)]
@@ -48,7 +48,7 @@ pub struct NormalizedQuestionMinimal {
     pub qname: Vec<u8>,
     pub tid: u16,
     pub qtype: u16,
-    pub qclass: u16
+    pub qclass: u16,
 }
 
 #[inline]
@@ -57,7 +57,7 @@ pub fn tid(packet: &[u8]) -> u16 {
 }
 
 #[inline]
-pub fn set_tid(packet: &mut[u8], value: u16) {
+pub fn set_tid(packet: &mut [u8], value: u16) {
     packet[0] = (value >> 8) as u8;
     packet[1] = value as u8;
 }
@@ -74,7 +74,7 @@ pub fn rd(packet: &[u8]) -> bool {
 }
 
 #[inline]
-pub fn set_rd(packet: &mut[u8], state: bool) {
+pub fn set_rd(packet: &mut [u8], state: bool) {
     packet[2] |= state as u8;
 }
 
@@ -85,7 +85,7 @@ pub fn tc(packet: &[u8]) -> bool {
 }
 
 #[inline]
-pub fn set_tc(packet: &mut[u8], state: bool) {
+pub fn set_tc(packet: &mut [u8], state: bool) {
     packet[2] |= 0x2 * (state as u8);
 }
 
@@ -96,7 +96,7 @@ pub fn aa(packet: &[u8]) -> bool {
 }
 
 #[inline]
-pub fn set_aa(packet: &mut[u8], state: bool) {
+pub fn set_aa(packet: &mut [u8], state: bool) {
     packet[2] |= 0x4 * (state as u8);
 }
 
@@ -112,7 +112,7 @@ pub fn qr(packet: &[u8]) -> bool {
 }
 
 #[inline]
-pub fn set_qr(packet: &mut[u8], state: bool) {
+pub fn set_qr(packet: &mut [u8], state: bool) {
     packet[2] |= 0x80 * (state as u8);
 }
 
@@ -122,7 +122,7 @@ pub fn rcode(packet: &[u8]) -> u8 {
 }
 
 #[inline]
-pub fn set_rcode(packet: &mut[u8], value: u8) {
+pub fn set_rcode(packet: &mut [u8], value: u8) {
     debug_assert!(value <= 0xf);
     packet[3] &= !0xf;
     packet[3] |= value & 0xf;
@@ -158,7 +158,7 @@ pub fn qdcount(packet: &[u8]) -> u16 {
 }
 
 #[inline]
-pub fn set_qdcount(packet: &mut[u8], value: u16) {
+pub fn set_qdcount(packet: &mut [u8], value: u16) {
     packet[4] = (value >> 8) as u8;
     packet[5] = value as u8;
 }
@@ -169,7 +169,7 @@ pub fn ancount(packet: &[u8]) -> u16 {
 }
 
 #[inline]
-pub fn set_ancount(packet: &mut[u8], value: u16) {
+pub fn set_ancount(packet: &mut [u8], value: u16) {
     packet[6] = (value >> 8) as u8;
     packet[7] = value as u8;
 }
@@ -181,7 +181,7 @@ pub fn nscount(packet: &[u8]) -> u16 {
 
 #[allow(dead_code)]
 #[inline]
-pub fn set_nscount(packet: &mut[u8], value: u16) {
+pub fn set_nscount(packet: &mut [u8], value: u16) {
     packet[8] = (value >> 8) as u8;
     packet[9] = value as u8;
 }
@@ -192,12 +192,12 @@ pub fn arcount(packet: &[u8]) -> u16 {
 }
 
 #[inline]
-pub fn set_arcount(packet: &mut[u8], value: u16) {
+pub fn set_arcount(packet: &mut [u8], value: u16) {
     packet[10] = (value >> 8) as u8;
     packet[11] = value as u8;
 }
 
-pub fn overwrite_qname(packet: &mut[u8], qname: &[u8]) {
+pub fn overwrite_qname(packet: &mut [u8], qname: &[u8]) {
     let packet_len = packet.len();
     debug_assert!(packet_len >= DNS_OFFSET_QUESTION);
     if packet_len <= DNS_OFFSET_QUESTION {
@@ -223,7 +223,7 @@ pub struct QuestionRR<'t> {
     qname: &'t [u8],
     qtype: u16,
     qclass: u16,
-    labels_count: u16
+    labels_count: u16,
 }
 
 pub fn question(packet: &[u8]) -> Result<QuestionRR, &'static str> {
@@ -233,7 +233,7 @@ pub fn question(packet: &[u8]) -> Result<QuestionRR, &'static str> {
     }
     let (offset, labels_count) = match skip_name(packet, DNS_OFFSET_QUESTION) {
         Ok(offset_and_labels) => offset_and_labels,
-        Err(e) => return Err(e)
+        Err(e) => return Err(e),
     };
     assert!(offset > DNS_OFFSET_QUESTION);
     let qname = &packet[DNS_OFFSET_QUESTION..offset - 1];
@@ -246,7 +246,7 @@ pub fn question(packet: &[u8]) -> Result<QuestionRR, &'static str> {
         qname: qname,
         qtype: qtype,
         qclass: qclass,
-        labels_count: labels_count
+        labels_count: labels_count,
     };
     Ok(question_rr)
 }
@@ -267,15 +267,17 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
                 }
                 offset += 2;
                 break;
-            },
-            len => len
+            }
+            len => len,
         } as usize;
         if label_len >= packet_len - offset - 1 {
             return Err("Malformed packet with an out-of-bounds name");
         }
         name_len += label_len + 1;
         if name_len > DNS_MAX_HOSTNAME_LEN {
-            info!("Name too long: {} bytes > {}", name_len, DNS_MAX_HOSTNAME_LEN);
+            info!("Name too long: {} bytes > {}",
+                  name_len,
+                  DNS_MAX_HOSTNAME_LEN);
             return Err("Name too long");
         }
         offset += label_len + 1;
@@ -290,7 +292,7 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
 #[derive(Debug)]
 struct EDNS0 {
     payload_size: u16,
-    dnssec: bool
+    dnssec: bool,
 }
 
 fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
@@ -298,12 +300,12 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
     debug_assert_eq!(ancount(packet), 0);
     debug_assert_eq!(nscount(packet), 0);
     if arcount(packet) != 1 {
-        return None
+        return None;
     }
     let packet_len = packet.len();
     let mut offset = match skip_name(packet, DNS_OFFSET_QUESTION) {
         Ok(offset) => offset.0,
-        Err(_) => return None
+        Err(_) => return None,
     };
     if offset >= packet_len - DNS_QTYPE_PLUS_QCLASS_LEN {
         return None;
@@ -311,7 +313,7 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
     offset += DNS_QTYPE_PLUS_QCLASS_LEN;
     offset = match skip_name(packet, offset) {
         Ok(offset) => offset.0,
-        Err(_) => return None
+        Err(_) => return None,
     };
     if offset >= packet_len - DNS_OFFSET_EDNS_PAYLOAD_SIZE - 2 {
         return None;
@@ -332,7 +334,7 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
     }
     Some(EDNS0 {
         payload_size: payload_size,
-        dnssec: dnssec
+        dnssec: dnssec,
     })
 }
 
@@ -371,7 +373,7 @@ impl NormalizedQuestion {
             dnssec: dnssec,
             qname_lc: qname_lc(&self.qname),
             qtype: self.qtype,
-            qclass: self.qclass
+            qclass: self.qclass,
         }
     }
 
@@ -380,7 +382,7 @@ impl NormalizedQuestion {
             qname: self.qname.clone(),
             tid: self.tid,
             qtype: self.qtype,
-            qclass: self.qclass
+            qclass: self.qclass,
         }
     }
 }
@@ -400,8 +402,8 @@ pub fn qname_lc(qname: &[u8]) -> Vec<u8> {
         offset += 1;
         for i in 0..label_len {
             res[offset + i] = match qname[offset + i] {
-                c @ 0x41 ... 0x5a => c | 0x20,
-                c => c
+                c @ 0x41...0x5a => c | 0x20,
+                c => c,
             };
         }
         offset += label_len;
@@ -412,11 +414,11 @@ pub fn qname_lc(qname: &[u8]) -> Vec<u8> {
 pub fn qname_shift(qname: &[u8]) -> Option<&[u8]> {
     let qname_len = qname.len();
     if qname_len < 2 {
-        return None
+        return None;
     }
     let label_len = qname[0];
     if label_len == 0 || label_len & 0xc0 == 0xc0 || 2 + label_len as usize > qname_len {
-        return None
+        return None;
     }
     Some(&qname[1 + label_len as usize..])
 }
@@ -434,7 +436,7 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
     }
     let question = match question(packet) {
         Ok(question) => question,
-        Err(e) => return Err(e)
+        Err(e) => return Err(e),
     };
     let mut normalized_question = NormalizedQuestion {
         tid: tid(packet),
@@ -444,7 +446,7 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
         dnssec: false,
         qname: question.qname.to_owned(),
         qtype: question.qtype,
-        qclass: question.qclass
+        qclass: question.qclass,
     };
     if is_question {
         if ancount(packet) != 0 || nscount(packet) != 0 {
@@ -475,7 +477,7 @@ pub fn min_ttl(packet: &[u8]) -> Result<u32, &'static str> {
     }
     let mut offset = match skip_name(packet, DNS_OFFSET_QUESTION) {
         Ok(offset) => offset.0,
-        Err(e) => return Err(e)
+        Err(e) => return Err(e),
     };
     assert!(offset > DNS_OFFSET_QUESTION);
     if 4 > packet_len - offset {
@@ -490,22 +492,19 @@ pub fn min_ttl(packet: &[u8]) -> Result<u32, &'static str> {
     let nscount = nscount(packet);
     let arcount = arcount(packet);
     let rrcount = ancount + nscount + arcount;
-    let mut found_min_ttl = if rrcount > 0 {
-        MAX_TTL
-    } else {
-        FAILURE_TTL
-    };
+    let mut found_min_ttl = if rrcount > 0 { MAX_TTL } else { FAILURE_TTL };
     for _ in 0..rrcount {
         offset = match skip_name(packet, offset) {
             Ok(offset) => offset.0,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         if 10 > packet_len - offset {
             return Err("Short packet");
         }
         let qtype = (packet[offset] as u16) << 8 | packet[offset + 1] as u16;
         let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
-        let ttl = (packet[offset + 4] as u32) << 24 | (packet[offset + 5] as u32) << 16 | (packet[offset + 6] as u32) << 8 | packet[offset + 7] as u32;
+        let ttl = (packet[offset + 4] as u32) << 24 | (packet[offset + 5] as u32) << 16 |
+                  (packet[offset + 6] as u32) << 8 | packet[offset + 7] as u32;
         let rdlen = ((packet[offset + 8] as u16) << 8 | packet[offset + 9] as u16) as usize;
         offset += 10;
         if qtype != DNS_TYPE_OPT {
@@ -540,7 +539,7 @@ pub fn set_ttl(packet: &mut [u8], ttl: u32) -> Result<(), &'static str> {
     }
     let mut offset = match skip_name(packet, DNS_OFFSET_QUESTION) {
         Ok(offset) => offset.0,
-        Err(e) => return Err(e)
+        Err(e) => return Err(e),
     };
     assert!(offset > DNS_OFFSET_QUESTION);
     if 4 > packet_len - offset {
@@ -557,7 +556,7 @@ pub fn set_ttl(packet: &mut [u8], ttl: u32) -> Result<(), &'static str> {
     for _ in 0..(ancount + nscount + arcount) {
         offset = match skip_name(packet, offset) {
             Ok(offset) => offset.0,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         if 10 > packet_len - offset {
             return Err("Short packet");
@@ -602,7 +601,8 @@ pub fn build_tc_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u
     Ok(packet)
 }
 
-pub fn build_servfail_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u8>, &'static str> {
+pub fn build_servfail_packet(normalized_question: &NormalizedQuestion)
+                             -> Result<Vec<u8>, &'static str> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -621,7 +621,8 @@ pub fn build_servfail_packet(normalized_question: &NormalizedQuestion) -> Result
     Ok(packet)
 }
 
-pub fn build_refused_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u8>, &'static str> {
+pub fn build_refused_packet(normalized_question: &NormalizedQuestion)
+                            -> Result<Vec<u8>, &'static str> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -640,7 +641,8 @@ pub fn build_refused_packet(normalized_question: &NormalizedQuestion) -> Result<
     Ok(packet)
 }
 
-pub fn build_nxdomain_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u8>, &'static str> {
+pub fn build_nxdomain_packet(normalized_question: &NormalizedQuestion)
+                             -> Result<Vec<u8>, &'static str> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -704,7 +706,8 @@ pub fn build_any_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<
     Ok(packet)
 }
 
-pub fn build_version_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u8>, &'static str> {
+pub fn build_version_packet(normalized_question: &NormalizedQuestion)
+                            -> Result<Vec<u8>, &'static str> {
     let txt = b"EdgeDNS";
     let rdata_len = 1 + txt.len();
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
@@ -730,7 +733,7 @@ pub fn build_version_packet(normalized_question: &NormalizedQuestion) -> Result<
 
     packet.push((DNS_TYPE_TXT >> 8) as u8);
     packet.push(DNS_TYPE_TXT as u8);
-    packet.push((DNS_CLASS_CH>> 8) as u8);
+    packet.push((DNS_CLASS_CH >> 8) as u8);
     packet.push(DNS_CLASS_CH as u8);
 
     packet.push((MAX_TTL >> 24) as u8);
@@ -766,14 +769,12 @@ pub fn build_health_check_packet() -> Result<(Vec<u8>, NormalizedQuestion), &'st
     Ok((packet, normalized_question))
 }
 
-pub fn build_query_packet(normalized_question: &NormalizedQuestion, force_dnssec: bool) -> Result<(Vec<u8>, NormalizedQuestionMinimal), &'static str> {
+pub fn build_query_packet(normalized_question: &NormalizedQuestion,
+                          force_dnssec: bool)
+                          -> Result<(Vec<u8>, NormalizedQuestionMinimal), &'static str> {
     let mut qname = qname_lc(&normalized_question.qname);
     let qname_len = qname.len();
-    let force_dnssec = if qname_len == 0 {
-        true
-    } else {
-        force_dnssec
-    };
+    let force_dnssec = if qname_len == 0 { true } else { force_dnssec };
     if force_dnssec || normalized_question.dnssec {
         if qname_len > 0 {
             qname[qname_len - 1] &= !0x20;
@@ -812,7 +813,7 @@ pub fn build_query_packet(normalized_question: &NormalizedQuestion, force_dnssec
         qname: qname,
         tid: tid,
         qtype: normalized_question.qtype,
-        qclass: normalized_question.qclass
+        qclass: normalized_question.qclass,
     };
     Ok((packet, normalized_question_minimal))
 }

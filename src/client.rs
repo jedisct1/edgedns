@@ -29,7 +29,7 @@ impl Client {
             interest: EventSet::hup() | EventSet::error(),
             timeout: None,
             resolving: false,
-            attic: false
+            attic: false,
         }
     }
 }

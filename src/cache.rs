@@ -9,7 +9,7 @@ use super::MAX_TTL;
 #[derive(Clone, Debug)]
 pub struct CacheEntry {
     pub expiration: Instant,
-    pub packet: Vec<u8>
+    pub packet: Vec<u8>,
 }
 
 impl CacheEntry {
@@ -22,7 +22,7 @@ impl CacheEntry {
 #[derive(Clone)]
 pub struct Cache {
     arc_mx: Arc<Mutex<ArcCache<NormalizedQuestionKey, CacheEntry>>>,
-    decrement_ttl: bool
+    decrement_ttl: bool,
 }
 
 impl Cache {
@@ -31,7 +31,7 @@ impl Cache {
         let arc_mx = Arc::new(Mutex::new(arc));
         Cache {
             arc_mx: arc_mx,
-            decrement_ttl: decrement_ttl
+            decrement_ttl: decrement_ttl,
         }
     }
 
@@ -40,10 +40,14 @@ impl Cache {
         (cache.frequent_len(), cache.recent_len())
     }
 
-    pub fn insert(&mut self, normalized_question_key: NormalizedQuestionKey, packet: Vec<u8>, ttl: u32) -> bool {
+    pub fn insert(&mut self,
+                  normalized_question_key: NormalizedQuestionKey,
+                  packet: Vec<u8>,
+                  ttl: u32)
+                  -> bool {
         debug_assert!(packet.len() >= dns::DNS_HEADER_SIZE);
         if packet.len() < dns::DNS_HEADER_SIZE {
-            return false
+            return false;
         }
         let now = Instant::now();
         let duration = Duration::from_secs(ttl as u64);
@@ -51,7 +55,7 @@ impl Cache {
         let mut cache = self.arc_mx.lock().unwrap();
         let cache_entry = CacheEntry {
             expiration: expiration,
-            packet: packet
+            packet: packet,
         };
         cache.insert(normalized_question_key, cache_entry)
     }
@@ -65,12 +69,12 @@ impl Cache {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {
                 expiration: Instant::now() + Duration::from_secs(MAX_TTL as u64),
-                packet: special_packet
+                packet: special_packet,
             })
         } else if normalized_question.qclass != DNS_CLASS_IN {
             Some(CacheEntry {
                 expiration: Instant::now() + Duration::from_secs(MAX_TTL as u64),
-                packet: dns::build_refused_packet(&normalized_question).unwrap()
+                packet: dns::build_refused_packet(&normalized_question).unwrap(),
             })
         } else {
             let normalized_question_key = normalized_question.key();
@@ -83,9 +87,9 @@ impl Cache {
                         let _ = dns::set_ttl(&mut cache_entry.packet, remaining_ttl as u32);
                     }
                 }
-                return Some(cache_entry)
+                return Some(cache_entry);
             }
-            if ! normalized_question_key.dnssec {
+            if !normalized_question_key.dnssec {
                 let qname = normalized_question_key.qname_lc;
                 if let Some(qname_shifted) = dns::qname_shift(&qname) {
                     let mut normalized_question_key = normalized_question.key();
@@ -94,12 +98,13 @@ impl Cache {
                     if let Some(shifted_cache_entry) = shifted_cache_entry {
                         debug!("Shifted query cached");
                         let shifted_packet = shifted_cache_entry.packet;
-                        if shifted_packet.len() >= dns::DNS_HEADER_SIZE && dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN {
+                        if shifted_packet.len() >= dns::DNS_HEADER_SIZE &&
+                           dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN {
                             debug!("Shifted query returned NXDOMAIN");
                             return Some(CacheEntry {
                                 expiration: shifted_cache_entry.expiration,
-                                packet: dns::build_nxdomain_packet(&normalized_question).unwrap()
-                            })
+                                packet: dns::build_nxdomain_packet(&normalized_question).unwrap(),
+                            });
                         }
                     }
                 }
@@ -116,7 +121,8 @@ impl Cache {
                 return Some(packet);
             }
         }
-        if normalized_question.qclass == dns::DNS_CLASS_CH && normalized_question.qtype == dns::DNS_TYPE_TXT {
+        if normalized_question.qclass == dns::DNS_CLASS_CH &&
+           normalized_question.qtype == dns::DNS_TYPE_TXT {
             debug!("CHAOS TXT");
             let packet = dns::build_version_packet(&normalized_question).unwrap();
             return Some(packet);
