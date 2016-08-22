@@ -67,7 +67,7 @@ impl Handler for TcpListenerHandler {
         self.reset_connection(event_loop, client_idx);
     }
 
-    fn notify(&mut self, event_loop: &mut EventLoop<Self>, resolver_response: ResolverResponse) {
+    fn notify(&mut self, _event_loop: &mut EventLoop<Self>, resolver_response: ResolverResponse) {
         let client_tok = resolver_response.client_tok;
         debug!("notify: client_tok: {:?}", client_tok);
         let client_idx = usize::from(client_tok) - 2;
