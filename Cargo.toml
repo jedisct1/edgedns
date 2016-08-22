@@ -49,6 +49,6 @@ codegen-units = 4
 panic = "unwind"
 
 [profile.release]
+debug = true
 lto = true
 panic = "abort"
-
