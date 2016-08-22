@@ -62,12 +62,6 @@ impl Handler for TcpListenerHandler {
                 debug!("Timeout from a client in the attic");
                 return;
             }
-            client.interest.remove(EventSet::readable());
-            event_loop.reregister(&client.tcp_stream,
-                            client_tok,
-                            client.interest,
-                            PollOpt::edge() | PollOpt::oneshot())
-                .expect("Cannot reregister an event set after a timeout");
             let _ = client.tcp_stream.shutdown(Shutdown::Both);
         }
         self.reset_connection(event_loop, client_idx);
@@ -130,12 +124,6 @@ impl Handler for TcpListenerHandler {
                 write_buf.advance(count);
             }
         };
-        client.interest.remove(EventSet::readable());
-        event_loop.reregister(&client.tcp_stream,
-                        client_tok,
-                        client.interest,
-                        PollOpt::edge() | PollOpt::oneshot())
-            .expect("Cannot reregister an event set after a notification");
         let _ = client.tcp_stream.shutdown(Shutdown::Read);
     }
 
@@ -258,7 +246,6 @@ impl TcpListenerHandler {
             match res {
                 Err(e) => {
                     error!("{:?} Error while reading socket: {:?}", client_tok, e);
-                    client.interest.remove(EventSet::readable());
                     break;
                 }
                 Ok(None) => {
