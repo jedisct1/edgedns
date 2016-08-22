@@ -7,7 +7,6 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 webservice = ["civet", "conduit", "conduit-middleware", "conduit-router"]
 
 [dependencies]
-bytes = "*"
 env_logger = "*"
 log = "*"
 rand = "*"
@@ -33,12 +32,14 @@ optional = true
 [dependencies.arc-cache]
 git = "https://github.com/jedisct1/rust-arc-cache.git"
 
+[dependencies.bytes]
+git = "https://github.com/carllerche/bytes"
+
 [dependencies.clap]
 git = "https://github.com/kbknapp/clap-rs.git"
 
 [dependencies.mio]
-git = "https://github.com/jedisct1/mio.git"
-branch = "mio_sender_clone"
+git = "https://github.com/carllerche/mio"
 
 [dependencies.nix]
 git = "https://github.com/carllerche/nix-rust.git"

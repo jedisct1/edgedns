@@ -10,7 +10,7 @@ use rand;
 use std::collections::HashMap;
 use std::hash::{Hash, SipHasher, Hasher};
 use std::io;
-use std::net::{UdpSocket, SocketAddr, SocketAddrV4};
+use std::net::{UdpSocket, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -119,7 +119,7 @@ impl Handler for Resolver {
         }
         loop {
             let mut packet = [0u8; DNS_MAX_SIZE];
-            let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[token.as_usize()];
+            let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[usize::from(token)];
             let ext_udp_socket = &ext_udp_socket_tuple.ext_udp_socket;
             let res = ext_udp_socket.recv_from(&mut packet).expect("UDP socket error");
             let (count, client_addr) = match res {
