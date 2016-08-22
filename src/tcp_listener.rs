@@ -67,7 +67,7 @@ impl Handler for TcpListenerHandler {
                             client_tok,
                             client.interest,
                             PollOpt::edge() | PollOpt::oneshot())
-                .unwrap();
+                .expect("Cannot reregister an event set after a timeout");
             let _ = client.tcp_stream.shutdown(Shutdown::Both);
         }
         self.reset_connection(event_loop, client_idx);
@@ -135,7 +135,7 @@ impl Handler for TcpListenerHandler {
                         client_tok,
                         client.interest,
                         PollOpt::edge() | PollOpt::oneshot())
-            .unwrap();
+            .expect("Cannot reregister an event set after a notification");
         let _ = client.tcp_stream.shutdown(Shutdown::Read);
     }
 
@@ -166,7 +166,7 @@ impl Handler for TcpListenerHandler {
                                 token,
                                 EventSet::readable() | EventSet::hup(),
                                 PollOpt::edge() | PollOpt::oneshot())
-                    .unwrap();
+                    .expect("Cannot reregister an event set for a listener");
             } else {
                 let client_tok = token;
                 let client_idx = usize::from(client_tok) - 2;
@@ -176,7 +176,7 @@ impl Handler for TcpListenerHandler {
                                     client_tok,
                                     client.interest,
                                     PollOpt::edge() | PollOpt::oneshot())
-                        .unwrap();
+                        .expect("Cannot reregister an event set after a client read");
                 }
             }
         }
