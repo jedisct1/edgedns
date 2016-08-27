@@ -23,7 +23,7 @@ impl Client {
         Client {
             normalized_question: None,
             tcp_stream: tcp_stream,
-            read_bufw: ByteBuf::mut_with_capacity(TCP_QUERY_HEADER_SIZE + DNS_QUERY_MAX_SIZE),
+            read_bufw: MutByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE + DNS_QUERY_MAX_SIZE),
             write_buf: None,
             expected_len: None,
             interest: EventSet::hup() | EventSet::error(),

@@ -1,5 +1,5 @@
 
-use bytes::{Buf, ByteBuf, MutBuf};
+use bytes::{Buf, ByteBuf, MutBuf, MutByteBuf};
 use cache::Cache;
 use client::*;
 use client_query::*;
@@ -113,7 +113,7 @@ impl Handler for TcpListenerHandler {
                   resolver_response.dnssec);
             return;
         }
-        let mut write_bufw = ByteBuf::mut_with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
+        let mut write_bufw = MutByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
         let binlen = [(packet_len >> 8) as u8, packet_len as u8];
         write_bufw.write_slice(&binlen);
         write_bufw.write_slice(&packet);
@@ -310,7 +310,7 @@ impl TcpListenerHandler {
                                 dns::overwrite_qname(&mut cache_entry.packet,
                                                      &normalized_question.qname);
                                 let mut write_bufw =
-                                    ByteBuf::mut_with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
+                                    MutByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
                                 let binlen = [(packet_len >> 8) as u8, packet_len as u8];
                                 write_bufw.write_slice(&binlen);
                                 write_bufw.write_slice(&cache_entry.packet);
