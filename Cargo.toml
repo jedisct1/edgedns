@@ -40,7 +40,6 @@ git = "https://github.com/kbknapp/clap-rs.git"
 
 [dependencies.mio]
 git = "https://github.com/carllerche/mio"
-rev = "0e28a84e102095ba4bdaf9090416d3365c4e4e5f"
 
 [dependencies.nix]
 git = "https://github.com/carllerche/nix-rust.git"

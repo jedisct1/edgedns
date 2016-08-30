@@ -1,7 +1,7 @@
 use cache::Cache;
 use client_query::*;
 use dns;
-use mio::*;
+use mio::deprecated::Sender;
 use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockType, SockLevel,
                        SockAddr, socket, InetAddr};
 use std::io;

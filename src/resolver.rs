@@ -5,6 +5,8 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
           DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
 use mio::*;
+use mio::deprecated::{EventLoop, EventLoopBuilder, Handler, Sender};
+use mio::timer::Timeout;
 use nix::fcntl::FcntlArg::F_SETFL;
 use nix::fcntl::{fcntl, O_NONBLOCK};
 use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockType, SockLevel,
@@ -119,7 +121,7 @@ impl Handler for Resolver {
         }
     }
 
-    fn ready(&mut self, event_loop: &mut EventLoop<Self>, token: Token, events: EventSet) {
+    fn ready(&mut self, event_loop: &mut EventLoop<Self>, token: Token, events: Ready) {
         if !events.is_readable() {
             debug!("Not readable");
             return;
@@ -499,7 +501,7 @@ impl Resolver {
             if let Ok(ext_udp_socket) = mio_socket_udp_bound(port) {
                 event_loop.register(&ext_udp_socket,
                               Token(ext_udp_socket_tuples.len()),
-                              EventSet::readable(),
+                              Ready::readable(),
                               PollOpt::edge())
                     .unwrap();
                 let ext_udp_socket_tuple = ExtUdpSocketTuple {

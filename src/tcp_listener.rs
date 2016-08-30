@@ -5,6 +5,7 @@ use client::*;
 use client_query::*;
 use dns;
 use mio::*;
+use mio::deprecated::{EventLoop, EventLoopBuilder, Handler, Sender};
 use rand::distributions::{IndependentSample, Range};
 use rand;
 use resolver::*;
@@ -127,7 +128,7 @@ impl Handler for TcpListenerHandler {
         let _ = client.tcp_stream.shutdown(Shutdown::Read);
     }
 
-    fn ready(&mut self, event_loop: &mut EventLoop<Self>, token: Token, events: EventSet) {
+    fn ready(&mut self, event_loop: &mut EventLoop<Self>, token: Token, events: Ready) {
         assert!(token != Token(0));
         let token_usize = usize::from(token);
         if events.is_error() {
@@ -152,7 +153,7 @@ impl Handler for TcpListenerHandler {
                 let _ = self.accept(event_loop);
                 event_loop.reregister(&self.mio_listener,
                                 token,
-                                EventSet::readable() | EventSet::hup(),
+                                Ready::readable() | Ready::hup(),
                                 PollOpt::edge() | PollOpt::oneshot())
                     .expect("Cannot reregister an event set for a listener");
             } else {
@@ -176,8 +177,7 @@ impl TcpListenerHandler {
         debug!("accept()");
         self.varz.client_queries_tcp.fetch_add(1, Ordering::Relaxed);
         let tcp_stream = match self.mio_listener.accept() {
-            Ok(Some((tcp_stream, _))) => tcp_stream,
-            Ok(None) => unreachable!(),
+            Ok((tcp_stream, _)) => tcp_stream,
             Err(e) => {
                 error!("Accept error: {}", e);
                 return Err(e);
@@ -212,7 +212,7 @@ impl TcpListenerHandler {
             new_slot = Some(random_slot);
         }
         let mut client = Client::new(tcp_stream);
-        client.interest.insert(EventSet::readable());
+        client.interest.insert(Ready::readable());
         let client_idx = new_slot.unwrap();
         self.clients[client_idx] = Some(client);
         let client = &mut self.clients[client_idx].as_mut().unwrap();
@@ -339,7 +339,7 @@ impl TcpListenerHandler {
                         client.normalized_question = Some(normalized_question);
                         client.resolving = true;
                         let _ = self.resolver_tx.send(client_query);
-                        client.interest.insert(EventSet::writable());
+                        client.interest.insert(Ready::writable());
                     }
                 }
             }
@@ -356,7 +356,7 @@ impl TcpListenerHandler {
                 &mut self.clients[client_idx].as_mut().expect("Reseting nonexistent connection");
             assert_eq!(client.attic, false);
             client.attic = true;
-            client.interest = EventSet::none();
+            client.interest = Ready::none();
             if let Some(ref timeout) = client.timeout {
                 event_loop.clear_timeout(&timeout);
             }
@@ -376,7 +376,7 @@ impl TcpListener {
         debug!("tcp listener socket={:?}", mio_listener);
         event_loop.register(&mio_listener,
                       LISTENER_TOK,
-                      EventSet::readable() | EventSet::hup(),
+                      Ready::readable() | Ready::hup(),
                       PollOpt::edge() | PollOpt::oneshot())?;
         let tcpclient_tx: Sender<ResolverResponse> = event_loop.channel();
         let mut handler = TcpListenerHandler {

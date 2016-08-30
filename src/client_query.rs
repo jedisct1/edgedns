@@ -1,6 +1,7 @@
 
 use dns::NormalizedQuestion;
 use mio::*;
+use mio::deprecated::Sender;
 use resolver::*;
 use std::net::SocketAddr;
 use std::time::Instant;
