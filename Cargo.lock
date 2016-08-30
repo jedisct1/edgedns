@@ -5,13 +5,13 @@ dependencies = [
  "arc-cache 0.1.0 (git+https://github.com/jedisct1/rust-arc-cache.git)",
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "civet 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "clap 2.10.4 (git+https://github.com/kbknapp/clap-rs.git)",
+ "clap 2.11.0 (git+https://github.com/kbknapp/clap-rs.git)",
  "conduit 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "conduit-middleware 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "conduit-router 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "mio 0.6.0-dev (git+https://github.com/carllerche/mio)",
+ "mio 0.6.0-dev (git+https://github.com/carllerche/mio?rev=0e28a84e102095ba4bdaf9090416d3365c4e4e5f)",
  "nix 0.6.1-pre (git+https://github.com/carllerche/nix-rust.git)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -80,15 +80,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.10.4"
-source = "git+https://github.com/kbknapp/clap-rs.git#485d993bfd6e9c268bbfbc96cdfc37a4997e7ca8"
+version = "2.11.0"
+source = "git+https://github.com/kbknapp/clap-rs.git#b7793a2f4d1132f29b3e7858d4ebbb1027f31d39"
 dependencies = [
  "ansi_term 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "strsim 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "term_size 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "term_size 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-width 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "vec_map 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -148,7 +148,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libc"
 version = "0.2.15"
-source = "git+https://github.com/rust-lang/libc#85ac087c764c2300bcb80cc4b279d87f2ef0f055"
+source = "git+https://github.com/rust-lang/libc#955aa6d7ab71f732109bf58c87891e95ae39a090"
 
 [[package]]
 name = "libc"
@@ -184,7 +184,7 @@ dependencies = [
 [[package]]
 name = "mio"
 version = "0.6.0-dev"
-source = "git+https://github.com/carllerche/mio#0e28a84e102095ba4bdaf9090416d3365c4e4e5f"
+source = "git+https://github.com/carllerche/mio?rev=0e28a84e102095ba4bdaf9090416d3365c4e4e5f#0e28a84e102095ba4bdaf9090416d3365c4e4e5f"
 dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazycell 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -236,7 +236,7 @@ dependencies = [
 [[package]]
 name = "nix"
 version = "0.6.1-pre"
-source = "git+https://github.com/carllerche/nix-rust.git#fd4a5106354bdcdbda6cf93395cdee6c17e5b7ee"
+source = "git+https://github.com/carllerche/nix-rust.git#07039357d8d519ab1fe3591b9f9b05fd49ab4195"
 dependencies = [
  "bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -324,7 +324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "term_size"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
