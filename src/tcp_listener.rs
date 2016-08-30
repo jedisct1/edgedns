@@ -51,7 +51,7 @@ impl Handler for TcpListenerHandler {
         debug!("timeout! {:?}", client_tok);
         let client_idx = usize::from(client_tok) - 2;
         {
-            let ref mut client = match self.clients[client_idx].as_mut() {
+            let client = &mut match self.clients[client_idx].as_mut() {
                 None => {
                     debug!("Timeout from a nonexistent client received");
                     return;
@@ -71,7 +71,7 @@ impl Handler for TcpListenerHandler {
         let client_tok = resolver_response.client_tok;
         debug!("notify: client_tok: {:?}", client_tok);
         let client_idx = usize::from(client_tok) - 2;
-        let ref mut client = match self.clients[client_idx].as_mut() {
+        let client = &mut match self.clients[client_idx].as_mut() {
             None => {
                 debug!("Client token not found but notification received");
                 return;
@@ -203,7 +203,7 @@ impl TcpListenerHandler {
             let random_distance = Range::new(0, MAX_TCP_HASH_DISTANCE);
             let random_slot = (slot + random_distance.ind_sample(&mut rng)) % self.clients.len();
             {
-                let ref client = self.clients[random_slot]
+                let client = &self.clients[random_slot]
                     .as_ref()
                     .expect("Random TCP slot should not have been free");
                 let _ = client.tcp_stream.shutdown(Shutdown::Both);
@@ -215,7 +215,7 @@ impl TcpListenerHandler {
         client.interest.insert(EventSet::readable());
         let client_idx = new_slot.unwrap();
         self.clients[client_idx] = Some(client);
-        let ref mut client = self.clients[client_idx].as_mut().unwrap();
+        let client = &mut self.clients[client_idx].as_mut().unwrap();
         let client_tok = Token(client_idx + 2);
         debug!("Allocating new slot: {} (Token={:?})",
                new_slot.unwrap(),

@@ -340,7 +340,7 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
 
 impl fmt::Display for NormalizedQuestion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ref qname = self.qname;
+        let qname = &self.qname;
         let qname_len = qname.len();
         let mut res = Vec::with_capacity(qname_len);
         let mut offset: usize = 0;
