@@ -1,5 +1,6 @@
 #![feature(question_mark)]
 #![feature(sip_hash_13)]
+#![feature(integer_atomics)]
 
 #[macro_use]
 extern crate log;

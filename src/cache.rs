@@ -25,6 +25,13 @@ pub struct Cache {
     decrement_ttl: bool,
 }
 
+pub struct CacheStats {
+    pub frequent_len: usize,
+    pub recent_len: usize,
+    pub inserted: u64,
+    pub evicted: u64,
+}
+
 impl Cache {
     pub fn new(capacity: usize, decrement_ttl: bool) -> Cache {
         let arc = ArcCache::new(capacity).unwrap();
@@ -35,9 +42,14 @@ impl Cache {
         }
     }
 
-    pub fn frequent_recent_len(&self) -> (usize, usize) {
+    pub fn stats(&self) -> CacheStats {
         let cache = self.arc_mx.lock().unwrap();
-        (cache.frequent_len(), cache.recent_len())
+        CacheStats {
+            frequent_len: cache.frequent_len(),
+            recent_len: cache.recent_len(),
+            inserted: cache.inserted(),
+            evicted: cache.evicted(),
+        }
     }
 
     pub fn insert(&mut self,

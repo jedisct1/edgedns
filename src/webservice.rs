@@ -24,8 +24,11 @@ struct PublicVarz {
     cache_recent_len: usize,
     client_qps: f32,
     client_queries_cached: usize,
+    client_queries_cached_ratio: f32,
     client_queries_errors: usize,
     client_queries_expired: usize,
+    client_queries_inserted: u64,
+    client_queries_evicted: u64,
     client_queries: usize,
     client_queries_tcp: usize,
     client_queries_udp: usize,
@@ -43,6 +46,12 @@ impl PublicVarz {
         let client_queries_udp = varz.client_queries_udp.load(Ordering::Relaxed);
         let client_queries_tcp = varz.client_queries_tcp.load(Ordering::Relaxed);
         let client_queries = client_queries_udp + client_queries_tcp;
+        let client_queries_cached = varz.client_queries_cached.load(Ordering::Relaxed);
+        let client_queries_cached_ratio = if client_queries == 0 {
+            0.0
+        } else {
+            (client_queries_cached as f32 * 100.0) / (client_queries as f32)
+        };
         let client_qps = if uptime == 0 {
             0.0
         } else {
@@ -57,7 +66,10 @@ impl PublicVarz {
             client_queries: client_queries,
             client_queries_udp: client_queries_udp,
             client_queries_tcp: client_queries_tcp,
-            client_queries_cached: varz.client_queries_cached.load(Ordering::Relaxed),
+            client_queries_cached: client_queries_cached,
+            client_queries_cached_ratio: client_queries_cached_ratio,
+            client_queries_inserted: varz.cache_inserted.load(Ordering::Relaxed),
+            client_queries_evicted: varz.cache_evicted.load(Ordering::Relaxed),
             client_queries_expired: varz.client_queries_expired.load(Ordering::Relaxed),
             client_queries_errors: varz.client_queries_errors.load(Ordering::Relaxed),
             resolver_errors: varz.resolver_errors.load(Ordering::Relaxed),

@@ -257,9 +257,11 @@ impl Handler for Resolver {
                 self.waiting_clients_count -= active_query.client_queries.len();
             }
             self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
-            let (frequent_len, recent_len) = self.cache.frequent_recent_len();
-            self.varz.cache_frequent_len.store(frequent_len, Ordering::Relaxed);
-            self.varz.cache_recent_len.store(recent_len, Ordering::Relaxed);
+            let cache_stats = self.cache.stats();
+            self.varz.cache_frequent_len.store(cache_stats.frequent_len, Ordering::Relaxed);
+            self.varz.cache_recent_len.store(cache_stats.recent_len, Ordering::Relaxed);
+            self.varz.cache_inserted.store(cache_stats.inserted, Ordering::Relaxed);
+            self.varz.cache_evicted.store(cache_stats.evicted, Ordering::Relaxed);
         }
     }
 
