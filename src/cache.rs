@@ -27,7 +27,7 @@ pub struct Cache {
 
 impl Cache {
     pub fn new(capacity: usize, decrement_ttl: bool) -> Cache {
-        let arc = ArcCache::new(capacity);
+        let arc = ArcCache::new(capacity).unwrap();
         let arc_mx = Arc::new(Mutex::new(arc));
         Cache {
             arc_mx: arc_mx,

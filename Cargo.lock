@@ -2,7 +2,7 @@
 name = "edgedns"
 version = "0.1.0"
 dependencies = [
- "arc-cache 0.1.0 (git+https://github.com/jedisct1/rust-arc-cache.git)",
+ "arc-cache 0.2.0 (git+https://github.com/jedisct1/rust-arc-cache.git)",
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "civet 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.11.0 (git+https://github.com/kbknapp/clap-rs.git)",
@@ -11,11 +11,11 @@ dependencies = [
  "conduit-router 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "mio 0.6.0-dev (git+https://github.com/carllerche/mio)",
+ "mio 0.6.0 (git+https://github.com/carllerche/mio)",
  "nix 0.6.1-pre (git+https://github.com/carllerche/nix-rust.git)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "slab 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -33,8 +33,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "arc-cache"
-version = "0.1.0"
-source = "git+https://github.com/jedisct1/rust-arc-cache.git#6dfef4262a2bf99f622c2102f12894f0ec9a3b6e"
+version = "0.2.0"
+source = "git+https://github.com/jedisct1/rust-arc-cache.git#a922eb4c262fe9e59e4a3cfdfd371b291979f35f"
 dependencies = [
  "lru-cache 0.0.7 (git+https://github.com/jedisct1/lru-cache.git)",
 ]
@@ -50,10 +50,16 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "byteorder"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "bytes"
 version = "0.4.0-dev"
-source = "git+https://github.com/carllerche/bytes#38abb8074b87f226c32213ebb1bee7752b43278c"
+source = "git+https://github.com/carllerche/bytes#046c8645431ae2ffa25aad549f6a0d6e2df44930"
 dependencies = [
+ "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -148,7 +154,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libc"
 version = "0.2.15"
-source = "git+https://github.com/rust-lang/libc#955aa6d7ab71f732109bf58c87891e95ae39a090"
+source = "git+https://github.com/rust-lang/libc#3635c1a9398160bb6540d7289b16a547be0f02b3"
 
 [[package]]
 name = "libc"
@@ -183,8 +189,8 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.6.0-dev"
-source = "git+https://github.com/carllerche/mio#fe22b9fa667eb199a44dcda1c5352f48431187d8"
+version = "0.6.0"
+source = "git+https://github.com/carllerche/mio#19d2d2a217199e23766e418dc6527ca509dcab34"
 dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazycell 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -193,7 +199,7 @@ dependencies = [
  "miow 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "net2 0.2.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "nix 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "slab 0.2.0 (git+https://github.com/carllerche/slab?rev=5476efcafb)",
+ "slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -236,7 +242,7 @@ dependencies = [
 [[package]]
 name = "nix"
 version = "0.6.1-pre"
-source = "git+https://github.com/carllerche/nix-rust.git#07039357d8d519ab1fe3591b9f9b05fd49ab4195"
+source = "git+https://github.com/carllerche/nix-rust.git#45e317099e32c06bf6ae6326e4c2f9d5fbf83291"
 dependencies = [
  "bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -309,12 +315,7 @@ dependencies = [
 
 [[package]]
 name = "slab"
-version = "0.2.0"
-source = "git+https://github.com/carllerche/slab?rev=5476efcafb#5476efcafbc5ef4d7315b1bea3f756d8a1fe975e"
-
-[[package]]
-name = "slab"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
