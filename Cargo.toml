@@ -11,7 +11,7 @@ env_logger = "*"
 log = "*"
 rand = "*"
 rustc-serialize = "*"
-slab = "*"
+slab = "~0.3.0"
 
 [dependencies.civet]
 version = "*"
