@@ -34,7 +34,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "arc-cache"
 version = "0.2.0"
-source = "git+https://github.com/jedisct1/rust-arc-cache.git#a922eb4c262fe9e59e4a3cfdfd371b291979f35f"
+source = "git+https://github.com/jedisct1/rust-arc-cache.git#bffb4e4f513df9237228b2d5ab04df444ba8b38f"
 dependencies = [
  "lru-cache 0.0.7 (git+https://github.com/jedisct1/lru-cache.git)",
 ]
