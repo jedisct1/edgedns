@@ -22,7 +22,6 @@ struct PublicVarz {
     cache_len: usize,
     cache_frequent_len: usize,
     cache_recent_len: usize,
-    cache_test_len: usize,
     client_qps: f32,
     client_queries_cached: usize,
     client_queries_cached_ratio: f32,
@@ -44,7 +43,6 @@ impl PublicVarz {
         let uptime = start_instant.elapsed().as_secs();
         let cache_frequent_len = varz.cache_frequent_len.load(Ordering::Relaxed);
         let cache_recent_len = varz.cache_recent_len.load(Ordering::Relaxed);
-        let cache_test_len = varz.cache_test_len.load(Ordering::Relaxed);
         let client_queries_udp = varz.client_queries_udp.load(Ordering::Relaxed);
         let client_queries_tcp = varz.client_queries_tcp.load(Ordering::Relaxed);
         let client_queries = client_queries_udp + client_queries_tcp;
@@ -64,7 +62,6 @@ impl PublicVarz {
             cache_len: cache_frequent_len + cache_recent_len,
             cache_frequent_len: cache_frequent_len,
             cache_recent_len: cache_recent_len,
-            cache_test_len: cache_test_len,
             client_qps: client_qps,
             client_queries: client_queries,
             client_queries_udp: client_queries_udp,

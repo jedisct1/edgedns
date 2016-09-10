@@ -4,7 +4,7 @@
 
 #[macro_use]
 extern crate log;
-extern crate clockpro_cache;
+extern crate arc_cache;
 extern crate bytes;
 extern crate clap;
 extern crate env_logger;
