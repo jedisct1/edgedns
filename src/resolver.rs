@@ -260,6 +260,7 @@ impl Handler for Resolver {
             let cache_stats = self.cache.stats();
             self.varz.cache_frequent_len.store(cache_stats.frequent_len, Ordering::Relaxed);
             self.varz.cache_recent_len.store(cache_stats.recent_len, Ordering::Relaxed);
+            self.varz.cache_test_len.store(cache_stats.test_len, Ordering::Relaxed);
             self.varz.cache_inserted.store(cache_stats.inserted, Ordering::Relaxed);
             self.varz.cache_evicted.store(cache_stats.evicted, Ordering::Relaxed);
         }
