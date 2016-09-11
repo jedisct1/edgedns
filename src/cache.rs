@@ -1,5 +1,5 @@
 
-use arc_cache::*;
+use clockpro_cache::*;
 use dns;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
 use std::sync::{Arc, Mutex};
@@ -21,20 +21,21 @@ impl CacheEntry {
 
 #[derive(Clone)]
 pub struct Cache {
-    arc_mx: Arc<Mutex<ArcCache<NormalizedQuestionKey, CacheEntry>>>,
+    arc_mx: Arc<Mutex<ClockProCache<NormalizedQuestionKey, CacheEntry>>>,
     decrement_ttl: bool,
 }
 
 pub struct CacheStats {
     pub frequent_len: usize,
     pub recent_len: usize,
+    pub test_len: usize,
     pub inserted: u64,
     pub evicted: u64,
 }
 
 impl Cache {
     pub fn new(capacity: usize, decrement_ttl: bool) -> Cache {
-        let arc = ArcCache::new(capacity).unwrap();
+        let arc = ClockProCache::new(capacity).unwrap();
         let arc_mx = Arc::new(Mutex::new(arc));
         Cache {
             arc_mx: arc_mx,
@@ -47,6 +48,7 @@ impl Cache {
         CacheStats {
             frequent_len: cache.frequent_len(),
             recent_len: cache.recent_len(),
+            test_len: cache.test_len(),
             inserted: cache.inserted(),
             evicted: cache.evicted(),
         }

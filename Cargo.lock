@@ -2,10 +2,10 @@
 name = "edgedns"
 version = "0.1.0"
 dependencies = [
- "arc-cache 0.2.0 (git+https://github.com/jedisct1/rust-arc-cache.git)",
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "civet 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.11.3 (git+https://github.com/kbknapp/clap-rs.git)",
+ "clockpro-cache 0.1.3 (git+https://github.com/jedisct1/rust-clockpro-cache.git)",
  "conduit 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "conduit-middleware 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "conduit-router 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -30,14 +30,6 @@ dependencies = [
 name = "ansi_term"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "arc-cache"
-version = "0.2.0"
-source = "git+https://github.com/jedisct1/rust-arc-cache.git#bffb4e4f513df9237228b2d5ab04df444ba8b38f"
-dependencies = [
- "lru-cache 0.0.7 (git+https://github.com/jedisct1/lru-cache.git)",
-]
 
 [[package]]
 name = "bitflags"
@@ -87,7 +79,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "clap"
 version = "2.11.3"
-source = "git+https://github.com/kbknapp/clap-rs.git#377b5f20da8fc9ce83bad0b3ea22ccc9c266bce1"
+source = "git+https://github.com/kbknapp/clap-rs.git#82234fa93f829bba4b648b73fc7441f932cc9f74"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -97,6 +89,15 @@ dependencies = [
  "unicode-segmentation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-width 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "vec_map 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "clockpro-cache"
+version = "0.1.3"
+source = "git+https://github.com/jedisct1/rust-clockpro-cache.git#8c125453783ee664c0afaeba33a6d28efcdedeb2"
+dependencies = [
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -160,22 +161,9 @@ version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "linked-hash-map"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "log"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "lru-cache"
-version = "0.0.7"
-source = "git+https://github.com/jedisct1/lru-cache.git#b8fc8842f81f8cd0876054ae8ac71a665fa7ca3b"
-dependencies = [
- "linked-hash-map 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "memchr"

@@ -29,8 +29,8 @@ optional = true
 version = "*"
 optional = true
 
-[dependencies.arc-cache]
-git = "https://github.com/jedisct1/rust-arc-cache.git"
+[dependencies.clockpro-cache]
+git = "https://github.com/jedisct1/rust-clockpro-cache.git"
 
 [dependencies.bytes]
 git = "https://github.com/carllerche/bytes"
