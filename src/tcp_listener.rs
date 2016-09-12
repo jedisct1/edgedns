@@ -355,7 +355,7 @@ impl TcpListenerHandler {
             client.attic = true;
             client.interest = Ready::none();
             if let Some(ref timeout) = client.timeout {
-                event_loop.clear_timeout(&timeout);
+                event_loop.clear_timeout(timeout);
             }
             client.timeout = None;
         }

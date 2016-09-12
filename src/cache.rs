@@ -76,7 +76,7 @@ impl Cache {
 
     pub fn get(&mut self, normalized_question_key: &NormalizedQuestionKey) -> Option<CacheEntry> {
         let mut cache = self.arc_mx.lock().unwrap();
-        cache.get_mut(&normalized_question_key).and_then(|res| Some(res.clone()))
+        cache.get_mut(normalized_question_key).and_then(|res| Some(res.clone()))
     }
 
     pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
@@ -88,7 +88,7 @@ impl Cache {
         } else if normalized_question.qclass != DNS_CLASS_IN {
             Some(CacheEntry {
                 expiration: Instant::now() + Duration::from_secs(MAX_TTL as u64),
-                packet: dns::build_refused_packet(&normalized_question).unwrap(),
+                packet: dns::build_refused_packet(normalized_question).unwrap(),
             })
         } else {
             let normalized_question_key = normalized_question.key();
@@ -117,7 +117,7 @@ impl Cache {
                             debug!("Shifted query returned NXDOMAIN");
                             return Some(CacheEntry {
                                 expiration: shifted_cache_entry.expiration,
-                                packet: dns::build_nxdomain_packet(&normalized_question).unwrap(),
+                                packet: dns::build_nxdomain_packet(normalized_question).unwrap(),
                             });
                         }
                     }
@@ -128,17 +128,16 @@ impl Cache {
     }
 
     fn handle_special_queries(&self, normalized_question: &NormalizedQuestion) -> Option<Vec<u8>> {
-        if normalized_question.qclass == dns::DNS_CLASS_IN {
-            if normalized_question.qtype == dns::DNS_TYPE_ANY {
-                debug!("ANY query");
-                let packet = dns::build_any_packet(&normalized_question).unwrap();
-                return Some(packet);
-            }
+        if normalized_question.qclass == dns::DNS_CLASS_IN &&
+           normalized_question.qtype == dns::DNS_TYPE_ANY {
+            debug!("ANY query");
+            let packet = dns::build_any_packet(normalized_question).unwrap();
+            return Some(packet);
         }
         if normalized_question.qclass == dns::DNS_CLASS_CH &&
            normalized_question.qtype == dns::DNS_TYPE_TXT {
             debug!("CHAOS TXT");
-            let packet = dns::build_version_packet(&normalized_question).unwrap();
+            let packet = dns::build_version_packet(normalized_question).unwrap();
             return Some(packet);
         }
         None

@@ -1,3 +1,5 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
 #![feature(question_mark)]
 #![feature(sip_hash_13)]
 #![feature(integer_atomics)]
@@ -86,7 +88,7 @@ struct RPDNS;
 impl RPDNS {
     #[cfg(feature = "webservice")]
     fn webservice_start(rpdns_context: &RPDNSContext) {
-        let _ = WebService::spawn(&rpdns_context).expect("Unable to spawn the web service");
+        WebService::spawn(rpdns_context).expect("Unable to spawn the web service");
     }
 
     #[cfg(not(feature = "webservice"))]
@@ -102,7 +104,7 @@ impl RPDNS {
            -> RPDNS {
         let varz = Arc::new(Varz::default());
         let cache = Cache::new(cache_size, decrement_ttl);
-        let udp_socket = socket_udp_bound(&listen_addr).expect("Unable to create a client socket");
+        let udp_socket = socket_udp_bound(listen_addr).expect("Unable to create a client socket");
         let rpdns_context = RPDNSContext {
             udp_socket: udp_socket,
             listen_addr: listen_addr.to_owned(),

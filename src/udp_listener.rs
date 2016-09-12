@@ -38,7 +38,7 @@ impl UdpListener {
                 continue;
             }
             let packet = &packet[..count];
-            let normalized_question = match dns::normalize(&packet, true) {
+            let normalized_question = match dns::normalize(packet, true) {
                 Ok(normalized_question) => normalized_question,
                 Err(e) => {
                     debug!("Error while parsing the question: {}", e);

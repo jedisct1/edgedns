@@ -111,7 +111,7 @@ impl WebService {
 
     pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<()> {
         let mut builder = MiddlewareBuilder::new(Self::varz);
-        let web_service = WebService::new(&rpdns_context);
+        let web_service = WebService::new(rpdns_context);
         builder.add(web_service);
         let mut router = RouteBuilder::new();
         router.get("/varz", builder);

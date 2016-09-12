@@ -230,13 +230,13 @@ impl Handler for Resolver {
                                Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                                 if packet.len() >
                                    client_query.normalized_question.payload_size as usize {
-                                    let packet = build_tc_packet(&client_query.normalized_question)
+                                    let packet = &build_tc_packet(&client_query.normalized_question)
                                         .unwrap();
                                     let _ = self.udp_socket
-                                        .send_to(&packet, client_query.client_addr.unwrap());
+                                        .send_to(packet, client_query.client_addr.unwrap());
                                 } else {
                                     let _ = self.udp_socket
-                                        .send_to(&packet, client_query.client_addr.unwrap());
+                                        .send_to(packet, client_query.client_addr.unwrap());
                                 };
                             }
                         }
@@ -317,7 +317,7 @@ impl Handler for Resolver {
                                self.upstream_max_failures);
                     }
                 }
-                if new_server_went_offline && self.upstream_servers_live.len() > 0 {
+                if new_server_went_offline && !self.upstream_servers_live.is_empty() {
                     debug!("Live upstream servers before removal of the dead one: {:?}",
                            self.upstream_servers_live);
                     let mut new_live: Vec<usize> =
@@ -451,7 +451,7 @@ impl Resolver {
     fn timeout_health_check(&mut self, event_loop: &mut EventLoop<Self>) {
         if self.upstream_servers_live.is_empty() {
             info!("All resolvers are dead - forcing them back to life");
-            for upstream_server in self.upstream_servers.iter_mut() {
+            for upstream_server in &mut self.upstream_servers {
                 upstream_server.failures = 0;
                 upstream_server.offline = false;
             }
@@ -586,7 +586,7 @@ impl NormalizedQuestion {
          is_retry: bool,
          failover: bool)
          -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
-        let (query_packet, normalized_question_minimal) = build_query_packet(&self, false)
+        let (query_packet, normalized_question_minimal) = build_query_packet(self, false)
             .expect("Unable to build a new query packet");
         let upstream_server_idx =
             match self.pick_upstream(upstream_servers, upstream_servers_live, is_retry, failover) {
