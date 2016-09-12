@@ -108,10 +108,7 @@ impl Handler for TcpListenerHandler {
         };
         if client_normalized_question.dnssec != resolver_response.dnssec ||
            client_normalized_question.minimal() != normalized_question.minimal() {
-            info!("Received a response that doesn't match the question (for TCP)");
-            info!("dnssec client: {} - dnssec response: {}",
-                  client_normalized_question.dnssec,
-                  resolver_response.dnssec);
+            debug!("Received a response that doesn't match the question (for TCP)");
             return;
         }
         let mut write_bufw = MutByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
