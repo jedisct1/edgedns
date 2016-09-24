@@ -223,7 +223,7 @@ impl TcpListenerHandler {
                       PollOpt::edge() | PollOpt::oneshot())
             .expect("Unable to register a connection");
         if let Ok(timeout) =
-               event_loop.timeout(client_tok, Duration::from_millis(MAX_TCP_IDLE_MS)) {
+            event_loop.timeout(client_tok, Duration::from_millis(MAX_TCP_IDLE_MS)) {
             client.timeout = Some(timeout);
         }
         Ok(())

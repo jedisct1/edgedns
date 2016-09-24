@@ -230,8 +230,9 @@ impl Handler for Resolver {
                                Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                                 if packet.len() >
                                    client_query.normalized_question.payload_size as usize {
-                                    let packet = &build_tc_packet(&client_query.normalized_question)
-                                        .unwrap();
+                                    let packet =
+                                        &build_tc_packet(&client_query.normalized_question)
+                                            .unwrap();
                                     let _ = self.udp_socket
                                         .send_to(packet, client_query.client_addr.unwrap());
                                 } else {
