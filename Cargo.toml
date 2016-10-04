@@ -12,6 +12,7 @@ log = "*"
 rand = "*"
 rustc-serialize = "*"
 slab = "~0.3.0"
+siphasher = "*"
 clippy = {version = "*", optional = true}
 
 [dependencies.civet]

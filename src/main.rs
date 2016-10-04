@@ -1,7 +1,6 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 #![feature(question_mark)]
-#![feature(sip_hash_13)]
 #![feature(integer_atomics)]
 
 #[macro_use]
@@ -14,6 +13,7 @@ extern crate mio;
 extern crate nix;
 extern crate rand;
 extern crate rustc_serialize;
+extern crate siphasher;
 extern crate slab;
 
 #[cfg(feature = "webservice")]

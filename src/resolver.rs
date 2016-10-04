@@ -13,8 +13,9 @@ use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockT
                        SockAddr, socket, InetAddr};
 use rand::distributions::{IndependentSample, Range};
 use rand;
+use siphasher::sip::SipHasher13;
 use std::collections::HashMap;
-use std::hash::{Hash, SipHasher13, Hasher};
+use std::hash::{Hash, Hasher};
 use std::io;
 use std::net::{UdpSocket, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::{RawFd, FromRawFd};
