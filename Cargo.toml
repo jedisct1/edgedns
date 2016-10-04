@@ -55,3 +55,4 @@ panic = "unwind"
 debug = true
 lto = true
 panic = "abort"
+opt-level = 3
