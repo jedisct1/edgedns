@@ -5,7 +5,7 @@ dependencies = [
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=d05bfb6346e3eb5eebc9f6016c32fede20ba3831)",
  "civet 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.13.0 (git+https://github.com/kbknapp/clap-rs.git)",
- "clippy 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy 0.0.94 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.3 (git+https://github.com/jedisct1/rust-clockpro-cache.git)",
  "conduit 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "conduit-middleware 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -80,7 +80,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "clap"
 version = "2.13.0"
-source = "git+https://github.com/kbknapp/clap-rs.git#7483cec06ca04587a4e0327f1c0e24e23744957a"
+source = "git+https://github.com/kbknapp/clap-rs.git#5c7a2190ccd244bb36014421d3133e9298539c4c"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -94,15 +94,15 @@ dependencies = [
 
 [[package]]
 name = "clippy"
-version = "0.0.90"
+version = "0.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "clippy_lints 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy_lints 0.0.94 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "clippy_lints"
-version = "0.0.90"
+version = "0.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -176,7 +176,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libc"
 version = "0.2.16"
-source = "git+https://github.com/rust-lang/libc#2b8ea0911eafd887f9c556530cc84924f23f1713"
+source = "git+https://github.com/rust-lang/libc#ed16fe6d87df9b90808bc9e180f4e050994954bf"
 
 [[package]]
 name = "libc"
@@ -256,7 +256,7 @@ dependencies = [
 [[package]]
 name = "nix"
 version = "0.7.1-pre"
-source = "git+https://github.com/carllerche/nix-rust.git#1b4656f49172f65e2af2291ecee8c72b0e92bc17"
+source = "git+https://github.com/carllerche/nix-rust.git#1222f52954205288e3c25b870c13138d361a65d7"
 dependencies = [
  "bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -437,8 +437,8 @@ dependencies = [
 "checksum civet 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)" = "754816b63a044565d4d60c224af6bd96cb416ce5bd4b25d611f4142b094eb315"
 "checksum civet-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "958d15372bf28b7983cb35e1d4bf36dd843b0d42e507c1c73aad7150372c5936"
 "checksum clap 2.13.0 (git+https://github.com/kbknapp/clap-rs.git)" = "<none>"
-"checksum clippy 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)" = "d19bda68c3db98e3a780342f6101b44312fef20a5f13ce756d1202a35922b01b"
-"checksum clippy_lints 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)" = "3d4ed67c69b9bb35169be2538691d290a3aa0cbfd4b9f0bfb7c221fc1d399a96"
+"checksum clippy 0.0.94 (registry+https://github.com/rust-lang/crates.io-index)" = "ed829797293d879eb288647d2294772d8c6b64cd0515d672613dc4470b92cbb2"
+"checksum clippy_lints 0.0.94 (registry+https://github.com/rust-lang/crates.io-index)" = "5635295c28475fa89702e0a66a99c6844c1795181d344a5b45b2d279c7676979"
 "checksum clockpro-cache 0.1.3 (git+https://github.com/jedisct1/rust-clockpro-cache.git)" = "<none>"
 "checksum conduit 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "70c742465d8d72954b83e6e39d05d174729b5fd601a14dcb1a79565629fec04d"
 "checksum conduit-middleware 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "b48e8f09e5f3a8aa081865091c0d568d71dceaf6cd1dc49fd2a63e34496ec9f1"
