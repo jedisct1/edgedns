@@ -1,6 +1,5 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(question_mark)]
 #![feature(integer_atomics)]
 
 #[macro_use]
