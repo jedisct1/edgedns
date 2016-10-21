@@ -262,7 +262,7 @@ impl Handler for Resolver {
                 match self.cache.get(&normalized_question_key) {
                     None => {
                         self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
-                    },
+                    }
                     Some(cache_entry) => {
                         self.cache.insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
                     }
