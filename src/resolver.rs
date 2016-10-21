@@ -259,8 +259,9 @@ impl Handler for Resolver {
                 self.waiting_clients_count -= active_query.client_queries.len();
             }
             if rcode(packet) == DNS_RCODE_SERVFAIL {
-                if self.cache.get(&normalized_question_key).is_none() {
-                    self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
+                match self.cache.get(&normalized_question_key) {
+                    None => { self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL); },
+                    Some(cache_entry)  => { self.cache.insert(normalized_question_key, cache_entry.packet, FAILURE_TTL); }
                 }
             } else {
                 self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
