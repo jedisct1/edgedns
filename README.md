@@ -61,11 +61,26 @@ Live statistics are exposed as a JSON object on `http://0.0.0.0:8888/varz`.
 Please note that the current schema might eventually be revisited to better
 match the [Prometheus](https://prometheus.io/) expectations.
 
+This software is still a work in progress. More features are planned,
+with a focus on automatic DDoS mitigation.
+
 # Features
+
+### Reliable
+
+EdgeDNS is written in Rust, which by design prevents common security
+and reliability issues while remaining extremely fast.
+
+EdgeDNS can thus be used as a protection layer for mainstream DNS
+resolvers and authoritative servers.
+
+### DNSSEC support
+
+EdgeDNS is fully compatible with DNSSEC.
 
 ### Low memory usage
 
-In virtual DNS mode, records are cached independently instead of
+In virtual DNS mode, responses are cached independently instead of
 performing zone transfers, in order to favor caching of hot records.
 
 With a large number of zones, and an uneven distribution of queries
@@ -108,9 +123,9 @@ Slow authoritative servers can have a huge impact on clients, even if
 this is a temporary situation.
 
 EdgeDNS does its best to guarantee a maximum latency. If a response
-that needs to be refreshed doesn't get a response within a given
-time frame, EdgeDNS can directly respond with the cached records in
-order to avoid breaking the latency guarantee.
+that needs to be refreshed doesn't get a response within a given time
+frame, EdgeDNS can directly respond with cached records in order to
+avoid breaking the latency guarantee.
 
 ### Short responses to ANY queries
 
@@ -132,7 +147,7 @@ and authoritative servers.
 
 ### Negative caching
 
-The absence of data is cached. Temporary errors such as SERVFAIL
+The absence of data is cached. Temporary errors such as `SERVFAIL`
 responses are also cached for a short period of time, in order to
 avoid hammering upstream servers.
 
