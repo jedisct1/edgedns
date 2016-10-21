@@ -68,9 +68,9 @@ match the [Prometheus](https://prometheus.io/) expectations.
 In virtual DNS mode, records are cached independently instead of
 performing zone transfers, in order to favor caching of hot records.
 
-With a large number of zones, this a uneven distribution of
-queries across records, this leads to a very low memory usage compared
-to secondary servers keeping entire zones.
+With a large number of zones, and an uneven distribution of queries
+across records, this leads to a very low memory usage compared to
+secondary servers keeping entire zones.
 
 ### EDNS0 support
 
