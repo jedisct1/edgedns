@@ -258,7 +258,13 @@ impl Handler for Resolver {
             if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
                 self.waiting_clients_count -= active_query.client_queries.len();
             }
-            self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
+            if rcode(packet) == DNS_RCODE_SERVFAIL {
+                if self.cache.get(&normalized_question_key).is_none() {
+                    self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
+                }
+            } else {
+                self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
+            }
             let cache_stats = self.cache.stats();
             self.varz.cache_frequent_len.store(cache_stats.frequent_len, Ordering::Relaxed);
             self.varz.cache_recent_len.store(cache_stats.recent_len, Ordering::Relaxed);
