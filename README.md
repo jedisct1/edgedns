@@ -1,17 +1,23 @@
-# EdgeDNS
+![EdgeDNS](https://raw.github.com/jedisct1/edgedns/master/edgedns.png)
 
 A high performance DNS cache designed for Content Delivery Networks, with
 built-in security mechanisms to protect origins, clients and itself.
 
-# Installation
+# Installation from source
 
 EdgeDNS is designed to work on rust-nightly.
 
-Compilation and installation should be as simple as:
+rust-nightly can be installed using [rustup](https://www.rustup.rs/):
+```bash
+$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+```
 
+Compile and install `edgedns` with:
 ```bash
 $ cargo install --git https://github.com/jedisct1/edgedns
 ```
+
+And find the `edgedns` binary in `~/.cargo/bin/edgedns`.
 
 # Operation
 
