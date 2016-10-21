@@ -71,8 +71,11 @@ with a focus on automatic DDoS mitigation.
 EdgeDNS is written in Rust, which by design prevents common security
 and reliability issues while remaining extremely fast.
 
-EdgeDNS can thus be used as a protection layer for mainstream DNS
-resolvers and authoritative servers.
+EdgeDNS can thus be used as a protection layer for DNS resolvers and
+authoritative servers.
+
+EdgeDNS has been running flawlessly on the public
+[dnscrypt.org-fr](https://fr.dnscrypt.org/) server since January 2016.
 
 ### DNSSEC support
 
