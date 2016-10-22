@@ -17,6 +17,7 @@ mk_tarball() {
     # TODO update this part to copy the artifacts that make sense for your project
     # NOTE All Cargo build artifacts will be under the 'target/$TARGET/{debug,release}'
     cp target/$TARGET/release/edgedns $td
+    dostrip $td/edgedns
 
     pushd $td
 
