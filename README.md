@@ -243,7 +243,7 @@ block malicious traffic, which is likely to be coming from spoofed
 source IP addresses.
 
 In order to do so, it responds to uncached records with truncated
-responses, forcing a retries using TCP.
+responses, forcing retries using TCP.
 
 ### TCP slots reuse
 
