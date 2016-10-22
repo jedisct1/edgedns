@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jedisct1/edgedns.svg?branch=master)](https://travis-ci.org/jedisct1/edgedns?branch=master)
+
 ![EdgeDNS](https://raw.github.com/jedisct1/edgedns/master/edgedns.png)
 
 A high performance DNS cache designed for Content Delivery Networks, with
