@@ -24,8 +24,8 @@ And find the `edgedns` binary in `~/.cargo/bin/edgedns`.
 ### As a cache for authoritative servers
 
 ```
-# edgedns --cachesize=250000 --ports-count=64000 \
-          --upstream=192.168.1.1:53 --listen=0.0.0.0:53
+edgedns --cachesize=250000 --ports-count=64000 \
+        --upstream=192.168.1.1:53 --listen=0.0.0.0:53
 ```
 
 Act as a "secondary DNS server" for the zones served by one or more
@@ -36,11 +36,15 @@ This will reduce the load on the "primary server", mitigate common
 attacks, and ensure a continuity of service even if the primary server
 has temporary outages.
 
+Binding as many ports as possible (`--ports-count`) is recommended in
+this mode of operation. This may require some adjustments to your
+system configuration. See below.
+
 ### As a local DNS cache
 
 ```bash
-# edgedns --resolver-mode --cachesize=250000 \
-          --upstream=8.8.8.8:53,8.8.4.4:53 --listen=127.0.0.1:53
+edgedns --resolver-mode --cachesize=250000 \
+        --upstream=8.8.8.8:53,8.8.4.4:53 --listen=127.0.0.1:53
 ```
 
 And use `127.0.0.1` as a resolver. EdgeDNS will cache responses,
