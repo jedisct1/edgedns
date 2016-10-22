@@ -31,11 +31,14 @@ gcc_prefix() {
 }
 
 dostrip() {
-    local prefix=$(gcc_prefix)
+    local stu=strip prefix=$(gcc_prefix)
     if which ${prefix}strip > /dev/null; then
-        ${prefix}strip -s $1
+        stu=${prefix}strip
+    fi
+    if strip --version 2>/dev/null | fgrep GNU >/dev/null ; then
+        $stu -s $1
     else
-        strip -s $1
+        $stu $1
     fi
 }
 
