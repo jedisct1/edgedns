@@ -8,13 +8,13 @@ built-in security mechanisms to protect origins, clients and itself.
 EdgeDNS is designed to work on rust-nightly.
 
 rust-nightly can be installed using [rustup](https://www.rustup.rs/):
-```bash
-$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+```sh
+curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 ```
 
 Compile and install `edgedns` with:
-```bash
-$ cargo install --git https://github.com/jedisct1/edgedns
+```sh
+cargo install --git https://github.com/jedisct1/edgedns
 ```
 
 And find the `edgedns` binary in `~/.cargo/bin/edgedns`.
@@ -42,7 +42,7 @@ system configuration. See below.
 
 ### As a local DNS cache
 
-```bash
+```sh
 edgedns --resolver-mode --cachesize=250000 \
         --upstream=8.8.8.8:53,8.8.4.4:53 --listen=127.0.0.1:53
 ```
