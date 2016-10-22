@@ -5,21 +5,24 @@
 A high performance DNS cache designed for Content Delivery Networks, with
 built-in security mechanisms to protect origins, clients and itself.
 
+# Precompiled binaries (recommended)
+
+* [Linux ARM64 (Debian packages)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-aarch64-unknown-linux-gnu.deb)
+* [Linux ARM64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-aarch64-unknown-linux-gnu.tar.gz)
+* [Linux ARMv7 (Debian packages, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-armv7-unknown-linux-gnueabihf.deb)
+* [Linux ARMv7 (Universal, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-armv7-unknown-linux-gnueabihf.tar.gz)
+* [Linux x86 (Debian packages)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-i686-unknown-linux-gnu.deb)
+* [Linux x86 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-i686-unknown-linux-gnu.tar.gz)
+* [Linux x86_64 (Debian packages)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-unknown-linux-gnu.deb)
+* [Linux x86_64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-unknown-linux-gnu.tar.gz)
+* [MacOS x86_64](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-apple-darwin.tar.gz)
+
 # Installation from source
 
-EdgeDNS is designed to work on rust-nightly.
-
-rust-nightly can be installed using [rustup](https://www.rustup.rs/):
-```sh
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
-```
-
-Compile and install `edgedns` with:
+EdgeDNS requires rust-nightly. Compile and install the server with:
 ```sh
 cargo install --git https://github.com/jedisct1/edgedns
 ```
-
-And find the `edgedns` binary in `~/.cargo/bin/edgedns`.
 
 # Quickstart
 
