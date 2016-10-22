@@ -30,6 +30,15 @@ gcc_prefix() {
     esac
 }
 
+dostrip() {
+    local prefix=$(gcc_prefix)
+    if which ${prefix}strip > /dev/null; then
+        ${prefix}strip -s $1
+    else
+        strip -s $1
+    fi
+}
+
 dobin() {
     [ -z $MAKE_DEB ] && die 'dobin: $MAKE_DEB not set'
     [ $# -lt 1 ] && die "dobin: at least one argument needed"
@@ -37,11 +46,7 @@ dobin() {
     local f prefix=$(gcc_prefix)
     for f in "$@"; do
         install -m0755 $f $dtd/debian/usr/bin/
-        if which ${prefix}strip > /dev/null; then
-            ${prefix}strip -s $dtd/debian/usr/bin/$(basename $f)
-        else
-            strip -s $dtd/debian/usr/bin/$(basename $f)
-        fi
+        dostrip $dtd/debian/usr/bin/$(basename $f)
     done
 }
 
