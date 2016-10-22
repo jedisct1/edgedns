@@ -19,6 +19,34 @@ $ cargo install --git https://github.com/jedisct1/edgedns
 
 And find the `edgedns` binary in `~/.cargo/bin/edgedns`.
 
+# Quickstart
+
+### As a cache for authoritative servers
+
+```
+# edgedns --cachesize=250000 --ports-count=64000 \
+          --upstream=192.168.1.1:53 --listen=0.0.0.0:53
+```
+
+Act as a "secondary DNS server" for the zones served by one or more
+"primary DNS servers". The external IP address `edgedns` is listening
+to can be configured as a public authoritative server for the zone.
+
+This will reduce the load on the "primary server", mitigate common
+attacks, and ensure a continuity of service even if the primary server
+has temporary outages.
+
+### As a local DNS cache
+
+```bash
+# edgedns --resolver-mode --cachesize=250000 \
+          --upstream=8.8.8.8:53,8.8.4.4:53 --listen=127.0.0.1:53
+```
+
+And use `127.0.0.1` as a resolver. EdgeDNS will cache responses,
+balance the load across the resolvers set, and improve your experience
+by making DNS more reliable.
+
 # Operation
 
 EdgeDNS has two modes of operation:
