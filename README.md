@@ -21,7 +21,7 @@ And find the `edgedns` binary in `~/.cargo/bin/edgedns`.
 
 # Quickstart
 
-### As a cache for authoritative servers
+### As a cache for authoritative servers ("virtual DNS" mode)
 
 ```
 edgedns --cachesize=250000 --ports-count=64000 \
