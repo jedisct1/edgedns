@@ -88,7 +88,7 @@ impl WebService {
         WebService { varz: rpdns_context.varz.clone() }
     }
 
-    fn handler(varz: Arc<Varz>, req: Request, mut res: Response) {
+    fn handler(&self, req: Request, mut res: Response) {
         match req.uri {
             AbsolutePath(ref path) if path == "/varz" => path,
             _ => {
@@ -96,7 +96,7 @@ impl WebService {
                 return;
             }
         };
-        let public_varz = PublicVarz::new(&varz);
+        let public_varz = PublicVarz::new(&self.varz);
         let body = json::encode(&public_varz).unwrap();
         {
             let headers = res.headers_mut();
@@ -112,16 +112,16 @@ impl WebService {
 
     pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<()> {
         let web_service = WebService::new(rpdns_context);
-        spawn(|| {
+        spawn(move || {
             let mut server = Server::http(WEBSERVICE_ADDRESS)
-                .expect("Unable to spawn the web service");
+                .expect("Unable to spawn the webservice");
             server.keep_alive(None);
-            info!("Webservice started on port {}", WEBSERVICE_ADDRESS);
+            info!("Webservice started on {}", WEBSERVICE_ADDRESS);
             server.handle_threads(move |req: Request, res: Response| {
-                                    Self::handler(web_service.varz.clone(), req, res)
+                                    web_service.handler(req, res)
                                 },
                                 WEBSERVICE_THREADS)
-                .unwrap();
+                .expect("Unable to start the webservice");
         });
         Ok(())
     }
