@@ -4,6 +4,7 @@ use std::io::{Error, ErrorKind};
 use std::path::Path;
 use toml;
 
+#[derive(Clone, Debug)]
 pub struct Config {
     pub decrement_ttl: bool,
     pub upstream_servers: Vec<String>,
