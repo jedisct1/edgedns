@@ -17,7 +17,7 @@ siphasher = "*"
 slab = "~0.3.0"
 toml = "*"
 
-hyper = {version="*", optional = true}
+hyper = {version="*", optional = true, default-features = false, features = ["nightly"]}
 clippy = {version = "*", optional = true}
 
 [dependencies.clockpro-cache]
