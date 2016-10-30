@@ -10,7 +10,7 @@ default = ["webservice"]
 
 [dependencies]
 env_logger = "*"
-log = "*"
+log = {version = "*", features = ["nightly"]}
 rand = "*"
 rustc-serialize = "*"
 siphasher = "*"
@@ -29,6 +29,7 @@ rev = "d05bfb6346e3eb5eebc9f6016c32fede20ba3831"
 
 [dependencies.clap]
 git = "https://github.com/kbknapp/clap-rs.git"
+features = ["nightly"]
 
 [dependencies.mio]
 git = "https://github.com/carllerche/mio"
