@@ -17,7 +17,6 @@ use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::thread;
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use super::RPDNSContext;
 use varz::Varz;
@@ -173,7 +172,7 @@ impl Handler for TcpListenerHandler {
 impl TcpListenerHandler {
     fn accept(&mut self, event_loop: &mut EventLoop<TcpListenerHandler>) -> io::Result<()> {
         debug!("accept()");
-        self.varz.client_queries_tcp.fetch_add(1, Ordering::Relaxed);
+        self.varz.client_queries_tcp.inc();
         let tcp_stream = match self.mio_listener.accept() {
             Ok((tcp_stream, _)) => tcp_stream,
             Err(e) => {
@@ -268,7 +267,7 @@ impl TcpListenerHandler {
                         if (expected_len as usize) < DNS_QUERY_MIN_SIZE ||
                            (expected_len as usize) > DNS_QUERY_MAX_SIZE {
                             info!("Suspicious query length");
-                            self.varz.client_queries_errors.fetch_add(1, Ordering::Relaxed);
+                            self.varz.client_queries_errors.inc();
                             let _ = client.tcp_stream.shutdown(Shutdown::Both);
                             continue;
                         } else {
@@ -279,7 +278,7 @@ impl TcpListenerHandler {
                     if let Some(expected_len) = client.expected_len {
                         if bytes_len > TCP_QUERY_HEADER_SIZE + expected_len as usize {
                             info!("Large query");
-                            self.varz.client_queries_errors.fetch_add(1, Ordering::Relaxed);
+                            self.varz.client_queries_errors.inc();
                             let _ = client.tcp_stream.shutdown(Shutdown::Both);
                             continue;
                         }
@@ -293,7 +292,7 @@ impl TcpListenerHandler {
                             Ok(normalized_question) => normalized_question,
                             Err(e) => {
                                 debug!("Error while parsing the question: {}", e);
-                                self.varz.client_queries_errors.fetch_add(1, Ordering::Relaxed);
+                                self.varz.client_queries_errors.inc();
                                 let _ = client.tcp_stream.shutdown(Shutdown::Both);
                                 continue;
                             }
@@ -301,7 +300,7 @@ impl TcpListenerHandler {
                         let cache_entry = self.cache.get2(&normalized_question);
                         if let Some(mut cache_entry) = cache_entry {
                             if !cache_entry.is_expired() {
-                                self.varz.client_queries_cached.fetch_add(1, Ordering::Relaxed);
+                                self.varz.client_queries_cached.inc();
                                 debug!("cached");
                                 let packet_len = cache_entry.packet.len();
                                 dns::set_tid(&mut cache_entry.packet, normalized_question.tid);
@@ -323,7 +322,7 @@ impl TcpListenerHandler {
                                 continue;
                             }
                             debug!("expired");
-                            self.varz.client_queries_expired.fetch_add(1, Ordering::Relaxed);
+                            self.varz.client_queries_expired.inc();
                         }
 
                         let client_query = ClientQuery {

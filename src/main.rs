@@ -1,6 +1,5 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(integer_atomics)]
 
 #[macro_use]
 extern crate log;
@@ -11,13 +10,15 @@ extern crate env_logger;
 extern crate mio;
 extern crate nix;
 extern crate rand;
-extern crate rustc_serialize;
 extern crate siphasher;
 extern crate slab;
 extern crate toml;
 
 #[cfg(feature = "webservice")]
 extern crate hyper;
+#[cfg(feature = "webservice")]
+#[macro_use]
+extern crate prometheus;
 
 mod cache;
 mod client_query;
@@ -87,7 +88,7 @@ impl RPDNS {
     fn webservice_start(_rpdns_context: &RPDNSContext) {}
 
     fn new(config: Config) -> RPDNS {
-        let varz = Arc::new(Varz::default());
+        let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
             .expect("Unable to create a client socket");

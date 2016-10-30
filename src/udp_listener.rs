@@ -9,7 +9,6 @@ use std::net::{UdpSocket, SocketAddr};
 use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Instant;
 use super::RPDNSContext;
@@ -31,10 +30,10 @@ impl UdpListener {
         loop {
             let (count, client_addr) =
                 self.socket.recv_from(&mut packet).expect("UDP socket error");
-            self.varz.client_queries_udp.fetch_add(1, Ordering::Relaxed);
+            self.varz.client_queries_udp.inc();
             if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
                 info!("Short query using UDP");
-                self.varz.client_queries_errors.fetch_add(1, Ordering::Relaxed);
+                self.varz.client_queries_errors.inc();
                 continue;
             }
             let packet = &packet[..count];
@@ -42,14 +41,14 @@ impl UdpListener {
                 Ok(normalized_question) => normalized_question,
                 Err(e) => {
                     debug!("Error while parsing the question: {}", e);
-                    self.varz.client_queries_errors.fetch_add(1, Ordering::Relaxed);
+                    self.varz.client_queries_errors.inc();
                     continue;
                 }
             };
             let cache_entry = self.cache.get2(&normalized_question);
             if let Some(mut cache_entry) = cache_entry {
                 if !cache_entry.is_expired() {
-                    self.varz.client_queries_cached.fetch_add(1, Ordering::Relaxed);
+                    self.varz.client_queries_cached.inc();
                     if cache_entry.packet.len() > normalized_question.payload_size as usize {
                         debug!("cached, but has to be truncated");
                         let packet = dns::build_tc_packet(&normalized_question).unwrap();
@@ -63,7 +62,7 @@ impl UdpListener {
                     continue;
                 }
                 debug!("expired");
-                self.varz.client_queries_expired.fetch_add(1, Ordering::Relaxed);
+                self.varz.client_queries_expired.inc();
             }
             let client_query = ClientQuery {
                 proto: ClientQueryProtocol::UDP,

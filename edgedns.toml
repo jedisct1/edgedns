@@ -38,7 +38,7 @@ listen = "0.0.0.0:53"
 
 [webservice]
 # Change to `true` in order to start the webservice
-enabled = false
+enabled = true
 
-# Webservice address
-listen = "0.0.0.0:8888"
+# Webservice address for Prometheus. Path will be /metrics
+listen = "0.0.0.0:9090"

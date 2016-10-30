@@ -22,7 +22,6 @@ use std::net::{UdpSocket, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::{Duration, Instant};
 use std::u64;
@@ -139,7 +138,7 @@ impl Handler for Resolver {
             };
             if count < DNS_HEADER_SIZE {
                 info!("Short response without a header, using UDP");
-                self.varz.resolver_errors.fetch_add(1, Ordering::Relaxed);
+                self.varz.upstream_errors.inc();
                 continue;
             }
             if let Some(idx) = self.upstream_servers
@@ -161,7 +160,7 @@ impl Handler for Resolver {
             }
             if count < DNS_QUERY_MIN_SIZE {
                 info!("Short response without a query, using UDP");
-                self.varz.resolver_errors.fetch_add(1, Ordering::Relaxed);
+                self.varz.upstream_errors.inc();
                 continue;
             }
             let mut packet = &mut packet[..count];
@@ -177,7 +176,7 @@ impl Handler for Resolver {
                     info!("Unexpected answers in a response ({}): {}",
                           normalized_question,
                           e);
-                    self.varz.resolver_errors.fetch_add(1, Ordering::Relaxed);
+                    self.varz.upstream_errors.inc();
                     continue;
                 }
                 Ok(ttl) => {
@@ -225,7 +224,7 @@ impl Handler for Resolver {
                 for client_query in client_queries {
                     set_tid(packet, client_query.normalized_question.tid);
                     overwrite_qname(packet, &client_query.normalized_question.qname);
-                    self.varz.resolver_received.fetch_add(1, Ordering::Relaxed);
+                    self.varz.upstream_received.inc();
                     match client_query.proto {
                         ClientQueryProtocol::UDP => {
                             if client_query.ts.elapsed() <
@@ -272,11 +271,11 @@ impl Handler for Resolver {
                 self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
             }
             let cache_stats = self.cache.stats();
-            self.varz.cache_frequent_len.store(cache_stats.frequent_len, Ordering::Relaxed);
-            self.varz.cache_recent_len.store(cache_stats.recent_len, Ordering::Relaxed);
-            self.varz.cache_test_len.store(cache_stats.test_len, Ordering::Relaxed);
-            self.varz.cache_inserted.store(cache_stats.inserted, Ordering::Relaxed);
-            self.varz.cache_evicted.store(cache_stats.evicted, Ordering::Relaxed);
+            self.varz.cache_frequent_len.set(cache_stats.frequent_len as f64);
+            self.varz.cache_recent_len.set(cache_stats.recent_len as f64);
+            self.varz.cache_test_len.set(cache_stats.test_len as f64);
+            self.varz.cache_inserted.set(cache_stats.inserted as f64);
+            self.varz.cache_evicted.set(cache_stats.evicted as f64);
         }
     }
 
@@ -431,7 +430,7 @@ impl Resolver {
                     build_servfail_packet(&client_query.normalized_question).unwrap()
                 };
                 set_tid(&mut packet, client_query.normalized_question.tid);
-                self.varz.resolver_timeout.fetch_add(1, Ordering::Relaxed);
+                self.varz.upstream_timeout.inc();
                 match client_query.proto {
                     ClientQueryProtocol::UDP => {
                         if client_query.ts.elapsed() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {

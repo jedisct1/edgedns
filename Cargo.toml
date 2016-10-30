@@ -4,7 +4,7 @@ version = "0.2.0"
 authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
-webservice = ["hyper"]
+webservice = ["hyper", "prometheus"]
 
 default = ["webservice"]
 
@@ -12,7 +12,6 @@ default = ["webservice"]
 env_logger = "*"
 log = {version = "*", features = ["nightly"]}
 rand = "*"
-rustc-serialize = "*"
 siphasher = "*"
 slab = "~0.3.0"
 toml = "*"
@@ -36,6 +35,12 @@ git = "https://github.com/carllerche/mio"
 
 [dependencies.nix]
 git = "https://github.com/carllerche/nix-rust.git"
+
+[dependencies.prometheus]
+git = "https://github.com/pingcap/rust-prometheus.git"
+default-features = false
+features = ["nightly"]
+optional = true
 
 [profile.dev]
 codegen-units = 4

@@ -103,7 +103,7 @@ impl Config {
         });
 
         let webservice_listen_addr = toml_config.lookup("webservice.listen")
-            .map_or("127.0.0.1:8888",
+            .map_or("0.0.0.0:9090",
                     |x| x.as_str().expect("webservice.listen_addr must be a string"))
             .to_owned();
 
