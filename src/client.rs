@@ -1,4 +1,3 @@
-
 use bytes::{ByteBuf, MutByteBuf};
 use dns::NormalizedQuestion;
 use mio::*;

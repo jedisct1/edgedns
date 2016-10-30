@@ -1,4 +1,3 @@
-
 use dns::NormalizedQuestion;
 use mio::*;
 use mio::deprecated::Sender;

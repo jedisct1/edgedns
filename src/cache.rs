@@ -1,4 +1,3 @@
-
 use clockpro_cache::*;
 use dns;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
