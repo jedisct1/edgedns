@@ -1,10 +1,12 @@
 [package]
 name = "edgedns"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
 webservice = ["hyper"]
+
+default = ["webservice"]
 
 [dependencies]
 env_logger = "*"
@@ -13,6 +15,7 @@ rand = "*"
 rustc-serialize = "*"
 siphasher = "*"
 slab = "~0.3.0"
+toml = "*"
 
 hyper = {version="*", optional = true}
 clippy = {version = "*", optional = true}

@@ -1,0 +1,34 @@
+
+[upstream]
+# Type of upstream servers: "resolver" or "authoritative"
+type = "resolver"
+
+# Upstream servers
+servers = ["8.8.8.8:53", "8.8.4.4:53"]
+
+# Load balancing/failover strategy: "uniform" or "fallback"
+strategy = "uniform"
+
+# Max failures before marking a server as temporarily unresponsive
+max_failures = 3
+
+
+[cache]
+# Max number of cached entries
+max_items = 250000
+
+
+[network]
+# Max number of UDP ports to use for outgoing connections, up to 64511
+udp_ports = 8
+
+# Listen address
+listen = "0.0.0.0:53"
+
+
+[webservice]
+# Change to `true` in order to start the webservice
+enabled = false
+
+# Webservice address
+listen = "0.0.0.0:8888"

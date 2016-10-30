@@ -11,7 +11,7 @@ use std::thread::spawn;
 use varz::{StartInstant, Varz};
 
 use super::RPDNSContext;
-use super::{WEBSERVICE_ADDRESS, WEBSERVICE_THREADS};
+use super::WEBSERVICE_THREADS;
 
 #[derive(RustcDecodable, RustcEncodable, Debug)]
 struct PublicVarz {
@@ -110,13 +110,13 @@ impl WebService {
         res.end().unwrap();
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<()> {
+    pub fn spawn(rpdns_context: &RPDNSContext, listen_addr: &str) -> io::Result<()> {
+        let listen_addr = listen_addr.to_owned();
         let web_service = WebService::new(rpdns_context);
         spawn(move || {
-            let mut server = Server::http(WEBSERVICE_ADDRESS)
-                .expect("Unable to spawn the webservice");
+            let mut server = Server::http(&*listen_addr).expect("Unable to spawn the webservice");
             server.keep_alive(None);
-            info!("Webservice started on {}", WEBSERVICE_ADDRESS);
+            info!("Webservice started on {}", listen_addr);
             server.handle_threads(move |req: Request, res: Response| {
                                     web_service.handler(req, res)
                                 },
