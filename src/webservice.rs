@@ -110,8 +110,8 @@ impl WebService {
         res.end().unwrap();
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext, listen_addr: &str) -> io::Result<()> {
-        let listen_addr = listen_addr.to_owned();
+    pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<()> {
+        let listen_addr = rpdns_context.config.listen_addr.to_owned();
         let web_service = WebService::new(rpdns_context);
         spawn(move || {
             let mut server = Server::http(&*listen_addr).expect("Unable to spawn the webservice");

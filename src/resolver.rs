@@ -490,13 +490,9 @@ impl Resolver {
             .expect("Unable to reschedule the health check");
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext,
-                 upstream_servers_str: Vec<&str>,
-                 decrement_ttl: bool,
-                 failover: bool,
-                 ports: u16,
-                 upstream_max_failures: u32)
+    pub fn spawn(rpdns_context: &RPDNSContext)
                  -> io::Result<Sender<ClientQuery>> {
+        let config = &rpdns_context.config;
         let udp_socket =
             rpdns_context.udp_socket.try_clone().expect("Unable to clone the UDP listening socket");
         let mut builder = EventLoopBuilder::new();
@@ -505,10 +501,10 @@ impl Resolver {
         let resolver_tx: Sender<ClientQuery> = event_loop.channel();
         let pending_queries = PendingQueries::new();
         let mut ext_udp_socket_tuples = Vec::new();
-        let ports = if ports > 65535 - 1024 {
+        let ports = if config.udp_ports > 65535 - 1024 {
             65535 - 1024
         } else {
-            ports
+            config.udp_ports
         };
         for port in 1024..1024 + ports {
             if (port + 1) % 1024 == 0 {
@@ -530,10 +526,10 @@ impl Resolver {
         if ext_udp_socket_tuples.is_empty() {
             panic!("Couldn't bind any ports");
         }
-        let upstream_servers: Vec<UpstreamServer> = upstream_servers_str.iter()
+        let upstream_servers: Vec<UpstreamServer> = config.upstream_servers.iter()
             .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
             .collect();
-        let upstream_servers_live: Vec<usize> = (0..upstream_servers.len()).collect();
+        let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
         event_loop.timeout(TimeoutToken::HealthCheck,
                      Duration::from_millis(HEALTH_CHECK_MS))
             .expect("Unable to set up the health check");
@@ -546,14 +542,14 @@ impl Resolver {
             waiting_clients_count: 0,
             cache: rpdns_context.cache.clone(),
             varz: rpdns_context.varz.clone(),
-            decrement_ttl: decrement_ttl,
-            failover: failover,
-            upstream_max_failures: upstream_max_failures,
+            decrement_ttl: config.decrement_ttl,
+            failover: config.failover,
+            upstream_max_failures: config.upstream_max_failures,
         };
-        if decrement_ttl {
+        if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
         }
-        if failover {
+        if config.failover {
             info!("Failover mode: upstream servers will be tried sequentially");
         }
         thread::spawn(move || {

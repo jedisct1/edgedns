@@ -70,6 +70,7 @@ const UPSTREAM_TIMEOUT_MS: u64 = 10 * 1000;
 const WEBSERVICE_THREADS: usize = 1;
 
 pub struct RPDNSContext {
+    pub config: Config,
     pub udp_socket: UdpSocket,
     pub listen_addr: String,
     pub cache: Cache,
@@ -80,12 +81,12 @@ struct RPDNS;
 
 impl RPDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start(rpdns_context: &RPDNSContext, listen_addr: &str) {
-        WebService::spawn(rpdns_context, listen_addr).expect("Unable to spawn the web service");
+    fn webservice_start(rpdns_context: &RPDNSContext) {
+        WebService::spawn(rpdns_context).expect("Unable to spawn the web service");
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start(_rpdns_context: &RPDNSContext, _listen_addr: &str) {}
+    fn webservice_start(_rpdns_context: &RPDNSContext) {}
 
     fn new(config: Config) -> RPDNS {
         let varz = Arc::new(Varz::default());
@@ -93,21 +94,15 @@ impl RPDNS {
         let udp_socket = socket_udp_bound(&config.listen_addr)
             .expect("Unable to create a client socket");
         let rpdns_context = RPDNSContext {
+            config: config.clone(),
             udp_socket: udp_socket,
             listen_addr: config.listen_addr.to_owned(),
             cache: cache,
             varz: varz,
         };
-        let resolver_tx = Resolver::spawn(&rpdns_context,
-                                          config.upstream_servers.iter().map(|s| &**s).collect(),
-                                          config.decrement_ttl,
-                                          config.failover,
-                                          config.udp_ports,
-                                          config.upstream_max_failures)
-            .expect("Unable to spawn the resolver");
-
+        let resolver_tx = Resolver::spawn(&rpdns_context).expect("Unable to spawn the resolver");
         if config.webservice_enabled {
-            Self::webservice_start(&rpdns_context, &config.webservice_listen_addr);
+            Self::webservice_start(&rpdns_context);
         }
         let udp_listener = UdpListener::spawn(&rpdns_context, resolver_tx.clone())
             .expect("Unable to spawn a UDP listener");
