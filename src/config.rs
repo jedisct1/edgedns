@@ -15,6 +15,8 @@ pub struct Config {
     pub listen_addr: String,
     pub webservice_enabled: bool,
     pub webservice_listen_addr: String,
+    pub min_ttl: u32,
+    pub max_ttl: u32,
 }
 
 impl Config {
@@ -79,6 +81,14 @@ impl Config {
             x.as_integer().expect("cache.max_items must be an integer")
         }) as usize;
 
+        let min_ttl = toml_config.lookup("cache.min_ttl").map_or(60, |x| {
+            x.as_integer().expect("cache.min_ttl must be an integer")
+        }) as u32;
+
+        let max_ttl = toml_config.lookup("cache.max_ttl").map_or(86_400, |x| {
+            x.as_integer().expect("cache.max_ttl must be an integer")
+        }) as u32;
+
         let udp_ports = toml_config.lookup("network.udp_ports").map_or(8, |x| {
             x.as_integer().expect("network.udp_ports must be an integer")
         }) as u16;
@@ -107,6 +117,8 @@ impl Config {
             listen_addr: listen_addr,
             webservice_enabled: webservice_enabled,
             webservice_listen_addr: webservice_listen_addr,
+            min_ttl: min_ttl,
+            max_ttl: max_ttl,
         })
     }
 }

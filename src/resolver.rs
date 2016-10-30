@@ -1,5 +1,6 @@
 use cache::Cache;
 use client_query::*;
+use config::Config;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
           build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
@@ -30,8 +31,7 @@ use varz::Varz;
 
 use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS,
             UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY,
-            MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, MIN_TTL,
-            FAILURE_TTL};
+            MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
 
 #[derive(Clone, Debug)]
 pub struct ResolverResponse {
@@ -69,6 +69,7 @@ impl UpstreamServer {
 }
 
 pub struct Resolver {
+    config: Config,
     udp_socket: UdpSocket,
     pending_queries: PendingQueries,
     ext_udp_socket_tuples: Vec<ExtUdpSocketTuple>,
@@ -171,7 +172,7 @@ impl Handler for Resolver {
                 }
                 Ok(normalized_question) => normalized_question,
             };
-            let ttl = match min_ttl(packet) {
+            let ttl = match min_ttl(packet, self.config.min_ttl, self.config.max_ttl, FAILURE_TTL) {
                 Err(e) => {
                     info!("Unexpected answers in a response ({}): {}",
                           normalized_question,
@@ -183,11 +184,11 @@ impl Handler for Resolver {
                     if rcode(packet) == DNS_RCODE_SERVFAIL {
                         let _ = set_ttl(packet, FAILURE_TTL);
                         FAILURE_TTL
-                    } else if ttl < MIN_TTL {
+                    } else if ttl < self.config.min_ttl {
                         if self.decrement_ttl {
-                            let _ = set_ttl(packet, MIN_TTL);
+                            let _ = set_ttl(packet, self.config.min_ttl);
                         }
-                        MIN_TTL
+                        self.config.min_ttl
                     } else {
                         ttl
                     }
@@ -534,6 +535,7 @@ impl Resolver {
                      Duration::from_millis(HEALTH_CHECK_MS))
             .expect("Unable to set up the health check");
         let mut resolver = Resolver {
+            config: rpdns_context.config.clone(),
             udp_socket: udp_socket,
             pending_queries: pending_queries,
             ext_udp_socket_tuples: ext_udp_socket_tuples,

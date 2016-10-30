@@ -2,7 +2,7 @@ use rand::random;
 use std::fmt;
 use std::io::Write;
 
-use super::{DNS_QUERY_MIN_SIZE, DNS_UDP_NOEDNS0_MAX_SIZE, MIN_TTL, MAX_TTL, FAILURE_TTL};
+use super::{DNS_QUERY_MIN_SIZE, DNS_UDP_NOEDNS0_MAX_SIZE};
 
 pub const DNS_CLASS_IN: u16 = 1;
 pub const DNS_CLASS_CH: u16 = 3;
@@ -467,7 +467,11 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
     Ok(normalized_question)
 }
 
-pub fn min_ttl(packet: &[u8]) -> Result<u32, &'static str> {
+pub fn min_ttl(packet: &[u8],
+               min_ttl: u32,
+               max_ttl: u32,
+               failure_ttl: u32)
+               -> Result<u32, &'static str> {
     if qdcount(packet) != 1 {
         return Err("Unsupported number of questions");
     }
@@ -492,7 +496,7 @@ pub fn min_ttl(packet: &[u8]) -> Result<u32, &'static str> {
     let nscount = nscount(packet);
     let arcount = arcount(packet);
     let rrcount = ancount + nscount + arcount;
-    let mut found_min_ttl = if rrcount > 0 { MAX_TTL } else { FAILURE_TTL };
+    let mut found_min_ttl = if rrcount > 0 { max_ttl } else { failure_ttl };
     for _ in 0..rrcount {
         offset = match skip_name(packet, offset) {
             Ok(offset) => offset.0,
@@ -520,8 +524,8 @@ pub fn min_ttl(packet: &[u8]) -> Result<u32, &'static str> {
         }
         offset += rdlen;
     }
-    if found_min_ttl < MIN_TTL {
-        found_min_ttl = MIN_TTL;
+    if found_min_ttl < min_ttl {
+        found_min_ttl = min_ttl;
     }
     if offset != packet_len {
         return Err("Garbage after packet");
@@ -661,7 +665,9 @@ pub fn build_nxdomain_packet(normalized_question: &NormalizedQuestion)
     Ok(packet)
 }
 
-pub fn build_any_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u8>, &'static str> {
+pub fn build_any_packet(normalized_question: &NormalizedQuestion,
+                        ttl: u32)
+                        -> Result<Vec<u8>, &'static str> {
     let hinfo_cpu = b"draft-ietf-dnsop-refuse-any";
     let hinfo_rdata = b"";
     let rdata_len = 1 + hinfo_cpu.len() + 1 + hinfo_rdata.len();
@@ -690,10 +696,10 @@ pub fn build_any_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<
     packet.push((normalized_question.qclass >> 8) as u8);
     packet.push(normalized_question.qclass as u8);
 
-    packet.push((MAX_TTL >> 24) as u8);
-    packet.push((MAX_TTL >> 16) as u8);
-    packet.push((MAX_TTL >> 8) as u8);
-    packet.push(MAX_TTL as u8);
+    packet.push((ttl >> 24) as u8);
+    packet.push((ttl >> 16) as u8);
+    packet.push((ttl >> 8) as u8);
+    packet.push(ttl as u8);
 
     packet.push((rdata_len >> 8) as u8);
     packet.push(rdata_len as u8);
@@ -706,7 +712,8 @@ pub fn build_any_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<
     Ok(packet)
 }
 
-pub fn build_version_packet(normalized_question: &NormalizedQuestion)
+pub fn build_version_packet(normalized_question: &NormalizedQuestion,
+                            ttl: u32)
                             -> Result<Vec<u8>, &'static str> {
     let txt = b"EdgeDNS";
     let rdata_len = 1 + txt.len();
@@ -736,10 +743,10 @@ pub fn build_version_packet(normalized_question: &NormalizedQuestion)
     packet.push((DNS_CLASS_CH >> 8) as u8);
     packet.push(DNS_CLASS_CH as u8);
 
-    packet.push((MAX_TTL >> 24) as u8);
-    packet.push((MAX_TTL >> 16) as u8);
-    packet.push((MAX_TTL >> 8) as u8);
-    packet.push(MAX_TTL as u8);
+    packet.push((ttl >> 24) as u8);
+    packet.push((ttl >> 16) as u8);
+    packet.push((ttl >> 8) as u8);
+    packet.push(ttl as u8);
 
     packet.push((rdata_len >> 8) as u8);
     packet.push(rdata_len as u8);

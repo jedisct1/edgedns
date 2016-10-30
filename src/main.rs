@@ -58,8 +58,6 @@ const MAX_TCP_CLIENTS: usize = 1_000;
 const MAX_TCP_HASH_DISTANCE: usize = 10;
 const MAX_TCP_IDLE_MS: u64 = 10 * 1000;
 const MAX_WAITING_CLIENTS: usize = MAX_ACTIVE_QUERIES * 10;
-const MIN_TTL: u32 = 60;
-const MAX_TTL: u32 = 86400;
 const FAILURE_TTL: u32 = 30;
 const UDP_BUFFER_SIZE: usize = 16 * 1024 * 1024;
 const UPSTREAM_INITIAL_TIMEOUT_MS: u64 = 1 * 1000;
@@ -90,7 +88,7 @@ impl RPDNS {
 
     fn new(config: Config) -> RPDNS {
         let varz = Arc::new(Varz::default());
-        let cache = Cache::new(config.cache_size, config.decrement_ttl);
+        let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
             .expect("Unable to create a client socket");
         let rpdns_context = RPDNSContext {

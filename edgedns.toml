@@ -17,6 +17,16 @@ max_failures = 3
 # Max number of cached entries
 max_items = 250000
 
+# Minimum TTL - Records with a TTL shorter than that one will not trigger a
+# cache refrseh. Increasing that value increases the cache hit ratio,
+# improves reliability and reduces the load on upstream servers, but zones
+# changes will obviously require more time to be visible by clients.
+min_ttl = 60
+
+# Maximum TTL - Records with a TTL larger than that one will be refreshed no
+# matter what. These usually come from misconfigured zones.
+max_ttl = 86400
+
 
 [network]
 # Max number of UDP ports to use for outgoing connections, up to 64511

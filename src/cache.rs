@@ -1,9 +1,9 @@
+use config::Config;
 use clockpro_cache::*;
 use dns;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use super::MAX_TTL;
 
 #[derive(Clone, Debug)]
 pub struct CacheEntry {
@@ -20,8 +20,8 @@ impl CacheEntry {
 
 #[derive(Clone)]
 pub struct Cache {
+    config: Config,
     arc_mx: Arc<Mutex<ClockProCache<NormalizedQuestionKey, CacheEntry>>>,
-    decrement_ttl: bool,
 }
 
 pub struct CacheStats {
@@ -33,12 +33,12 @@ pub struct CacheStats {
 }
 
 impl Cache {
-    pub fn new(capacity: usize, decrement_ttl: bool) -> Cache {
-        let arc = ClockProCache::new(capacity).unwrap();
+    pub fn new(config: Config) -> Cache {
+        let arc = ClockProCache::new(config.cache_size).unwrap();
         let arc_mx = Arc::new(Mutex::new(arc));
         Cache {
+            config: config,
             arc_mx: arc_mx,
-            decrement_ttl: decrement_ttl,
         }
     }
 
@@ -81,19 +81,19 @@ impl Cache {
     pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {
-                expiration: Instant::now() + Duration::from_secs(MAX_TTL as u64),
+                expiration: Instant::now() + Duration::from_secs(self.config.max_ttl as u64),
                 packet: special_packet,
             })
         } else if normalized_question.qclass != DNS_CLASS_IN {
             Some(CacheEntry {
-                expiration: Instant::now() + Duration::from_secs(MAX_TTL as u64),
+                expiration: Instant::now() + Duration::from_secs(self.config.max_ttl as u64),
                 packet: dns::build_refused_packet(normalized_question).unwrap(),
             })
         } else {
             let normalized_question_key = normalized_question.key();
             let cache_entry = self.get(&normalized_question_key);
             if let Some(mut cache_entry) = cache_entry {
-                if self.decrement_ttl {
+                if self.config.decrement_ttl {
                     let now = Instant::now();
                     if now <= cache_entry.expiration {
                         let remaining_ttl = cache_entry.expiration.duration_since(now).as_secs();
@@ -130,13 +130,14 @@ impl Cache {
         if normalized_question.qclass == dns::DNS_CLASS_IN &&
            normalized_question.qtype == dns::DNS_TYPE_ANY {
             debug!("ANY query");
-            let packet = dns::build_any_packet(normalized_question).unwrap();
+            let packet = dns::build_any_packet(normalized_question, self.config.max_ttl).unwrap();
             return Some(packet);
         }
         if normalized_question.qclass == dns::DNS_CLASS_CH &&
            normalized_question.qtype == dns::DNS_TYPE_TXT {
             debug!("CHAOS TXT");
-            let packet = dns::build_version_packet(normalized_question).unwrap();
+            let packet = dns::build_version_packet(normalized_question, self.config.max_ttl)
+                .unwrap();
             return Some(packet);
         }
         None
