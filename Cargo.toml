@@ -4,32 +4,18 @@ version = "0.1.0"
 authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
-webservice = ["civet", "conduit", "conduit-middleware", "conduit-router"]
+webservice = ["hyper"]
 
 [dependencies]
 env_logger = "*"
 log = "*"
 rand = "*"
 rustc-serialize = "*"
-slab = "~0.3.0"
 siphasher = "*"
+slab = "~0.3.0"
+
+hyper = {version="*", optional = true}
 clippy = {version = "*", optional = true}
-
-[dependencies.civet]
-version = "*"
-optional = true
-
-[dependencies.conduit]
-version = "*"
-optional = true
-
-[dependencies.conduit-middleware]
-version = "*"
-optional = true
-
-[dependencies.conduit-router]
-version = "*"
-optional = true
 
 [dependencies.clockpro-cache]
 git = "https://github.com/jedisct1/rust-clockpro-cache.git"
@@ -52,7 +38,6 @@ codegen-units = 4
 panic = "unwind"
 
 [profile.release]
-debug = true
 lto = true
 panic = "abort"
 opt-level = 3

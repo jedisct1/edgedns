@@ -1,20 +1,17 @@
-
-use civet::{Config, response, Server};
-use conduit_middleware::{Middleware, MiddlewareBuilder};
-use conduit_router::RouteBuilder;
-use conduit::{Request, Response};
+use hyper::header::{ContentLength, ContentType};
+use hyper::mime::{self, Mime};
+use hyper::server::{Server, Request, Response};
+use hyper::status::StatusCode;
+use hyper::uri::RequestUri::AbsolutePath;
 use rustc_serialize::json;
-use std::collections::HashMap;
-use std::error::Error;
-use std::io::{self, Cursor};
+use std::io::{self, Write};
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::channel;
 use std::thread::spawn;
 use varz::{StartInstant, Varz};
 
 use super::RPDNSContext;
-use super::{WEBSERVICE_PORT, WEBSERVICE_THREADS};
+use super::{WEBSERVICE_ADDRESS, WEBSERVICE_THREADS};
 
 #[derive(RustcDecodable, RustcEncodable, Debug)]
 struct PublicVarz {
@@ -86,43 +83,45 @@ pub struct WebService {
     varz: Arc<Varz>,
 }
 
-impl Middleware for WebService {
-    fn before(&self, req: &mut Request) -> Result<(), Box<Error + Send>> {
-        req.mut_extensions().insert(self.varz.clone());
-        Ok(())
-    }
-}
-
 impl WebService {
     fn new(rpdns_context: &RPDNSContext) -> WebService {
         WebService { varz: rpdns_context.varz.clone() }
     }
 
-    fn varz(req: &mut Request) -> io::Result<Response> {
-        let varz = req.extensions().find::<Arc<Varz>>().unwrap();
-        let mut headers = HashMap::new();
-        headers.insert("Content-Type".to_owned(),
-                       vec!["application/json".to_owned()]);
-        headers.insert("Server".to_owned(), vec!["EdgeDNS Webservice".to_owned()]);
-        let public_varz = PublicVarz::new(varz);
-        let body = json::encode(&public_varz).unwrap().into_bytes();
-        Ok(response(200, headers, Cursor::new(body)))
+    fn handler(varz: Arc<Varz>, req: Request, mut res: Response) {
+        match req.uri {
+            AbsolutePath(ref path) if path == "/varz" => path,
+            _ => {
+                *res.status_mut() = StatusCode::NotFound;
+                return;
+            }
+        };
+        let public_varz = PublicVarz::new(&varz);
+        let body = json::encode(&public_varz).unwrap();
+        {
+            let headers = res.headers_mut();
+            headers.set(ContentLength(body.len() as u64));
+            headers.set(ContentType(Mime(mime::TopLevel::Application,
+                                         mime::SubLevel::Json,
+                                         vec![(mime::Attr::Charset, mime::Value::Utf8)])));
+        }
+        let mut res = res.start().unwrap();
+        res.write_all(&body.into_bytes()).unwrap();
+        res.end().unwrap();
     }
 
     pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<()> {
-        let mut builder = MiddlewareBuilder::new(Self::varz);
         let web_service = WebService::new(rpdns_context);
-        builder.add(web_service);
-        let mut router = RouteBuilder::new();
-        router.get("/varz", builder);
-        let mut cfg = Config::new();
-        cfg.port(WEBSERVICE_PORT).keep_alive(false).threads(WEBSERVICE_THREADS);
         spawn(|| {
-            let server = Server::start(cfg, router).expect("Unable to spawn the web service");
-            let _ = server;
-            info!("Webservice started on port {}", WEBSERVICE_PORT);
-            let (_tx, rx) = channel::<()>();
-            rx.recv().unwrap();
+            let mut server = Server::http(WEBSERVICE_ADDRESS)
+                .expect("Unable to spawn the web service");
+            server.keep_alive(None);
+            info!("Webservice started on port {}", WEBSERVICE_ADDRESS);
+            server.handle_threads(move |req: Request, res: Response| {
+                                    Self::handler(web_service.varz.clone(), req, res)
+                                },
+                                WEBSERVICE_THREADS)
+                .unwrap();
         });
         Ok(())
     }

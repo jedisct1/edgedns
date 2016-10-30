@@ -16,13 +16,7 @@ extern crate siphasher;
 extern crate slab;
 
 #[cfg(feature = "webservice")]
-extern crate civet;
-#[cfg(feature = "webservice")]
-extern crate conduit_middleware;
-#[cfg(feature = "webservice")]
-extern crate conduit_router;
-#[cfg(feature = "webservice")]
-extern crate conduit;
+extern crate hyper;
 
 mod cache;
 mod client_query;
@@ -71,9 +65,9 @@ const UPSTREAM_MAX_TIMEOUT_MS: u64 = 8 * 1000;
 const UPSTREAM_TIMEOUT_MS: u64 = 10 * 1000;
 
 #[cfg(feature = "webservice")]
-const WEBSERVICE_PORT: u16 = 8888;
+const WEBSERVICE_ADDRESS: &'static str = "0.0.0.0:8888";
 #[cfg(feature = "webservice")]
-const WEBSERVICE_THREADS: u32 = 2;
+const WEBSERVICE_THREADS: usize = 1;
 
 pub struct RPDNSContext {
     pub udp_socket: UdpSocket,
