@@ -38,7 +38,7 @@ cargo install
 EdgeDNS can protect authoritative servers ("virtual DNS" mode), or act as a
 local cache for responses received from a recursive server.
 
-### As a cache for authoritative servers ("virtual DNS" mode)
+### EdgeDNS as a cache for authoritative servers ("virtual DNS" mode)
 
 For this mode, set the `type` property in the `[upstream]` section to
 `authoritative`:
@@ -61,7 +61,7 @@ Binding as many ports as possible (`udp_ports` in the `network` section) is
 recommended in this mode of operation. This may require some adjustments to your
 system configuration. See below.
 
-### As a local DNS cache
+### EdgeDNS as a local DNS cache
 
 For this mode, set the `type` property in the `[upstream]` section to
 `resolver`:
