@@ -32,8 +32,8 @@ cargo install
 
 # Quickstart
 
-1) Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/0.2.0/edgedns.toml) configuration file
-2) Run `edgedns -c /path/to/edgedns.toml`
+1. Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/0.2.0/edgedns.toml) configuration file
+2. Run `edgedns -c /path/to/edgedns.toml`
 
 EdgeDNS can protect authoritative servers ("virtual DNS" mode), or act as a
 local cache for responses received from a recursive server.
