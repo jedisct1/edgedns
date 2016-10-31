@@ -102,6 +102,12 @@ impl Varz {
     }
 }
 
+impl Default for Varz {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Default for StartInstant {
     fn default() -> StartInstant {
         StartInstant(Instant::now())
