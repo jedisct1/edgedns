@@ -7,60 +7,74 @@ built-in security mechanisms to protect origins, clients and itself.
 
 # Precompiled binaries (recommended)
 
-* [Linux ARM64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-aarch64-unknown-linux-gnu.deb)
-* [Linux ARM64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-aarch64-unknown-linux-gnu.tar.gz)
-* [Linux ARMv7 (Debian package, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-armv7-unknown-linux-gnueabihf.deb)
-* [Linux ARMv7 (Universal, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-armv7-unknown-linux-gnueabihf.tar.gz)
-* [Linux x86 (Debian package, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-i686-unknown-linux-musl.deb)
-* [Linux x86 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-i686-unknown-linux-gnu.deb)
-* [Linux x86 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-i686-unknown-linux-gnu.tar.gz)
-* [Linux x86 (Universal, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-i686-unknown-linux-musl.tar.gz)
-* [Linux x86_64 (Debian package, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-unknown-linux-musl.deb)
-* [Linux x86_64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-unknown-linux-gnu.deb)
-* [Linux x86_64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-unknown-linux-gnu.tar.gz)
-* [Linux x86_64 (Universal, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-unknown-linux-musl.tar.gz)
-* [MacOS x86_64](https://github.com/jedisct1/edgedns/releases/download/0.1.0/edgedns-0.1.0-x86_64-apple-darwin.tar.gz)
+* [Linux ARM64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-aarch64-unknown-linux-gnu.deb)
+* [Linux ARM64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-aarch64-unknown-linux-gnu.tar.gz)
+* [Linux ARMv7 (Debian package, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-armv7-unknown-linux-gnueabihf.deb)
+* [Linux ARMv7 (Universal, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-armv7-unknown-linux-gnueabihf.tar.gz)
+* [Linux x86 (Debian package, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-i686-unknown-linux-musl.deb)
+* [Linux x86 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-i686-unknown-linux-gnu.deb)
+* [Linux x86 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-i686-unknown-linux-gnu.tar.gz)
+* [Linux x86 (Universal, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-i686-unknown-linux-musl.tar.gz)
+* [Linux x86_64 (Debian package, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-x86_64-unknown-linux-musl.deb)
+* [Linux x86_64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-x86_64-unknown-linux-gnu.deb)
+* [Linux x86_64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-x86_64-unknown-linux-gnu.tar.gz)
+* [Linux x86_64 (Universal, static, musl)](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-x86_64-unknown-linux-musl.tar.gz)
+* [MacOS x86_64](https://github.com/jedisct1/edgedns/releases/download/0.2.0/edgedns-0.2.0-x86_64-apple-darwin.tar.gz)
 
 # Installation from source
 
 EdgeDNS requires rust-nightly. Compile and install the server with:
 ```sh
-git clone -b 0.1.0 https://github.com/jedisct1/edgedns
+git clone -b 0.2.0 https://github.com/jedisct1/edgedns
 cd edgedns
 cargo install
 ```
 
 # Quickstart
 
+1) Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/0.2.0/edgedns.toml) configuration file
+2) Run `edgedns -c /path/to/edgedns.toml`
+
+EdgeDNS can protect authoritative servers ("virtual DNS" mode), or act as a
+local cache for responses received from a recursive server.
+
 ### As a cache for authoritative servers ("virtual DNS" mode)
 
-```
-edgedns --cachesize=250000 --ports-count=64000 \
-        --upstream=192.168.1.1:53 --listen=0.0.0.0:53
+For this mode, set the `type` property in the `[upstream]` section to
+`authoritative`:
+
+```toml
+[upstream]
+# Type of upstream servers: "resolver" or "authoritative"
+type = "authoritative"
 ```
 
-Act as a "secondary DNS server" for the zones served by one or more
-"primary DNS servers". The external IP address `edgedns` is listening
-to can be configured as a public authoritative server for the zone.
+EdgeDNS will act as a "secondary DNS server" for the zones served by one or more
+"primary DNS servers". The external IP address `edgedns` is listening to can be
+configured as a public authoritative server for the zone.
 
 This will reduce the load on the "primary server", mitigate common
 attacks, and ensure a continuity of service even if the primary server
 has temporary outages.
 
-Binding as many ports as possible (`--ports-count`) is recommended in
-this mode of operation. This may require some adjustments to your
+Binding as many ports as possible (`udp_ports` in the `network` section) is
+recommended in this mode of operation. This may require some adjustments to your
 system configuration. See below.
 
 ### As a local DNS cache
 
-```sh
-edgedns --resolver-mode --cachesize=250000 \
-        --upstream=8.8.8.8:53,8.8.4.4:53 --listen=127.0.0.1:53
+For this mode, set the `type` property in the `[upstream]` section to
+`resolver`:
+
+```toml
+[upstream]
+# Type of upstream servers: "resolver" or "authoritative"
+type = "resolver"
 ```
 
-And use `127.0.0.1` as a resolver. EdgeDNS will cache responses,
-balance the load across the resolvers set, and improve your experience
-by making DNS more reliable.
+And configure the local host to use `127.0.0.1` as a resolver.
+EdgeDNS will cache responses, balance the load across the resolvers set, and
+improve your experience by making DNS more reliable.
 
 # Operation
 
@@ -75,14 +89,18 @@ servers are slow or unresponsive.
 sitting between a recursive **resolver** and stub resolvers.
 
 "virtual DNS" is the default mode, but this can be changed with the
-`--resolver-mode` command-line switch.
+`type` property in the `[upstream]` section.
 
 By default, the load is distributed using consistent hashing, ensuring that
 the upstream servers get a similar share, but queries for a given zone always
 favor the same upstream server.
 
-As an alternative, servers can be tried sequentially, using the `--failover`
-switch.
+As an alternative, servers can be tried sequentially, and queries are eventually
+sent to the first responsive server.
+
+That behavior is controlled by the `strategy` property in the `[upstream]`
+section. `uniform` enables consistent hashing, and `fallback` selects servers
+in sequence.
 
 A unique feature of EdgeDNS is that it uses a fixed number of UDP sockets.
 Sockets designed to receive responses from upstream servers are all open at
@@ -98,11 +116,17 @@ required prior to starting the server.
 By default, only `8` UDP ports are open. This is acceptable for a local cache
 ("resolver mode") sending queries to a local resolver on a trusted network.
 In all other scenarios, raising this number as much as possible (up to `64511`)
-using the `--ports-count` command-line option is highly recommended.
+using the `udp_ports` property is highly recommended.
 
-Live statistics are exposed as a JSON object on `http://0.0.0.0:8888/varz`.
-Please note that the current schema might eventually be revisited to better
-match the [Prometheus](https://prometheus.io/) expectations.
+# Live metrics
+
+If the `enabled` property is set to `true` in the `[webservice]` section,
+EdgeDNS will serve live metrics that can be collected by the
+[Prometheus](https://prometheus.io/) time-series database.
+
+The default URL to access these metrics is `http://0.0.0.0:9090/metrics`.
+
+# Note
 
 This software is still a work in progress. More features are planned,
 with a focus on automatic DDoS mitigation.
@@ -260,4 +284,3 @@ number of free slots.
 After the cap is reached, new connections recycle older connections
 from the same client IP. A single client opening many TCP connections
 doesn't affect the general service availablity.
-
