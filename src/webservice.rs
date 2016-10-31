@@ -35,9 +35,6 @@ impl WebService {
         let client_queries = self.varz.client_queries_udp.get() +
                              self.varz.client_queries_tcp.get();
         self.varz.client_queries.set(client_queries);
-        if uptime > 0 {
-            self.varz.client_qps.set(client_queries / (uptime as f64));
-        }
         let metric_families = prometheus::gather();
         let mut buffer = vec![];
         let encoder = TextEncoder::new();

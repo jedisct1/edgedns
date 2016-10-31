@@ -11,7 +11,6 @@ pub struct Varz {
     pub cache_test_len: Gauge,
     pub cache_inserted: Gauge,
     pub cache_evicted: Gauge,
-    pub client_qps: Gauge,
     pub client_queries: Gauge,
     pub client_queries_udp: Counter,
     pub client_queries_tcp: Counter,
@@ -53,10 +52,6 @@ impl Varz {
             cache_evicted: register_gauge!(opts!("edgedns_cache_evicted",
                                                  "Number of entries evicted from the cache",
                                                  labels!{"handler" => "all",}))
-                .unwrap(),
-            client_qps: register_gauge!(opts!("edgedns_client_qps",
-                                              "Average number of client queries per second",
-                                              labels!{"handler" => "all",}))
                 .unwrap(),
             client_queries: register_gauge!(opts!("edgedns_client_queries",
                                                   "Number of client queries received",
