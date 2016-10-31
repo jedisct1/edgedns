@@ -4,17 +4,21 @@ use hyper::server::{Server, Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri::AbsolutePath;
 use prometheus::{self, Encoder, TextEncoder};
+use varz::{StartInstant, Varz};
 use std::io;
+use std::sync::Arc;
 use std::thread::spawn;
 
 use super::RPDNSContext;
 use super::WEBSERVICE_THREADS;
 
-pub struct WebService;
+pub struct WebService {
+    varz: Arc<Varz>,
+}
 
 impl WebService {
-    fn new(_rpdns_context: &RPDNSContext) -> WebService {
-        WebService {}
+    fn new(rpdns_context: &RPDNSContext) -> WebService {
+        WebService { varz: rpdns_context.varz.clone() }
     }
 
     fn handler(&self, req: Request, mut res: Response) {
@@ -25,6 +29,9 @@ impl WebService {
                 return;
             }
         };
+        let StartInstant(start_instant) = self.varz.start_instant;
+        let uptime = start_instant.elapsed().as_secs();
+        self.varz.uptime.set(uptime as f64);
         let metric_families = prometheus::gather();
         let mut buffer = vec![];
         let encoder = TextEncoder::new();

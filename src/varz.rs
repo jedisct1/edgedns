@@ -5,6 +5,7 @@ pub struct StartInstant(pub Instant);
 
 pub struct Varz {
     pub start_instant: StartInstant,
+    pub uptime: Gauge,
     pub cache_frequent_len: Gauge,
     pub cache_recent_len: Gauge,
     pub cache_test_len: Gauge,
@@ -24,6 +25,10 @@ impl Varz {
     pub fn new() -> Varz {
         Varz {
             start_instant: StartInstant::default(),
+            uptime: register_gauge!(opts!("edgedns_uptime",
+                                          "Uptime",
+                                          labels!{"handler" => "all",}))
+                .unwrap(),
             cache_frequent_len: register_gauge!(opts!("edgedns_cache_frequent_len",
                                                       "Number of entries in the cached set of \
                                                        frequent items",
