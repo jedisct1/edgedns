@@ -25,7 +25,9 @@ built-in security mechanisms to protect origins, clients and itself.
 
 EdgeDNS requires rust-nightly. Compile and install the server with:
 ```sh
-cargo install --git https://github.com/jedisct1/edgedns
+git clone -b 0.1.0 https://github.com/jedisct1/edgedns
+cd edgedns
+cargo install
 ```
 
 # Quickstart
