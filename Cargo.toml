@@ -24,7 +24,6 @@ git = "https://github.com/jedisct1/rust-clockpro-cache.git"
 
 [dependencies.bytes]
 git = "https://github.com/carllerche/bytes"
-rev = "d05bfb6346e3eb5eebc9f6016c32fede20ba3831"
 
 [dependencies.clap]
 git = "https://github.com/kbknapp/clap-rs.git"
