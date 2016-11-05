@@ -46,7 +46,7 @@ main() {
     if [ $TRAVIS_OS_NAME = linux ]; then
         if [ ! -z $MAKE_DEB ]; then
             dtd=$(mktempd)
-            mkdir -p $dtd/debian/usr/bin
+            mkdir -p $dtd/debian/usr/sbin
 
             mk_deb
 

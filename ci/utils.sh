@@ -48,8 +48,8 @@ dobin() {
 
     local f prefix=$(gcc_prefix)
     for f in "$@"; do
-        install -m0755 $f $dtd/debian/usr/bin/
-        dostrip $dtd/debian/usr/bin/$(basename $f)
+        install -m0755 $f $dtd/debian/usr/sbin/
+        dostrip $dtd/debian/usr/sbin/$(basename $f)
     done
 }
 
