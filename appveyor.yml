@@ -69,3 +69,6 @@ deploy:
 branches:
   only:
     - master
+    # IMPORTANT Ruby regex to match tags. Required, or travis won't trigger deploys when a new tag
+    # is pushed. This regex matches semantic versions like v1.2.3-rc4+2016.02.22
+    - /^\d+\.\d+\.\d+.*$/
