@@ -1,7 +1,7 @@
 use cache::Cache;
 use client_query::*;
 use dns;
-use mio::deprecated::Sender;
+use mio::*;
 use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockType, SockLevel,
                        SockAddr, socket, InetAddr};
 use std::io;
@@ -18,7 +18,7 @@ use super::{UDP_BUFFER_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX
 
 pub struct UdpListener {
     socket: UdpSocket,
-    resolver_tx: Sender<ClientQuery>,
+    resolver_tx: channel::SyncSender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
 }
@@ -77,7 +77,7 @@ impl UdpListener {
     }
 
     pub fn spawn(rpdns_context: &RPDNSContext,
-                 resolver_tx: Sender<ClientQuery>)
+                 resolver_tx: channel::SyncSender<ClientQuery>)
                  -> io::Result<(thread::JoinHandle<()>)> {
         let udp_socket =
             rpdns_context.udp_socket.try_clone().expect("Unable to clone the UDP listening socket");

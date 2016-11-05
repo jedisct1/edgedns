@@ -1,6 +1,5 @@
 use dns::NormalizedQuestion;
 use mio::*;
-use mio::deprecated::Sender;
 use resolver::*;
 use std::net::SocketAddr;
 use std::time::Instant;
@@ -11,11 +10,11 @@ pub enum ClientQueryProtocol {
     TCP,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ClientQuery {
     pub proto: ClientQueryProtocol,
     pub client_addr: Option<SocketAddr>,
-    pub tcpclient_tx: Option<Sender<ResolverResponse>>,
+    pub tcpclient_tx: Option<channel::SyncSender<ResolverResponse>>,
     pub client_tok: Option<Token>,
     pub normalized_question: NormalizedQuestion,
     pub ts: Instant,

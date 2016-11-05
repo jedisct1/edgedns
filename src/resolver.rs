@@ -5,9 +5,8 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
           build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
           DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
+use mio;
 use mio::*;
-use mio::deprecated::{EventLoop, EventLoopBuilder, Handler, Sender};
-use mio::timer::Timeout;
 use nix::fcntl::FcntlArg::F_SETFL;
 use nix::fcntl::{fcntl, O_NONBLOCK};
 use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockType, SockLevel,
@@ -24,13 +23,15 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
-use std::u64;
+use std::{u64, usize};
 use super::RPDNSContext;
 use varz::Varz;
 
 use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS,
-            UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY,
-            MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
+            UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY, MAX_EVENTS_PER_BATCH, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
+
+const NOTIFY_TOK: Token = Token(usize::MAX - 1);
+const TIMER_TOK: Token = Token(usize::MAX - 2);
 
 #[derive(Clone, Debug)]
 pub struct ResolverResponse {
@@ -68,6 +69,8 @@ impl UpstreamServer {
 }
 
 pub struct Resolver {
+    mio_poll: mio::Poll,
+    mio_timers: timer::Timer<TimeoutToken>,
     config: Config,
     udp_socket: UdpSocket,
     pending_queries: PendingQueries,
@@ -94,7 +97,7 @@ struct ActiveQuery {
     ts: Instant,
     delay: u64,
     upstream_server_idx: usize,
-    timeout: Timeout,
+    timeout: timer::Timeout,
 }
 
 impl PendingQueries {
@@ -109,20 +112,17 @@ pub enum TimeoutToken {
     HealthCheck,
 }
 
-impl Handler for Resolver {
-    type Timeout = TimeoutToken;
-    type Message = ClientQuery;
-
-    fn timeout(&mut self, event_loop: &mut EventLoop<Self>, timeout_token: TimeoutToken) {
+impl Resolver {
+    fn timeout(&mut self, timeout_token: TimeoutToken) {
         match timeout_token {
             TimeoutToken::Key(normalized_question_key) => {
-                self.timeout_question(event_loop, normalized_question_key)
+                self.timeout_question(normalized_question_key)
             }
-            TimeoutToken::HealthCheck => self.timeout_health_check(event_loop),
+            TimeoutToken::HealthCheck => self.timeout_health_check(),
         }
     }
 
-    fn ready(&mut self, event_loop: &mut EventLoop<Self>, token: Token, events: Ready) {
+    fn ready(&mut self, token: Token, events: Ready) {
         if !events.is_readable() {
             debug!("Not readable");
             return;
@@ -171,7 +171,10 @@ impl Handler for Resolver {
                 }
                 Ok(normalized_question) => normalized_question,
             };
-            let ttl = match min_ttl(packet, self.config.min_ttl, self.config.max_ttl, FAILURE_TTL) {
+            let ttl = match min_ttl(packet,
+                                    self.config.min_ttl,
+                                    self.config.max_ttl,
+                                    FAILURE_TTL) {
                 Err(e) => {
                     info!("Unexpected answers in a response ({}): {}",
                           normalized_question,
@@ -253,7 +256,7 @@ impl Handler for Resolver {
                         }
                     }
                 }
-                event_loop.clear_timeout(&active_query.timeout);
+                self.mio_timers.cancel_timeout(&active_query.timeout);
             }
             if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
                 self.waiting_clients_count -= active_query.client_queries.len();
@@ -279,7 +282,7 @@ impl Handler for Resolver {
         }
     }
 
-    fn notify(&mut self, event_loop: &mut EventLoop<Self>, client_query: ClientQuery) {
+    fn notify(&mut self, client_query: ClientQuery) {
         let normalized_question = &client_query.normalized_question;
         let key = normalized_question.key();
         if self.waiting_clients_count > MAX_WAITING_CLIENTS {
@@ -290,7 +293,7 @@ impl Handler for Resolver {
             };
             if let Some(active_query) = self.pending_queries.map.remove(&key) {
                 self.waiting_clients_count -= active_query.client_queries.len();
-                event_loop.clear_timeout(&active_query.timeout);
+                self.mio_timers.cancel_timeout(&active_query.timeout);
             }
             return;
         }
@@ -384,8 +387,9 @@ impl Handler for Resolver {
                     Ok(res) => res,
                 };
             let upstream_server = &self.upstream_servers[upstream_server_idx];
-            let timeout = match event_loop.timeout(TimeoutToken::Key(key.clone()),
-                                                   Duration::from_millis(UPSTREAM_TIMEOUT_MS)) {
+            let timeout = match self.mio_timers
+                .set_timeout(Duration::from_millis(UPSTREAM_TIMEOUT_MS),
+                             TimeoutToken::Key(key.clone())) {
                 Err(_) => return,
                 Ok(timeout) => timeout,
             };
@@ -409,9 +413,7 @@ impl Handler for Resolver {
 }
 
 impl Resolver {
-    fn timeout_question(&mut self,
-                        _event_loop: &mut EventLoop<Self>,
-                        normalized_question_key: NormalizedQuestionKey) {
+    fn timeout_question(&mut self, normalized_question_key: NormalizedQuestionKey) {
         if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
             let cache_entry = self.cache.get(&normalized_question_key);
             let outdated_packet = if let Some(cache_entry) = cache_entry {
@@ -461,7 +463,7 @@ impl Resolver {
         }
     }
 
-    fn timeout_health_check(&mut self, event_loop: &mut EventLoop<Self>) {
+    fn timeout_health_check(&mut self) {
         if self.upstream_servers_live.is_empty() {
             info!("All resolvers are dead - forcing them back to life");
             for upstream_server in &mut self.upstream_servers {
@@ -485,20 +487,29 @@ impl Resolver {
                 };
             }
         }
-        event_loop.timeout(TimeoutToken::HealthCheck,
-                     Duration::from_millis(HEALTH_CHECK_MS))
+        self.mio_timers
+            .set_timeout(Duration::from_millis(HEALTH_CHECK_MS),
+                         TimeoutToken::HealthCheck)
             .expect("Unable to reschedule the health check");
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext)
-                 -> io::Result<Sender<ClientQuery>> {
+    pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<channel::SyncSender<ClientQuery>> {
         let config = &rpdns_context.config;
-        let udp_socket =
-            rpdns_context.udp_socket.try_clone().expect("Unable to clone the UDP listening socket");
-        let mut builder = EventLoopBuilder::new();
-        builder.timer_capacity(MAX_ACTIVE_QUERIES);
-        let mut event_loop = builder.build().expect("Couldn't instantiate an event loop");
-        let resolver_tx: Sender<ClientQuery> = event_loop.channel();
+        let udp_socket = rpdns_context.udp_socket
+            .try_clone()
+            .expect("Unable to clone the UDP listening socket");
+        let mio_poll = mio::Poll::new().expect("Couldn't instantiate an event loop");
+        let mut mio_timers = timer::Builder::default()
+            .num_slots(MAX_ACTIVE_QUERIES / 256)
+            .capacity(MAX_ACTIVE_QUERIES)
+            .build();
+        mio_poll.register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
+            .expect("Could not register the timers");
+        let (resolver_tx, resolver_rx): (channel::SyncSender<ClientQuery>,
+                                         channel::Receiver<ClientQuery>) =
+            channel::sync_channel(MAX_ACTIVE_QUERIES);
+        mio_poll.register(&resolver_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
+            .expect("Could not register the resolver channel");
         let pending_queries = PendingQueries::new();
         let mut ext_udp_socket_tuples = Vec::new();
         let ports = if config.udp_ports > 65535 - 1024 {
@@ -511,7 +522,7 @@ impl Resolver {
                 info!("Binding ports... {}/{}", port, ports)
             }
             if let Ok(ext_udp_socket) = mio_socket_udp_bound(port) {
-                event_loop.register(&ext_udp_socket,
+                mio_poll.register(&ext_udp_socket,
                               Token(ext_udp_socket_tuples.len()),
                               Ready::readable(),
                               PollOpt::edge())
@@ -526,14 +537,16 @@ impl Resolver {
         if ext_udp_socket_tuples.is_empty() {
             panic!("Couldn't bind any ports");
         }
-        let upstream_servers: Vec<UpstreamServer> = config.upstream_servers.iter()
+        let upstream_servers: Vec<UpstreamServer> = config.upstream_servers
+            .iter()
             .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
-        event_loop.timeout(TimeoutToken::HealthCheck,
-                     Duration::from_millis(HEALTH_CHECK_MS))
-            .expect("Unable to set up the health check");
+        mio_timers.set_timeout(Duration::from_millis(HEALTH_CHECK_MS),
+            TimeoutToken::HealthCheck).expect("Unable to reschedule the health check");
         let mut resolver = Resolver {
+            mio_poll: mio_poll,
+            mio_timers: mio_timers,
             config: rpdns_context.config.clone(),
             udp_socket: udp_socket,
             pending_queries: pending_queries,
@@ -554,7 +567,25 @@ impl Resolver {
             info!("Failover mode: upstream servers will be tried sequentially");
         }
         thread::spawn(move || {
-            event_loop.run(&mut resolver).expect("Event loop died");
+            let mut events = mio::Events::with_capacity(MAX_EVENTS_PER_BATCH);
+            resolver.mio_poll.poll(&mut events, None).expect("Event loop died");
+            loop {
+                for event in events.iter() {
+                    match event.token() {
+                        NOTIFY_TOK => {
+                            while let Ok(client_query) = resolver_rx.try_recv() {
+                                resolver.notify(client_query)
+                            }
+                        }
+                        TIMER_TOK => {
+                            while let Some(timeout_token) = resolver.mio_timers.poll() {
+                                resolver.timeout(timeout_token)
+                            }
+                        }
+                        token => resolver.ready(token, event.kind()),
+                    }
+                }
+            }
         });
         Ok(resolver_tx)
     }

@@ -55,6 +55,7 @@ const DNS_UDP_NOEDNS0_MAX_SIZE: usize = 512;
 const HEALTH_CHECK_MS: u64 = 10 * 1000;
 const MAX_ACTIVE_QUERIES: usize = 100_000;
 const MAX_CLIENTS_WAITING_FOR_QUERY: usize = 1_000;
+const MAX_EVENTS_PER_BATCH: usize = 1024;
 const MAX_TCP_CLIENTS: usize = 1_000;
 const MAX_TCP_HASH_DISTANCE: usize = 10;
 const MAX_TCP_IDLE_MS: u64 = 10 * 1000;
