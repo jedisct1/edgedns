@@ -1,0 +1,12 @@
+[Unit]
+Description=EdgeDNS DNS cache
+After=network.target
+Before=nss-lookup.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+
+ExecStart=/usr/sbin/edgedns --config /etc/edgedns.toml
