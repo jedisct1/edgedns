@@ -28,7 +28,9 @@ use super::RPDNSContext;
 use varz::Varz;
 
 use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS,
-            UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY, MAX_EVENTS_PER_BATCH, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
+            UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY,
+            MAX_EVENTS_PER_BATCH, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS,
+            UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
 
 const NOTIFY_TOK: Token = Token(usize::MAX - 1);
 const TIMER_TOK: Token = Token(usize::MAX - 2);
@@ -543,7 +545,8 @@ impl Resolver {
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
         mio_timers.set_timeout(Duration::from_millis(HEALTH_CHECK_MS),
-            TimeoutToken::HealthCheck).expect("Unable to reschedule the health check");
+                         TimeoutToken::HealthCheck)
+            .expect("Unable to reschedule the health check");
         let mut resolver = Resolver {
             mio_poll: mio_poll,
             mio_timers: mio_timers,
