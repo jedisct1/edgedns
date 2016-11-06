@@ -3,7 +3,7 @@ name = "edgedns"
 version = "0.2.0"
 dependencies = [
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=d717fde5cae1daa2d3369e1ed7c84f735cc926ad)",
- "clap 2.17.1 (git+https://github.com/kbknapp/clap-rs.git)",
+ "clap 2.18.0 (git+https://github.com/kbknapp/clap-rs.git)",
  "clippy 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.4 (git+https://github.com/jedisct1/rust-clockpro-cache.git)",
  "env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -62,8 +62,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.17.1"
-source = "git+https://github.com/kbknapp/clap-rs.git#fc22be0f040e1bba4e0d9e5e7384231fd441cae3"
+version = "2.18.0"
+source = "git+https://github.com/kbknapp/clap-rs.git#087cee7404d8504e69c4f6fb41ecca2304060672"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -199,7 +199,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libc"
 version = "0.2.17"
-source = "git+https://github.com/rust-lang/libc#15950baa0afd0a632e71b08f16094ae040bc2a51"
+source = "git+https://github.com/rust-lang/libc#d081938bf2b2bb05951fd30dcdf4f8fdc4f1ba17"
 
 [[package]]
 name = "libc"
@@ -557,7 +557,7 @@ dependencies = [
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
 "checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=d717fde5cae1daa2d3369e1ed7c84f735cc926ad)" = "<none>"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
-"checksum clap 2.17.1 (git+https://github.com/kbknapp/clap-rs.git)" = "<none>"
+"checksum clap 2.18.0 (git+https://github.com/kbknapp/clap-rs.git)" = "<none>"
 "checksum clippy 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)" = "932afd50f572178f12db751606b7922376bdc3a860fc1611ffb06d7498df17cf"
 "checksum clippy_lints 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)" = "36892e8eb217e2119e7c048ceb031f071cc7d7fffeb992f0d3c6ab6a8a0684b0"
 "checksum clockpro-cache 0.1.4 (git+https://github.com/jedisct1/rust-clockpro-cache.git)" = "<none>"
