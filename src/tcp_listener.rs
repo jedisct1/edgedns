@@ -1,6 +1,5 @@
 
-use bytes::{Buf, MutBuf};
-use bytes::buf::AppendBuf;
+use bytes::{Buf, BufMut, ByteBuf};
 use cache::Cache;
 use client_query::*;
 use client::*;
@@ -115,10 +114,10 @@ impl TcpListenerHandler {
             debug!("Received a response that doesn't match the question (for TCP)");
             return;
         }
-        let mut write_buf = AppendBuf::with_capacity((TCP_QUERY_HEADER_SIZE + packet_len) as u32);
+        let mut write_buf = ByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
         let binlen = [(packet_len >> 8) as u8, packet_len as u8];
-        write_buf.write_slice(&binlen);
-        write_buf.write_slice(&packet);
+        write_buf.copy_from_slice(&binlen);
+        write_buf.copy_from_slice(&packet);
         let _ = client.tcp_stream.write(write_buf.bytes());
         let _ = client.tcp_stream.shutdown(Shutdown::Read);
     }
@@ -237,7 +236,7 @@ impl TcpListenerHandler {
             &mut self.clients[client_idx].as_mut().expect("Data received from an unwired client");
         let mut read_buf = &mut client.read_buf;
         loop {
-            let res = client.tcp_stream.read(unsafe { read_buf.mut_bytes() }).map_non_block();
+            let res = client.tcp_stream.read(unsafe { read_buf.bytes_mut() }).map_non_block();
             match res {
                 Err(e) => {
                     error!("{:?} Error while reading socket: {:?}", client_tok, e);
@@ -253,7 +252,7 @@ impl TcpListenerHandler {
                 }
                 Ok(Some(count)) => {
                     debug!("Client socket got {} bytes", count);
-                    unsafe { MutBuf::advance(read_buf, count) };
+                    unsafe { BufMut::advance_mut(read_buf, count) };
                     let bytes = read_buf.bytes();
                     let bytes_len = bytes.len();
                     if bytes_len < TCP_QUERY_HEADER_SIZE {
@@ -304,11 +303,11 @@ impl TcpListenerHandler {
                                 dns::set_tid(&mut cache_entry.packet, normalized_question.tid);
                                 dns::overwrite_qname(&mut cache_entry.packet,
                                                      &normalized_question.qname);
-                                let mut write_buf = AppendBuf::with_capacity(
-                                    (TCP_QUERY_HEADER_SIZE + packet_len) as u32);
+                                let mut write_buf = ByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE +
+                                                                           packet_len);
                                 let binlen = [(packet_len >> 8) as u8, packet_len as u8];
-                                write_buf.write_slice(&binlen);
-                                write_buf.write_slice(&cache_entry.packet);
+                                write_buf.copy_from_slice(&binlen);
+                                write_buf.copy_from_slice(&cache_entry.packet);
                                 let _ = client.tcp_stream.write(write_buf.bytes());
                                 let _ = client.tcp_stream.shutdown(Shutdown::Read);
                                 continue;

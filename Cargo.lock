@@ -2,7 +2,7 @@
 name = "edgedns"
 version = "0.2.0"
 dependencies = [
- "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=d717fde5cae1daa2d3369e1ed7c84f735cc926ad)",
+ "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "clap 2.18.0 (git+https://github.com/kbknapp/clap-rs.git)",
  "clippy 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.4 (git+https://github.com/jedisct1/rust-clockpro-cache.git)",
@@ -49,10 +49,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "bytes"
 version = "0.4.0-dev"
-source = "git+https://github.com/carllerche/bytes?rev=d717fde5cae1daa2d3369e1ed7c84f735cc926ad#d717fde5cae1daa2d3369e1ed7c84f735cc926ad"
+source = "git+https://github.com/carllerche/bytes#4886b445165dc4a1777752836104a274e348961e"
 dependencies = [
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -555,7 +554,7 @@ dependencies = [
 "checksum bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8dead7461c1127cf637931a1e50934eb6eee8bff2f74433ac7909e9afcee04a3"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
-"checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=d717fde5cae1daa2d3369e1ed7c84f735cc926ad)" = "<none>"
+"checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)" = "<none>"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
 "checksum clap 2.18.0 (git+https://github.com/kbknapp/clap-rs.git)" = "<none>"
 "checksum clippy 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)" = "932afd50f572178f12db751606b7922376bdc3a860fc1611ffb06d7498df17cf"
