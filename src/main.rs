@@ -9,6 +9,7 @@ extern crate clap;
 extern crate env_logger;
 extern crate mio;
 extern crate nix;
+extern crate privdrop;
 extern crate rand;
 extern crate siphasher;
 extern crate slab;
@@ -36,6 +37,7 @@ mod webservice;
 use cache::Cache;
 use clap::{Arg, App};
 use config::Config;
+use privdrop::PrivDrop;
 use resolver::*;
 use std::net::UdpSocket;
 use std::sync::Arc;
@@ -88,6 +90,20 @@ impl RPDNS {
     #[cfg(not(feature = "webservice"))]
     fn webservice_start(_rpdns_context: &RPDNSContext) {}
 
+    fn privileges_drop(config: &Config) {
+        let mut pd = PrivDrop::default();
+        if let Some(ref user) = config.user {
+            pd = pd.user(user);
+        }
+        if let Some(ref group) = config.group {
+            pd = pd.group(group);
+        }
+        if let Some(ref chroot_dir) = config.chroot_dir {
+            pd = pd.chroot(chroot_dir);
+        }
+        pd.apply().unwrap();
+    }
+
     fn new(config: Config) -> RPDNS {
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
@@ -108,6 +124,7 @@ impl RPDNS {
             .expect("Unable to spawn a UDP listener");
         let tcp_listener = TcpListener::spawn(&rpdns_context, resolver_tx.clone())
             .expect("Unable to spawn a TCP listener");
+        Self::privileges_drop(&config);
         let _ = udp_listener.join();
         let _ = tcp_listener.join();
 

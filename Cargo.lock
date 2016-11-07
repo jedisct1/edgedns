@@ -11,6 +11,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mio 0.6.1 (git+https://github.com/carllerche/mio)",
  "nix 0.8.0-pre (git+https://github.com/carllerche/nix-rust.git)",
+ "privdrop 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "prometheus 0.2.7 (git+https://github.com/pingcap/rust-prometheus.git)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "siphasher 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -198,7 +199,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libc"
 version = "0.2.17"
-source = "git+https://github.com/rust-lang/libc#d081938bf2b2bb05951fd30dcdf4f8fdc4f1ba17"
+source = "git+https://github.com/rust-lang/libc#b3676593f6930c32d947c59e210789bbfcb30960"
 
 [[package]]
 name = "libc"
@@ -308,9 +309,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "privdrop"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nix 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "prometheus"
 version = "0.2.7"
-source = "git+https://github.com/pingcap/rust-prometheus.git#d0b20d3c9a327b361aefdae3560ff634ca4e1b21"
+source = "git+https://github.com/pingcap/rust-prometheus.git#b2fce691fe1b9e31256ec59811a024501efa3859"
 dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -584,6 +594,7 @@ dependencies = [
 "checksum nix 0.8.0-pre (git+https://github.com/carllerche/nix-rust.git)" = "<none>"
 "checksum nom 1.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "a5b8c256fd9471521bcb84c3cdba98921497f1a331cbc15b8030fc63b82050ce"
 "checksum num_cpus 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8890e6084723d57d0df8d2720b0d60c6ee67d6c93e7169630e4371e88765dcad"
+"checksum privdrop 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8eb6c35e65e5faf098788d97815ad2a5ceb729236dd5285641cec19834071163"
 "checksum prometheus 0.2.7 (git+https://github.com/pingcap/rust-prometheus.git)" = "<none>"
 "checksum protobuf 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)" = "6ec4c2fe04370298218a09ab53a534febf54c160c5554e4de987b6d73c916d5d"
 "checksum quick-error 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ac990ab4e038dd8481a5e3fd00641067fcfc674ad663f3222752ed5284e05d4"

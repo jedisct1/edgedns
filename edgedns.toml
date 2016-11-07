@@ -1,3 +1,12 @@
+[global]
+# User name to drop privileges to
+user = "daemon"
+
+# Group to drop privileges to, if not the primary group of the user
+# group = "daemon"
+
+# Directory to chroot() into
+chroot = "/var/empty"
 
 [upstream]
 # Type of upstream servers: "resolver" or "authoritative"

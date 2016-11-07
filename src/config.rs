@@ -17,6 +17,9 @@ pub struct Config {
     pub webservice_listen_addr: String,
     pub min_ttl: u32,
     pub max_ttl: u32,
+    pub user: Option<String>,
+    pub group: Option<String>,
+    pub chroot_dir: Option<String>,
 }
 
 impl Config {
@@ -107,6 +110,15 @@ impl Config {
                     |x| x.as_str().expect("webservice.listen_addr must be a string"))
             .to_owned();
 
+        let user = toml_config.lookup("global.user")
+            .map(|x| x.as_str().expect("global.user must be a string").to_owned());
+
+        let group = toml_config.lookup("global.group")
+            .map(|x| x.as_str().expect("global.group must be a string").to_owned());
+
+        let chroot_dir = toml_config.lookup("global.chroot_dir")
+            .map(|x| x.as_str().expect("global.chroot must be a string").to_owned());
+
         Ok(Config {
             decrement_ttl: decrement_ttl,
             upstream_servers: upstream_servers,
@@ -119,6 +131,9 @@ impl Config {
             webservice_listen_addr: webservice_listen_addr,
             min_ttl: min_ttl,
             max_ttl: max_ttl,
+            user: user,
+            group: group,
+            chroot_dir: chroot_dir,
         })
     }
 }
