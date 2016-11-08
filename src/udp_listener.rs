@@ -9,6 +9,7 @@ use std::net::{UdpSocket, SocketAddr};
 use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::mpsc;
 use std::thread;
 use std::time::Instant;
 use super::RPDNSContext;
@@ -19,6 +20,7 @@ use super::{UDP_BUFFER_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX
 pub struct UdpListener {
     socket: UdpSocket,
     resolver_tx: channel::SyncSender<ClientQuery>,
+    service_ready_tx: mpsc::SyncSender<u8>,
     cache: Cache,
     varz: Arc<Varz>,
 }
@@ -26,6 +28,7 @@ pub struct UdpListener {
 impl UdpListener {
     fn run(mut self) -> io::Result<()> {
         debug!("udp listener socket={:?}", self.socket);
+        self.service_ready_tx.send(0).unwrap();
         let mut packet = [0u8; DNS_MAX_UDP_SIZE];
         loop {
             let (count, client_addr) =
@@ -77,13 +80,15 @@ impl UdpListener {
     }
 
     pub fn spawn(rpdns_context: &RPDNSContext,
-                 resolver_tx: channel::SyncSender<ClientQuery>)
+                 resolver_tx: channel::SyncSender<ClientQuery>,
+                 service_ready_tx: mpsc::SyncSender<u8>)
                  -> io::Result<(thread::JoinHandle<()>)> {
         let udp_socket =
             rpdns_context.udp_socket.try_clone().expect("Unable to clone the UDP listening socket");
         let udp_listener = UdpListener {
             socket: udp_socket,
             resolver_tx: resolver_tx,
+            service_ready_tx: service_ready_tx,
             cache: rpdns_context.cache.clone(),
             varz: rpdns_context.varz.clone(),
         };

@@ -16,6 +16,7 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::sync::Arc;
+use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 use std::usize;
@@ -35,6 +36,7 @@ pub const TCP_QUERY_HEADER_SIZE: usize = 2;
 
 pub struct TcpListener {
     resolver_tx: channel::SyncSender<ClientQuery>,
+    service_ready_tx: mpsc::SyncSender<u8>,
     cache: Cache,
     varz: Arc<Varz>,
 }
@@ -364,6 +366,7 @@ impl TcpListener {
         let actual = addr.parse().expect("Unable to parse the TCP address to bind");
         let mio_listener = tcp::TcpListener::bind(&actual).expect("Unable to bind the TCP socket");
         debug!("tcp listener socket={:?}", mio_listener);
+        self.service_ready_tx.send(1).unwrap();
         mio_poll.register(&mio_listener,
                       LISTENER_TOK,
                       Ready::readable() | Ready::hup(),
@@ -409,10 +412,12 @@ impl TcpListener {
     }
 
     pub fn spawn(rpdns_context: &RPDNSContext,
-                 resolver_tx: channel::SyncSender<ClientQuery>)
+                 resolver_tx: channel::SyncSender<ClientQuery>,
+                 service_ready_tx: mpsc::SyncSender<u8>)
                  -> io::Result<(thread::JoinHandle<()>)> {
         let tcp_listener = TcpListener {
             resolver_tx: resolver_tx,
+            service_ready_tx: service_ready_tx,
             cache: rpdns_context.cache.clone(),
             varz: rpdns_context.varz.clone(),
         };

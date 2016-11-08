@@ -41,6 +41,7 @@ use privdrop::PrivDrop;
 use resolver::*;
 use std::net::UdpSocket;
 use std::sync::Arc;
+use std::sync::mpsc::sync_channel;
 use tcp_listener::*;
 use udp_listener::*;
 use varz::*;
@@ -120,11 +121,19 @@ impl RPDNS {
         if config.webservice_enabled {
             Self::webservice_start(&rpdns_context);
         }
-        let udp_listener = UdpListener::spawn(&rpdns_context, resolver_tx.clone())
+        let (service_ready_tx, service_ready_rx) = sync_channel::<u8>(1);
+        let udp_listener = UdpListener::spawn(&rpdns_context,
+                                              resolver_tx.clone(),
+                                              service_ready_tx.clone())
             .expect("Unable to spawn a UDP listener");
-        let tcp_listener = TcpListener::spawn(&rpdns_context, resolver_tx.clone())
+        service_ready_rx.recv().unwrap();
+        let tcp_listener = TcpListener::spawn(&rpdns_context,
+                                              resolver_tx.clone(),
+                                              service_ready_tx.clone())
             .expect("Unable to spawn a TCP listener");
+        service_ready_rx.recv().unwrap();
         Self::privileges_drop(&config);
+        info!("EdgeDNS is ready to process requests");
         let _ = udp_listener.join();
         let _ = tcp_listener.join();
 
