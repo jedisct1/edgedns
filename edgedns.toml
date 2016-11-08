@@ -1,6 +1,12 @@
 [global]
+# User name to drop privileges to
+# user = "_edgedns"
+
+# Group to drop privileges to, if not the primary group of the user
+# group = "_edgedns"
+
 # Directory to chroot() into
-chroot = "/var/empty"
+# chroot = "/var/empty"
 
 [upstream]
 # Type of upstream servers: "resolver" or "authoritative"
