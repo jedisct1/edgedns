@@ -11,7 +11,7 @@ default = ["webservice"]
 [dependencies]
 env_logger = "*"
 log = {version = "*", features = ["nightly"]}
-privdrop = "~0.1"
+privdrop = "~0.1.2"
 rand = "*"
 siphasher = "*"
 slab = "~0.3.0"

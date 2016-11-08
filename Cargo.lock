@@ -4,14 +4,14 @@ version = "0.2.0"
 dependencies = [
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "clap 2.18.0 (git+https://github.com/kbknapp/clap-rs.git)",
- "clippy 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy 0.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.4 (git+https://github.com/jedisct1/rust-clockpro-cache.git)",
  "env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mio 0.6.1 (git+https://github.com/carllerche/mio)",
  "nix 0.8.0-pre (git+https://github.com/carllerche/nix-rust.git)",
- "privdrop 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "privdrop 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "prometheus 0.2.7 (git+https://github.com/pingcap/rust-prometheus.git)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "siphasher 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -77,15 +77,15 @@ dependencies = [
 
 [[package]]
 name = "clippy"
-version = "0.0.97"
+version = "0.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "clippy_lints 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy_lints 0.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "clippy_lints"
-version = "0.0.97"
+version = "0.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "httparse"
-version = "1.1.2"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -148,7 +148,7 @@ version = "0.9.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "httparse 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "httparse 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -310,7 +310,7 @@ dependencies = [
 
 [[package]]
 name = "privdrop"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -320,7 +320,7 @@ dependencies = [
 [[package]]
 name = "prometheus"
 version = "0.2.7"
-source = "git+https://github.com/pingcap/rust-prometheus.git#b2fce691fe1b9e31256ec59811a024501efa3859"
+source = "git+https://github.com/pingcap/rust-prometheus.git#049f89830b1c20c03142e52a4da287c04358d462"
 dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -328,7 +328,6 @@ dependencies = [
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "protobuf 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "quick-error 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.1.80 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -567,14 +566,14 @@ dependencies = [
 "checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)" = "<none>"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
 "checksum clap 2.18.0 (git+https://github.com/kbknapp/clap-rs.git)" = "<none>"
-"checksum clippy 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)" = "932afd50f572178f12db751606b7922376bdc3a860fc1611ffb06d7498df17cf"
-"checksum clippy_lints 0.0.97 (registry+https://github.com/rust-lang/crates.io-index)" = "36892e8eb217e2119e7c048ceb031f071cc7d7fffeb992f0d3c6ab6a8a0684b0"
+"checksum clippy 0.0.98 (registry+https://github.com/rust-lang/crates.io-index)" = "6d51fa3f39b300c58906f8e103bc4c5ee5651f89fbbc46ea1423e2651461b0e7"
+"checksum clippy_lints 0.0.98 (registry+https://github.com/rust-lang/crates.io-index)" = "4329699b62341fd3ce3ebe13ade6c87d35b8778091e0c2f6da51399e081b9671"
 "checksum clockpro-cache 0.1.4 (git+https://github.com/jedisct1/rust-clockpro-cache.git)" = "<none>"
 "checksum cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0e3d6405328b6edb412158b3b7710e2634e23f3614b9bb1c412df7952489a626"
 "checksum env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "15abd780e45b3ea4f76b4e9a26ff4843258dd8a3eed2775a0e7368c2e7936c2f"
 "checksum fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "6cc484842f1e2884faf56f529f960cc12ad8c71ce96cc7abba0a067c98fee344"
 "checksum hpack 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2da7d3a34cf6406d9d700111b8eafafe9a251de41ae71d8052748259343b58"
-"checksum httparse 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "46534074dbb80b070d60a5cb8ecadd8963a00a438ae1a95268850a7ef73b67ae"
+"checksum httparse 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6a8abece705b1d32c478f49447b3a575cd07f6e362ff12518f2ee2c9b9ced64e"
 "checksum hyper 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)" = "edd47c66782933e546a32ae89ca3c49263b2ba9bc29f3a0d5c52fff48e0ac67c"
 "checksum idna 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1053236e00ce4f668aeca4a769a09b3bf5a682d802abd6f3cb39374f6b162c11"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
@@ -594,7 +593,7 @@ dependencies = [
 "checksum nix 0.8.0-pre (git+https://github.com/carllerche/nix-rust.git)" = "<none>"
 "checksum nom 1.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "a5b8c256fd9471521bcb84c3cdba98921497f1a331cbc15b8030fc63b82050ce"
 "checksum num_cpus 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8890e6084723d57d0df8d2720b0d60c6ee67d6c93e7169630e4371e88765dcad"
-"checksum privdrop 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8eb6c35e65e5faf098788d97815ad2a5ceb729236dd5285641cec19834071163"
+"checksum privdrop 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5f33fbd10736197da384f4b8fff548c905949668aff348cdddb999641063da0c"
 "checksum prometheus 0.2.7 (git+https://github.com/pingcap/rust-prometheus.git)" = "<none>"
 "checksum protobuf 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)" = "6ec4c2fe04370298218a09ab53a534febf54c160c5554e4de987b6d73c916d5d"
 "checksum quick-error 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ac990ab4e038dd8481a5e3fd00641067fcfc674ad663f3222752ed5284e05d4"
