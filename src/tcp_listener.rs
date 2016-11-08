@@ -392,7 +392,11 @@ impl TcpListener {
         info!("TCP listener is ready");
         let mut events = mio::Events::with_capacity(MAX_EVENTS_PER_BATCH);
         loop {
-            handler.mio_poll.poll(&mut events, None).expect("Event loop died");
+            match handler.mio_poll.poll(&mut events, None) {
+                Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+                _ => {}
+            }
             for event in events.iter() {
                 match event.token() {
                     NOTIFY_TOK => {

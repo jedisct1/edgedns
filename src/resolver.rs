@@ -572,7 +572,11 @@ impl Resolver {
         thread::spawn(move || {
             let mut events = mio::Events::with_capacity(MAX_EVENTS_PER_BATCH);
             loop {
-                resolver.mio_poll.poll(&mut events, None).expect("Event loop died");
+                match resolver.mio_poll.poll(&mut events, None) {
+                    Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(e) => return e,
+                    _ => {}
+                }
                 for event in events.iter() {
                     match event.token() {
                         NOTIFY_TOK => {
