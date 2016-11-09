@@ -124,68 +124,70 @@ impl Resolver {
         }
     }
 
-    fn dispatch_active_query(&mut self, packet: &mut [u8], normalized_question: NormalizedQuestion, client_addr: SocketAddr, local_port: u16, ttl: u32) {
-        let normalized_question_key = normalized_question.key();
-        {
-            let active_query = match self.pending_queries.map.get(&normalized_question_key) {
-                None => {
-                    debug!("No clients waiting for this query");
-                    return;
-                }
-                Some(active_query) => active_query,
-            };
-            if local_port != active_query.local_port {
-                debug!("Got a reponse on port {} for a query sent on port {}",
-                       local_port, active_query.local_port);
+    fn dispatch_active_query(&mut self, packet: &mut [u8], normalized_question_key: &NormalizedQuestionKey, client_addr: SocketAddr, local_port: u16) {
+        let active_query = match self.pending_queries.map.get(&normalized_question_key) {
+            None => {
+                debug!("No clients waiting for this query");
                 return;
             }
-            if active_query.socket_addr != client_addr {
-                info!("Sent a query to {:?} but got a response from {:?}",
-                      active_query.socket_addr,
-                      client_addr);
-                return;
-            }
-            if active_query.normalized_question_minimal.tid != tid(packet) {
-                debug!("Sent a query with tid {} but got a response for tid {:?}",
-                       active_query.normalized_question_minimal.tid,
-                       tid(packet));
-                return;
-            }
-            let client_queries = &active_query.client_queries;
-            for client_query in client_queries {
-                set_tid(packet, client_query.normalized_question.tid);
-                overwrite_qname(packet, &client_query.normalized_question.qname);
-                self.varz.upstream_received.inc();
-                match client_query.proto {
-                    ClientQueryProtocol::UDP => {
-                        if client_query.ts.elapsed() <
-                           Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
-                            if packet.len() >
-                               client_query.normalized_question.payload_size as usize {
-                                let packet =
-                                    &build_tc_packet(&client_query.normalized_question)
-                                        .unwrap();
-                                let _ = self.udp_socket
-                                    .send_to(packet, client_query.client_addr.unwrap());
-                            } else {
-                                let _ = self.udp_socket
-                                    .send_to(packet, client_query.client_addr.unwrap());
-                            };
-                        }
-                    }
-                    ClientQueryProtocol::TCP => {
-                        let resolver_response = ResolverResponse {
-                            response: packet.to_vec(),
-                            client_tok: client_query.client_tok.unwrap(),
-                            dnssec: client_query.normalized_question.dnssec,
-                        };
-                        let tcpclient_tx = client_query.tcpclient_tx.clone().unwrap();
-                        let _ = tcpclient_tx.send(resolver_response);
-                    }
-                }
-            }
-            self.mio_timers.cancel_timeout(&active_query.timeout);
+            Some(active_query) => active_query,
+        };
+        if local_port != active_query.local_port {
+            debug!("Got a reponse on port {} for a query sent on port {}",
+                   local_port, active_query.local_port);
+            return;
         }
+        if active_query.socket_addr != client_addr {
+            info!("Sent a query to {:?} but got a response from {:?}",
+                  active_query.socket_addr,
+                  client_addr);
+            return;
+        }
+        if active_query.normalized_question_minimal.tid != tid(packet) {
+            debug!("Sent a query with tid {} but got a response for tid {:?}",
+                   active_query.normalized_question_minimal.tid,
+                   tid(packet));
+            return;
+        }
+        let client_queries = &active_query.client_queries;
+        for client_query in client_queries {
+            set_tid(packet, client_query.normalized_question.tid);
+            overwrite_qname(packet, &client_query.normalized_question.qname);
+            self.varz.upstream_received.inc();
+            match client_query.proto {
+                ClientQueryProtocol::UDP => {
+                    if client_query.ts.elapsed() <
+                       Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                        if packet.len() >
+                           client_query.normalized_question.payload_size as usize {
+                            let packet =
+                                &build_tc_packet(&client_query.normalized_question)
+                                    .unwrap();
+                            let _ = self.udp_socket
+                                .send_to(packet, client_query.client_addr.unwrap());
+                        } else {
+                            let _ = self.udp_socket
+                                .send_to(packet, client_query.client_addr.unwrap());
+                        };
+                    }
+                }
+                ClientQueryProtocol::TCP => {
+                    let resolver_response = ResolverResponse {
+                        response: packet.to_vec(),
+                        client_tok: client_query.client_tok.unwrap(),
+                        dnssec: client_query.normalized_question.dnssec,
+                    };
+                    let tcpclient_tx = client_query.tcpclient_tx.clone().unwrap();
+                    let _ = tcpclient_tx.send(resolver_response);
+                }
+            }
+        }
+        self.mio_timers.cancel_timeout(&active_query.timeout);
+    }
+
+    fn complete_active_query(&mut self, packet: &mut [u8], normalized_question: NormalizedQuestion, client_addr: SocketAddr, local_port: u16, ttl: u32) {
+        let normalized_question_key = normalized_question.key();
+        self.dispatch_active_query(packet, &normalized_question_key, client_addr, local_port);
         if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
             self.waiting_clients_count -= active_query.client_queries.len();
         }
@@ -250,7 +252,7 @@ impl Resolver {
                 }
             }
         };
-        self.dispatch_active_query(packet, normalized_question, client_addr, local_port, ttl);
+        self.complete_active_query(packet, normalized_question, client_addr, local_port, ttl);
         self.update_cache_stats();
     }
 
