@@ -124,6 +124,27 @@ impl Resolver {
         }
     }
 
+    fn verify_active_query(&self, active_query: &ActiveQuery, packet: &[u8], client_addr: SocketAddr, local_port: u16) -> Result<(), &'static str> {
+        if local_port != active_query.local_port {
+            debug!("Got a reponse on port {} for a query sent on port {}",
+                   local_port, active_query.local_port);
+            return Err("Response on an unexpected port");
+        }
+        if active_query.socket_addr != client_addr {
+            info!("Sent a query to {:?} but got a response from {:?}",
+                  active_query.socket_addr,
+                  client_addr);
+            return Err("Response from an unexpected peer");
+        }
+        if active_query.normalized_question_minimal.tid != tid(packet) {
+            debug!("Sent a query with tid {} but got a response for tid {:?}",
+                   active_query.normalized_question_minimal.tid,
+                   tid(packet));
+            return Err("Response with an unexpected tid");
+        }
+        Ok(())
+    }
+
     fn dispatch_active_query(&mut self, packet: &mut [u8], normalized_question_key: &NormalizedQuestionKey, client_addr: SocketAddr, local_port: u16) {
         let active_query = match self.pending_queries.map.get(&normalized_question_key) {
             None => {
@@ -132,21 +153,8 @@ impl Resolver {
             }
             Some(active_query) => active_query,
         };
-        if local_port != active_query.local_port {
-            debug!("Got a reponse on port {} for a query sent on port {}",
-                   local_port, active_query.local_port);
-            return;
-        }
-        if active_query.socket_addr != client_addr {
-            info!("Sent a query to {:?} but got a response from {:?}",
-                  active_query.socket_addr,
-                  client_addr);
-            return;
-        }
-        if active_query.normalized_question_minimal.tid != tid(packet) {
-            debug!("Sent a query with tid {} but got a response for tid {:?}",
-                   active_query.normalized_question_minimal.tid,
-                   tid(packet));
+        if self.verify_active_query(&active_query, packet, client_addr, local_port).is_err() {
+            debug!("Received response is not valid for the query originally sent");
             return;
         }
         let client_queries = &active_query.client_queries;
