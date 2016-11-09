@@ -5,19 +5,20 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
 webservice = ["hyper", "prometheus"]
+nightly = ["clap/nightly", "hyper/nightly", "log/nightly", "prometheus/nightly"]
 
-default = ["webservice"]
+default = ["nightly", "webservice"]
 
 [dependencies]
-clap = {version = "*", features = ["nightly"]}
+clap = {version = "*"}
 clippy = {version = "*", optional = true}
 clockpro-cache = "*"
 env_logger = "*"
-hyper = {version = "*", optional = true, default-features = false, features = ["nightly"]}
-log = {version = "*", features = ["nightly"]}
+hyper = {version = "*", optional = true, default-features = false}
+log = {version = "*"}
 nix = "~0.7.0"
 privdrop = "*"
-prometheus = {version = "*", optional = true, default-features = false, features = ["nightly"]}
+prometheus = {version = "*", optional = true, default-features = false}
 rand = "*"
 siphasher = "*"
 slab = "*"
