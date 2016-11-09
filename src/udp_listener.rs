@@ -113,18 +113,18 @@ fn socket_udp_set_buffer_size(socket_fd: RawFd) {
 }
 
 fn socket_udp_v4() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet,
-                           SockType::Datagram,
-                           SockFlag::empty(),
-                           SockLevel::Udp as i32)?;
+    let socket_fd = try!(socket(AddressFamily::Inet,
+                                SockType::Datagram,
+                                SockFlag::empty(),
+                                SockLevel::Udp as i32));
     Ok(socket_fd)
 }
 
 fn socket_udp_v6() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet6,
-                           SockType::Datagram,
-                           SockFlag::empty(),
-                           SockLevel::Udp as i32)?;
+    let socket_fd = try!(socket(AddressFamily::Inet6,
+                                SockType::Datagram,
+                                SockFlag::empty(),
+                                SockLevel::Udp as i32));
     Ok(socket_fd)
 }
 
@@ -132,8 +132,8 @@ pub fn socket_udp_bound(addr: &str) -> io::Result<UdpSocket> {
     let actual: SocketAddr = FromStr::from_str(addr).expect("Invalid address");
     let nix_addr = SockAddr::Inet(InetAddr::from_std(&actual));
     let socket_fd = match actual {
-        SocketAddr::V4(_) => socket_udp_v4()?,
-        SocketAddr::V6(_) => socket_udp_v6()?,
+        SocketAddr::V4(_) => try!(socket_udp_v4()),
+        SocketAddr::V6(_) => try!(socket_udp_v6()),
     };
     let _ = setsockopt(socket_fd, sockopt::ReuseAddr, &true);
     let _ = setsockopt(socket_fd, sockopt::ReusePort, &true);

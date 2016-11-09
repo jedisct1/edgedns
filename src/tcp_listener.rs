@@ -181,7 +181,7 @@ impl TcpListenerHandler {
                 return Err(e);
             }
         };
-        let peer_addr = tcp_stream.peer_addr()?.ip();
+        let peer_addr = try!(tcp_stream.peer_addr()).ip();
         let mut hs = SipHasher13::new();
         peer_addr.hash(&mut hs);
         let h = hs.finish();
@@ -367,10 +367,10 @@ impl TcpListener {
         let mio_listener = tcp::TcpListener::bind(&actual).expect("Unable to bind the TCP socket");
         debug!("tcp listener socket={:?}", mio_listener);
         self.service_ready_tx.send(1).unwrap();
-        mio_poll.register(&mio_listener,
-                      LISTENER_TOK,
-                      Ready::readable() | Ready::hup(),
-                      PollOpt::edge() | PollOpt::oneshot())?;
+        try!(mio_poll.register(&mio_listener,
+                               LISTENER_TOK,
+                               Ready::readable() | Ready::hup(),
+                               PollOpt::edge() | PollOpt::oneshot()));
         let (tcpclient_tx, tcpclient_rx): (channel::SyncSender<ResolverResponse>,
                                            channel::Receiver<ResolverResponse>) =
             channel::sync_channel(MAX_ACTIVE_QUERIES);

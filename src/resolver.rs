@@ -662,23 +662,23 @@ fn socket_udp_set_buffer_size(socket_fd: RawFd) {
 }
 
 fn socket_udp_v4() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet,
-                           SockType::Datagram,
-                           SockFlag::empty(),
-                           SockLevel::Udp as i32)?;
+    let socket_fd = try!(socket(AddressFamily::Inet,
+                                SockType::Datagram,
+                                SockFlag::empty(),
+                                SockLevel::Udp as i32));
     Ok(socket_fd)
 }
 
 fn socket_udp_v6() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet6,
-                           SockType::Datagram,
-                           SockFlag::empty(),
-                           SockLevel::Udp as i32)?;
+    let socket_fd = try!(socket(AddressFamily::Inet6,
+                                SockType::Datagram,
+                                SockFlag::empty(),
+                                SockLevel::Udp as i32));
     Ok(socket_fd)
 }
 
 fn set_nonblock(sock: RawFd) -> io::Result<()> {
-    fcntl(sock, F_SETFL(O_NONBLOCK))?;
+    try!(fcntl(sock, F_SETFL(O_NONBLOCK)));
     Ok(())
 }
 
@@ -686,14 +686,14 @@ fn mio_socket_udp_bound(port: u16) -> io::Result<udp::UdpSocket> {
     let actual = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port));
     let nix_addr = SockAddr::Inet(InetAddr::from_std(&actual));
     let socket_fd = match actual {
-        SocketAddr::V4(_) => socket_udp_v4()?,
-        SocketAddr::V6(_) => socket_udp_v6()?,
+        SocketAddr::V4(_) => try!(socket_udp_v4()),
+        SocketAddr::V6(_) => try!(socket_udp_v6()),
     };
-    set_nonblock(socket_fd)?;
-    setsockopt(socket_fd, sockopt::ReuseAddr, &true)?;
-    setsockopt(socket_fd, sockopt::ReusePort, &true)?;
+    try!(set_nonblock(socket_fd));
+    try!(setsockopt(socket_fd, sockopt::ReuseAddr, &true));
+    try!(setsockopt(socket_fd, sockopt::ReusePort, &true));
     socket_udp_set_buffer_size(socket_fd);
-    bind(socket_fd, &nix_addr)?;
+    try!(bind(socket_fd, &nix_addr));
     let socket: udp::UdpSocket = unsafe { udp::UdpSocket::from_raw_fd(socket_fd) };
     Ok(socket)
 }
