@@ -607,7 +607,7 @@ impl NormalizedQuestion {
                      -> Result<usize, &'static str> {
         let live_count = upstream_servers_live.len();
         if live_count == 0 {
-            warn!("All upstream servers are down");
+            debug!("All upstream servers are down");
             return Err("All upstream servers are down");
         }
         if failover {
