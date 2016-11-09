@@ -9,38 +9,25 @@ webservice = ["hyper", "prometheus"]
 default = ["webservice"]
 
 [dependencies]
+clap = {version = "*", features = ["nightly"]}
+clippy = {version = "*", optional = true}
+clockpro-cache = "*"
 env_logger = "*"
+hyper = {version = "*", optional = true, default-features = false, features = ["nightly"]}
 log = {version = "*", features = ["nightly"]}
-privdrop = "~0.1.2"
+nix = "~0.7.0"
+privdrop = "*"
+prometheus = {version = "*", optional = true, default-features = false, features = ["nightly"]}
 rand = "*"
 siphasher = "*"
-slab = "~0.3.0"
+slab = "*"
 toml = "*"
-
-hyper = {version="*", optional = true, default-features = false, features = ["nightly"]}
-clippy = {version = "*", optional = true}
-
-[dependencies.clockpro-cache]
-git = "https://github.com/jedisct1/rust-clockpro-cache.git"
 
 [dependencies.bytes]
 git = "https://github.com/carllerche/bytes"
 
-[dependencies.clap]
-git = "https://github.com/kbknapp/clap-rs.git"
-features = ["nightly"]
-
 [dependencies.mio]
 git = "https://github.com/carllerche/mio"
-
-[dependencies.nix]
-git = "https://github.com/carllerche/nix-rust.git"
-
-[dependencies.prometheus]
-git = "https://github.com/pingcap/rust-prometheus.git"
-default-features = false
-features = ["nightly"]
-optional = true
 
 [profile.dev]
 codegen-units = 4
