@@ -17,7 +17,7 @@ extern crate toml;
 
 #[cfg(feature = "webservice")]
 extern crate hyper;
-#[cfg(feature = "webservice")]
+
 #[macro_use]
 extern crate prometheus;
 
