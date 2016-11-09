@@ -124,6 +124,136 @@ impl Resolver {
         }
     }
 
+    fn dispatch_active_query(&mut self, packet: &mut [u8], normalized_question: NormalizedQuestion, client_addr: SocketAddr, local_port: u16, ttl: u32) {
+        let normalized_question_key = normalized_question.key();
+        {
+            let active_query = match self.pending_queries.map.get(&normalized_question_key) {
+                None => {
+                    debug!("No clients waiting for this query");
+                    return;
+                }
+                Some(active_query) => active_query,
+            };
+            if local_port != active_query.local_port {
+                debug!("Got a reponse on port {} for a query sent on port {}",
+                       local_port, active_query.local_port);
+                return;
+            }
+            if active_query.socket_addr != client_addr {
+                info!("Sent a query to {:?} but got a response from {:?}",
+                      active_query.socket_addr,
+                      client_addr);
+                return;
+            }
+            if active_query.normalized_question_minimal.tid != tid(packet) {
+                debug!("Sent a query with tid {} but got a response for tid {:?}",
+                       active_query.normalized_question_minimal.tid,
+                       tid(packet));
+                return;
+            }
+            let client_queries = &active_query.client_queries;
+            for client_query in client_queries {
+                set_tid(packet, client_query.normalized_question.tid);
+                overwrite_qname(packet, &client_query.normalized_question.qname);
+                self.varz.upstream_received.inc();
+                match client_query.proto {
+                    ClientQueryProtocol::UDP => {
+                        if client_query.ts.elapsed() <
+                           Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                            if packet.len() >
+                               client_query.normalized_question.payload_size as usize {
+                                let packet =
+                                    &build_tc_packet(&client_query.normalized_question)
+                                        .unwrap();
+                                let _ = self.udp_socket
+                                    .send_to(packet, client_query.client_addr.unwrap());
+                            } else {
+                                let _ = self.udp_socket
+                                    .send_to(packet, client_query.client_addr.unwrap());
+                            };
+                        }
+                    }
+                    ClientQueryProtocol::TCP => {
+                        let resolver_response = ResolverResponse {
+                            response: packet.to_vec(),
+                            client_tok: client_query.client_tok.unwrap(),
+                            dnssec: client_query.normalized_question.dnssec,
+                        };
+                        let tcpclient_tx = client_query.tcpclient_tx.clone().unwrap();
+                        let _ = tcpclient_tx.send(resolver_response);
+                    }
+                }
+            }
+            self.mio_timers.cancel_timeout(&active_query.timeout);
+        }
+        if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
+            self.waiting_clients_count -= active_query.client_queries.len();
+        }
+        if rcode(packet) == DNS_RCODE_SERVFAIL {
+            match self.cache.get(&normalized_question_key) {
+                None => {
+                    self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
+                }
+                Some(cache_entry) => {
+                    self.cache.insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
+                }
+            }
+        } else {
+            self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
+        }
+    }
+
+    fn update_cache_stats(&mut self) {
+        let cache_stats = self.cache.stats();
+        self.varz.cache_frequent_len.set(cache_stats.frequent_len as f64);
+        self.varz.cache_recent_len.set(cache_stats.recent_len as f64);
+        self.varz.cache_test_len.set(cache_stats.test_len as f64);
+        self.varz.cache_inserted.set(cache_stats.inserted as f64);
+        self.varz.cache_evicted.set(cache_stats.evicted as f64);
+    }
+
+    fn handle_upstream_response(&mut self, packet: &mut [u8], client_addr: SocketAddr, local_port: u16) {
+        if packet.len() < DNS_QUERY_MIN_SIZE {
+            info!("Short response without a query, using UDP");
+            self.varz.upstream_errors.inc();
+            return;
+        }
+        let normalized_question = match normalize(packet, false) {
+            Err(e) => {
+                info!("Unexpected question in a response: {}", e);
+                return;
+            }
+            Ok(normalized_question) => normalized_question,
+        };
+        let ttl = match min_ttl(packet,
+                                self.config.min_ttl,
+                                self.config.max_ttl,
+                                FAILURE_TTL) {
+            Err(e) => {
+                info!("Unexpected answers in a response ({}): {}",
+                      normalized_question,
+                      e);
+                self.varz.upstream_errors.inc();
+                return;
+            }
+            Ok(ttl) => {
+                if rcode(packet) == DNS_RCODE_SERVFAIL {
+                    let _ = set_ttl(packet, FAILURE_TTL);
+                    FAILURE_TTL
+                } else if ttl < self.config.min_ttl {
+                    if self.decrement_ttl {
+                        let _ = set_ttl(packet, self.config.min_ttl);
+                    }
+                    self.config.min_ttl
+                } else {
+                    ttl
+                }
+            }
+        };
+        self.dispatch_active_query(packet, normalized_question, client_addr, local_port, ttl);
+        self.update_cache_stats();
+    }
+
     fn ready(&mut self, token: Token, events: Ready) {
         if !events.is_readable() {
             debug!("Not readable");
@@ -131,12 +261,14 @@ impl Resolver {
         }
         loop {
             let mut packet = [0u8; DNS_MAX_SIZE];
-            let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[usize::from(token)];
-            let ext_udp_socket = &ext_udp_socket_tuple.ext_udp_socket;
-            let res = ext_udp_socket.recv_from(&mut packet).expect("UDP socket error");
-            let (count, client_addr) = match res {
-                None => break,
-                Some(tuple) => tuple,
+            let (count, client_addr, local_port) =
+            {
+                let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[usize::from(token)];
+                let ext_udp_socket = &ext_udp_socket_tuple.ext_udp_socket;
+                match ext_udp_socket.recv_from(&mut packet).expect("UDP socket error") {
+                    None => break,
+                    Some((count, client_addr)) => (count, client_addr, ext_udp_socket_tuple.local_port)
+                }
             };
             if count < DNS_HEADER_SIZE {
                 info!("Short response without a header, using UDP");
@@ -160,127 +292,8 @@ impl Resolver {
                            self.upstream_servers[idx].failures);
                 }
             }
-            if count < DNS_QUERY_MIN_SIZE {
-                info!("Short response without a query, using UDP");
-                self.varz.upstream_errors.inc();
-                continue;
-            }
-            let mut packet = &mut packet[..count];
-            let normalized_question = match normalize(packet, false) {
-                Err(e) => {
-                    info!("Unexpected question in a response: {}", e);
-                    continue;
-                }
-                Ok(normalized_question) => normalized_question,
-            };
-            let ttl = match min_ttl(packet,
-                                    self.config.min_ttl,
-                                    self.config.max_ttl,
-                                    FAILURE_TTL) {
-                Err(e) => {
-                    info!("Unexpected answers in a response ({}): {}",
-                          normalized_question,
-                          e);
-                    self.varz.upstream_errors.inc();
-                    continue;
-                }
-                Ok(ttl) => {
-                    if rcode(packet) == DNS_RCODE_SERVFAIL {
-                        let _ = set_ttl(packet, FAILURE_TTL);
-                        FAILURE_TTL
-                    } else if ttl < self.config.min_ttl {
-                        if self.decrement_ttl {
-                            let _ = set_ttl(packet, self.config.min_ttl);
-                        }
-                        self.config.min_ttl
-                    } else {
-                        ttl
-                    }
-                }
-            };
-            let normalized_question_key = normalized_question.key();
-            {
-                let active_query = match self.pending_queries.map.get(&normalized_question_key) {
-                    None => {
-                        debug!("No clients waiting for this query");
-                        continue;
-                    }
-                    Some(active_query) => active_query,
-                };
-                if ext_udp_socket_tuple.local_port != active_query.local_port {
-                    debug!("Got a reponse on port {} for a query sent on port {}",
-                           ext_udp_socket_tuple.local_port,
-                           active_query.local_port);
-                    continue;
-                }
-                if active_query.socket_addr != client_addr {
-                    info!("Sent a query to {:?} but got a response from {:?}",
-                          active_query.socket_addr,
-                          client_addr);
-                    continue;
-                }
-                if active_query.normalized_question_minimal.tid != tid(packet) {
-                    debug!("Sent a query with tid {} but got a response for tid {:?}",
-                           active_query.normalized_question_minimal.tid,
-                           tid(packet));
-                    continue;
-                }
-                let client_queries = &active_query.client_queries;
-                for client_query in client_queries {
-                    set_tid(packet, client_query.normalized_question.tid);
-                    overwrite_qname(packet, &client_query.normalized_question.qname);
-                    self.varz.upstream_received.inc();
-                    match client_query.proto {
-                        ClientQueryProtocol::UDP => {
-                            if client_query.ts.elapsed() <
-                               Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
-                                if packet.len() >
-                                   client_query.normalized_question.payload_size as usize {
-                                    let packet =
-                                        &build_tc_packet(&client_query.normalized_question)
-                                            .unwrap();
-                                    let _ = self.udp_socket
-                                        .send_to(packet, client_query.client_addr.unwrap());
-                                } else {
-                                    let _ = self.udp_socket
-                                        .send_to(packet, client_query.client_addr.unwrap());
-                                };
-                            }
-                        }
-                        ClientQueryProtocol::TCP => {
-                            let resolver_response = ResolverResponse {
-                                response: packet.to_vec(),
-                                client_tok: client_query.client_tok.unwrap(),
-                                dnssec: client_query.normalized_question.dnssec,
-                            };
-                            let tcpclient_tx = client_query.tcpclient_tx.clone().unwrap();
-                            let _ = tcpclient_tx.send(resolver_response);
-                        }
-                    }
-                }
-                self.mio_timers.cancel_timeout(&active_query.timeout);
-            }
-            if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
-                self.waiting_clients_count -= active_query.client_queries.len();
-            }
-            if rcode(packet) == DNS_RCODE_SERVFAIL {
-                match self.cache.get(&normalized_question_key) {
-                    None => {
-                        self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
-                    }
-                    Some(cache_entry) => {
-                        self.cache.insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
-                    }
-                }
-            } else {
-                self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
-            }
-            let cache_stats = self.cache.stats();
-            self.varz.cache_frequent_len.set(cache_stats.frequent_len as f64);
-            self.varz.cache_recent_len.set(cache_stats.recent_len as f64);
-            self.varz.cache_test_len.set(cache_stats.test_len as f64);
-            self.varz.cache_inserted.set(cache_stats.inserted as f64);
-            self.varz.cache_evicted.set(cache_stats.evicted as f64);
+            let packet = &mut packet[..count];
+            self.handle_upstream_response(packet, client_addr, local_port)
         }
     }
 
