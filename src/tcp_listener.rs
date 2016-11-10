@@ -436,10 +436,13 @@ impl TcpListener {
             varz: edgedns_context.varz.clone(),
         };
         let listen_addr = edgedns_context.listen_addr.clone();
-        let tcp_listener_th = thread::spawn(move || {
-            tcp_listener.run(tcp_socket, listen_addr)
-                .expect("Unable to spawn a TCP listener");
-        });
+        let tcp_listener_th = thread::Builder::new()
+            .name("tcp_listener".to_string())
+            .spawn(move || {
+                tcp_listener.run(tcp_socket, listen_addr)
+                    .expect("Unable to spawn a TCP listener");
+            })
+            .unwrap();
         Ok((tcp_listener_th))
     }
 }

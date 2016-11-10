@@ -93,9 +93,12 @@ impl UdpListener {
             cache: edgedns_context.cache.clone(),
             varz: edgedns_context.varz.clone(),
         };
-        let udp_listener_th = thread::spawn(move || {
-            udp_listener.run().expect("Unable to spawn a UDP listener");
-        });
+        let udp_listener_th = thread::Builder::new()
+            .name("udp_listener".to_string())
+            .spawn(move || {
+                udp_listener.run().expect("Unable to spawn a UDP listener");
+            })
+            .unwrap();
         info!("UDP listener is ready");
         Ok((udp_listener_th))
     }

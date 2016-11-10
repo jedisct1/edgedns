@@ -608,7 +608,7 @@ impl Resolver {
         if config.failover {
             info!("Failover mode: upstream servers will be tried sequentially");
         }
-        thread::spawn(move || {
+        thread::Builder::new().name("resolver".to_string()).spawn(move || {
             let mut events = mio::Events::with_capacity(MAX_EVENTS_PER_BATCH);
             loop {
                 match resolver.mio_poll.poll(&mut events, None) {
@@ -632,7 +632,7 @@ impl Resolver {
                     }
                 }
             }
-        });
+        }).unwrap();
         Ok(resolver_tx)
     }
 }
