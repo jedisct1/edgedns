@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Instant;
-use super::RPDNSContext;
+use super::EdgeDNSContext;
 use varz::Varz;
 
 use super::{UDP_BUFFER_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE};
@@ -79,18 +79,19 @@ impl UdpListener {
         }
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext,
+    pub fn spawn(edgedns_context: &EdgeDNSContext,
                  resolver_tx: channel::SyncSender<ClientQuery>,
                  service_ready_tx: mpsc::SyncSender<u8>)
                  -> io::Result<(thread::JoinHandle<()>)> {
-        let udp_socket =
-            rpdns_context.udp_socket.try_clone().expect("Unable to clone the UDP listening socket");
+        let udp_socket = edgedns_context.udp_socket
+            .try_clone()
+            .expect("Unable to clone the UDP listening socket");
         let udp_listener = UdpListener {
             socket: udp_socket,
             resolver_tx: resolver_tx,
             service_ready_tx: service_ready_tx,
-            cache: rpdns_context.cache.clone(),
-            varz: rpdns_context.varz.clone(),
+            cache: edgedns_context.cache.clone(),
+            varz: edgedns_context.varz.clone(),
         };
         let udp_listener_th = thread::spawn(move || {
             udp_listener.run().expect("Unable to spawn a UDP listener");

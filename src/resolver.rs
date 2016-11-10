@@ -24,7 +24,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use std::{u64, usize};
-use super::RPDNSContext;
+use super::EdgeDNSContext;
 use varz::Varz;
 
 use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS,
@@ -124,10 +124,16 @@ impl Resolver {
         }
     }
 
-    fn verify_active_query(&self, active_query: &ActiveQuery, packet: &[u8], client_addr: SocketAddr, local_port: u16) -> Result<(), &'static str> {
+    fn verify_active_query(&self,
+                           active_query: &ActiveQuery,
+                           packet: &[u8],
+                           client_addr: SocketAddr,
+                           local_port: u16)
+                           -> Result<(), &'static str> {
         if local_port != active_query.local_port {
             debug!("Got a reponse on port {} for a query sent on port {}",
-                   local_port, active_query.local_port);
+                   local_port,
+                   active_query.local_port);
             return Err("Response on an unexpected port");
         }
         if active_query.socket_addr != client_addr {
@@ -145,7 +151,11 @@ impl Resolver {
         Ok(())
     }
 
-    fn dispatch_active_query(&mut self, packet: &mut [u8], normalized_question_key: &NormalizedQuestionKey, client_addr: SocketAddr, local_port: u16) {
+    fn dispatch_active_query(&mut self,
+                             packet: &mut [u8],
+                             normalized_question_key: &NormalizedQuestionKey,
+                             client_addr: SocketAddr,
+                             local_port: u16) {
         let active_query = match self.pending_queries.map.get(&normalized_question_key) {
             None => {
                 debug!("No clients waiting for this query");
@@ -164,13 +174,10 @@ impl Resolver {
             self.varz.upstream_received.inc();
             match client_query.proto {
                 ClientQueryProtocol::UDP => {
-                    if client_query.ts.elapsed() <
-                       Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
-                        if packet.len() >
-                           client_query.normalized_question.payload_size as usize {
-                            let packet =
-                                &build_tc_packet(&client_query.normalized_question)
-                                    .unwrap();
+                    if client_query.ts.elapsed() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                        if packet.len() > client_query.normalized_question.payload_size as usize {
+                            let packet = &build_tc_packet(&client_query.normalized_question)
+                                .unwrap();
                             let _ = self.udp_socket
                                 .send_to(packet, client_query.client_addr.unwrap());
                         } else {
@@ -193,7 +200,12 @@ impl Resolver {
         self.mio_timers.cancel_timeout(&active_query.timeout);
     }
 
-    fn complete_active_query(&mut self, packet: &mut [u8], normalized_question: NormalizedQuestion, client_addr: SocketAddr, local_port: u16, ttl: u32) {
+    fn complete_active_query(&mut self,
+                             packet: &mut [u8],
+                             normalized_question: NormalizedQuestion,
+                             client_addr: SocketAddr,
+                             local_port: u16,
+                             ttl: u32) {
         let normalized_question_key = normalized_question.key();
         self.dispatch_active_query(packet, &normalized_question_key, client_addr, local_port);
         if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
@@ -222,7 +234,10 @@ impl Resolver {
         self.varz.cache_evicted.set(cache_stats.evicted as f64);
     }
 
-    fn handle_upstream_response(&mut self, packet: &mut [u8], client_addr: SocketAddr, local_port: u16) {
+    fn handle_upstream_response(&mut self,
+                                packet: &mut [u8],
+                                client_addr: SocketAddr,
+                                local_port: u16) {
         if packet.len() < DNS_QUERY_MIN_SIZE {
             info!("Short response without a query, using UDP");
             self.varz.upstream_errors.inc();
@@ -271,13 +286,14 @@ impl Resolver {
         }
         loop {
             let mut packet = [0u8; DNS_MAX_SIZE];
-            let (count, client_addr, local_port) =
-            {
+            let (count, client_addr, local_port) = {
                 let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[usize::from(token)];
                 let ext_udp_socket = &ext_udp_socket_tuple.ext_udp_socket;
                 match ext_udp_socket.recv_from(&mut packet).expect("UDP socket error") {
                     None => break,
-                    Some((count, client_addr)) => (count, client_addr, ext_udp_socket_tuple.local_port)
+                    Some((count, client_addr)) => {
+                        (count, client_addr, ext_udp_socket_tuple.local_port)
+                    }
                 }
             };
             if count < DNS_HEADER_SIZE {
@@ -518,9 +534,9 @@ impl Resolver {
             .expect("Unable to reschedule the health check");
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<channel::SyncSender<ClientQuery>> {
-        let config = &rpdns_context.config;
-        let udp_socket = rpdns_context.udp_socket
+    pub fn spawn(edgedns_context: &EdgeDNSContext) -> io::Result<channel::SyncSender<ClientQuery>> {
+        let config = &edgedns_context.config;
+        let udp_socket = edgedns_context.udp_socket
             .try_clone()
             .expect("Unable to clone the UDP listening socket");
         let mio_poll = mio::Poll::new().expect("Couldn't instantiate an event loop");
@@ -573,15 +589,15 @@ impl Resolver {
         let mut resolver = Resolver {
             mio_poll: mio_poll,
             mio_timers: mio_timers,
-            config: rpdns_context.config.clone(),
+            config: edgedns_context.config.clone(),
             udp_socket: udp_socket,
             pending_queries: pending_queries,
             ext_udp_socket_tuples: ext_udp_socket_tuples,
             upstream_servers: upstream_servers,
             upstream_servers_live: upstream_servers_live,
             waiting_clients_count: 0,
-            cache: rpdns_context.cache.clone(),
-            varz: rpdns_context.varz.clone(),
+            cache: edgedns_context.cache.clone(),
+            varz: edgedns_context.varz.clone(),
             decrement_ttl: config.decrement_ttl,
             failover: config.failover,
             upstream_max_failures: config.upstream_max_failures,

@@ -25,7 +25,7 @@ use std::os::unix::io::{RawFd, FromRawFd};
 use std::thread;
 use std::time::{Duration, Instant};
 use std::usize;
-use super::RPDNSContext;
+use super::EdgeDNSContext;
 use varz::Varz;
 
 type Slab<T> = slab::Slab<T, Token>;
@@ -422,19 +422,20 @@ impl TcpListener {
         }
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext,
+    pub fn spawn(edgedns_context: &EdgeDNSContext,
                  resolver_tx: channel::SyncSender<ClientQuery>,
                  service_ready_tx: mpsc::SyncSender<u8>)
                  -> io::Result<(thread::JoinHandle<()>)> {
-        let tcp_socket =
-            rpdns_context.tcp_socket.try_clone().expect("Unable to clone the TCP listening socket");
+        let tcp_socket = edgedns_context.tcp_socket
+            .try_clone()
+            .expect("Unable to clone the TCP listening socket");
         let tcp_listener = TcpListener {
             resolver_tx: resolver_tx,
             service_ready_tx: service_ready_tx,
-            cache: rpdns_context.cache.clone(),
-            varz: rpdns_context.varz.clone(),
+            cache: edgedns_context.cache.clone(),
+            varz: edgedns_context.varz.clone(),
         };
-        let listen_addr = rpdns_context.listen_addr.clone();
+        let listen_addr = edgedns_context.listen_addr.clone();
         let tcp_listener_th = thread::spawn(move || {
             tcp_listener.run(tcp_socket, listen_addr)
                 .expect("Unable to spawn a TCP listener");

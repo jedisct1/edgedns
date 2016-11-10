@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
 
-use super::RPDNSContext;
+use super::EdgeDNSContext;
 use super::WEBSERVICE_THREADS;
 
 pub struct WebService {
@@ -18,8 +18,8 @@ pub struct WebService {
 }
 
 impl WebService {
-    fn new(rpdns_context: &RPDNSContext) -> WebService {
-        WebService { varz: rpdns_context.varz.clone() }
+    fn new(edgedns_context: &EdgeDNSContext) -> WebService {
+        WebService { varz: edgedns_context.varz.clone() }
     }
 
     fn handler(&self, req: Request, mut res: Response) {
@@ -45,11 +45,11 @@ impl WebService {
         res.send(&buffer).unwrap();
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext,
+    pub fn spawn(edgedns_context: &EdgeDNSContext,
                  service_ready_tx: mpsc::SyncSender<u8>)
                  -> io::Result<thread::JoinHandle<()>> {
-        let listen_addr = rpdns_context.config.webservice_listen_addr.to_owned();
-        let web_service = WebService::new(rpdns_context);
+        let listen_addr = edgedns_context.config.webservice_listen_addr.to_owned();
+        let web_service = WebService::new(edgedns_context);
         let webservice_th = thread::spawn(move || {
             let mut server = Server::http(&*listen_addr).expect("Unable to spawn the webservice");
             server.keep_alive(None);

@@ -74,7 +74,7 @@ const UPSTREAM_TIMEOUT_MS: u64 = 5 * 1000;
 #[cfg(feature = "webservice")]
 const WEBSERVICE_THREADS: usize = 1;
 
-pub struct RPDNSContext {
+pub struct EdgeDNSContext {
     pub config: Config,
     pub listen_addr: String,
     pub udp_socket: UdpSocket,
@@ -83,18 +83,20 @@ pub struct RPDNSContext {
     pub varz: Arc<Varz>,
 }
 
-struct RPDNS;
+struct EdgeDNS;
 
-impl RPDNS {
+impl EdgeDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start(rpdns_context: &RPDNSContext,
+    fn webservice_start(edgedns_context: &EdgeDNSContext,
                         service_ready_tx: mpsc::SyncSender<u8>)
                         -> thread::JoinHandle<()> {
-        WebService::spawn(rpdns_context, service_ready_tx).expect("Unable to spawn the web service")
+        WebService::spawn(edgedns_context, service_ready_tx)
+            .expect("Unable to spawn the web service")
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start(_rpdns_context: &RPDNSContext, _service_ready_tx: mpsc::SyncSender<u8>) {
+    fn webservice_start(_edgedns_context: &EdgeDNSContext,
+                        _service_ready_tx: mpsc::SyncSender<u8>) {
         debug!("This build was not compiled with support for webservices");
     }
 
@@ -112,14 +114,14 @@ impl RPDNS {
         pd.apply().unwrap();
     }
 
-    fn new(config: Config) -> RPDNS {
+    fn new(config: Config) -> EdgeDNS {
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
             .expect("Unable to create a UDP client socket");
         let tcp_socket = socket_tcp_bound(&config.listen_addr)
             .expect("Unable to create a TCP client socket");
-        let rpdns_context = RPDNSContext {
+        let edgedns_context = EdgeDNSContext {
             config: config.clone(),
             listen_addr: config.listen_addr.to_owned(),
             udp_socket: udp_socket,
@@ -127,11 +129,11 @@ impl RPDNS {
             cache: cache,
             varz: varz,
         };
-        let resolver_tx = Resolver::spawn(&rpdns_context).expect("Unable to spawn the resolver");
+        let resolver_tx = Resolver::spawn(&edgedns_context).expect("Unable to spawn the resolver");
         let (service_ready_tx, service_ready_rx) = mpsc::sync_channel::<u8>(1);
         let mut tasks: Vec<thread::JoinHandle<()>> = Vec::new();
         for _ in 0..config.udp_listener_threads {
-            let udp_listener = UdpListener::spawn(&rpdns_context,
+            let udp_listener = UdpListener::spawn(&edgedns_context,
                                                   resolver_tx.clone(),
                                                   service_ready_tx.clone())
                 .expect("Unable to spawn a UDP listener");
@@ -139,7 +141,7 @@ impl RPDNS {
             service_ready_rx.recv().unwrap();
         }
         for _ in 0..config.tcp_listener_threads {
-            let tcp_listener = TcpListener::spawn(&rpdns_context,
+            let tcp_listener = TcpListener::spawn(&edgedns_context,
                                                   resolver_tx.clone(),
                                                   service_ready_tx.clone())
                 .expect("Unable to spawn a TCP listener");
@@ -147,7 +149,7 @@ impl RPDNS {
             service_ready_rx.recv().unwrap();
         }
         if config.webservice_enabled {
-            let webservice = Self::webservice_start(&rpdns_context, service_ready_tx.clone());
+            let webservice = Self::webservice_start(&edgedns_context, service_ready_tx.clone());
             tasks.push(webservice);
             service_ready_rx.recv().unwrap();
         }
@@ -157,7 +159,7 @@ impl RPDNS {
             let _ = task.join();
         }
 
-        RPDNS
+        EdgeDNS
     }
 }
 
@@ -193,5 +195,5 @@ fn main() {
         }
         Ok(config) => config,
     };
-    RPDNS::new(config);
+    EdgeDNS::new(config);
 }
