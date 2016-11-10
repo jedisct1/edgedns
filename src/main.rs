@@ -167,7 +167,7 @@ fn main() {
     env_logger::init().expect("Failed to init logger");
 
     let matches = App::new("EdgeDNS")
-        .version("0.2.0")
+        .version("0.2.1")
         .author("Frank Denis")
         .about("A caching DNS reverse proxy")
         .arg(Arg::with_name("config_file")
