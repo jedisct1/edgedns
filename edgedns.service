@@ -8,5 +8,6 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
+Restart=always
 
 ExecStart=/usr/sbin/edgedns --config /etc/edgedns.toml
