@@ -169,9 +169,7 @@ impl TcpListenerHandler {
             }
         }
     }
-}
 
-impl TcpListenerHandler {
     fn accept(&mut self) -> io::Result<()> {
         debug!("accept()");
         self.varz.client_queries_tcp.inc();
