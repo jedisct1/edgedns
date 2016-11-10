@@ -66,8 +66,8 @@ const MAX_WAITING_CLIENTS: usize = MAX_ACTIVE_QUERIES * 10;
 const FAILURE_TTL: u32 = 30;
 const UDP_BUFFER_SIZE: usize = 16 * 1024 * 1024;
 const UPSTREAM_INITIAL_TIMEOUT_MS: u64 = 1 * 1000;
-const UPSTREAM_MAX_TIMEOUT_MS: u64 = 8 * 1000;
-const UPSTREAM_TIMEOUT_MS: u64 = 10 * 1000;
+const UPSTREAM_MAX_TIMEOUT_MS: u64 = 3 * 1000;
+const UPSTREAM_TIMEOUT_MS: u64 = 5 * 1000;
 
 #[cfg(feature = "webservice")]
 const WEBSERVICE_THREADS: usize = 1;
