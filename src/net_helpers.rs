@@ -1,3 +1,5 @@
+use nix::fcntl::FcntlArg::F_SETFL;
+use nix::fcntl::{fcntl, O_NONBLOCK};
 use nix::sys::socket::{bind, listen, setsockopt, sockopt, AddressFamily, SockFlag, SockType,
                        SockLevel, SockAddr, socket, InetAddr};
 use std::net::{self, SocketAddr, UdpSocket};
@@ -6,7 +8,7 @@ use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
 use super::{TCP_BACKLOG, UDP_BUFFER_SIZE};
 
-fn socket_tcp_v4() -> io::Result<RawFd> {
+pub fn socket_tcp_v4() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet,
                                 SockType::Stream,
                                 SockFlag::empty(),
@@ -14,7 +16,7 @@ fn socket_tcp_v4() -> io::Result<RawFd> {
     Ok(socket_fd)
 }
 
-fn socket_tcp_v6() -> io::Result<RawFd> {
+pub fn socket_tcp_v6() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet6,
                                 SockType::Stream,
                                 SockFlag::empty(),
@@ -39,18 +41,18 @@ pub fn socket_tcp_bound(addr: &str) -> io::Result<net::TcpListener> {
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
-fn socket_udp_set_buffer_size(socket_fd: RawFd) {
+pub fn socket_udp_set_buffer_size(socket_fd: RawFd) {
     let _ = setsockopt(socket_fd, sockopt::SndBufForce, &UDP_BUFFER_SIZE);
     let _ = setsockopt(socket_fd, sockopt::RcvBufForce, &UDP_BUFFER_SIZE);
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "android")))]
-fn socket_udp_set_buffer_size(socket_fd: RawFd) {
+pub fn socket_udp_set_buffer_size(socket_fd: RawFd) {
     let _ = setsockopt(socket_fd, sockopt::SndBuf, &UDP_BUFFER_SIZE);
     let _ = setsockopt(socket_fd, sockopt::RcvBuf, &UDP_BUFFER_SIZE);
 }
 
-fn socket_udp_v4() -> io::Result<RawFd> {
+pub fn socket_udp_v4() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet,
                                 SockType::Datagram,
                                 SockFlag::empty(),
@@ -58,7 +60,7 @@ fn socket_udp_v4() -> io::Result<RawFd> {
     Ok(socket_fd)
 }
 
-fn socket_udp_v6() -> io::Result<RawFd> {
+pub fn socket_udp_v6() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet6,
                                 SockType::Datagram,
                                 SockFlag::empty(),
@@ -79,4 +81,9 @@ pub fn socket_udp_bound(addr: &str) -> io::Result<UdpSocket> {
     bind(socket_fd, &nix_addr).expect("Unable to bind a UDP socket");
     let socket = unsafe { UdpSocket::from_raw_fd(socket_fd) };
     Ok(socket)
+}
+
+pub fn set_nonblock(sock: RawFd) -> io::Result<()> {
+    try!(fcntl(sock, F_SETFL(O_NONBLOCK)));
+    Ok(())
 }

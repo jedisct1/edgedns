@@ -7,10 +7,9 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
 use mio;
 use mio::*;
-use nix::fcntl::FcntlArg::F_SETFL;
-use nix::fcntl::{fcntl, O_NONBLOCK};
-use nix::sys::socket::{bind, setsockopt, sockopt, AddressFamily, SockFlag, SockType, SockLevel,
-                       SockAddr, socket, InetAddr};
+use net_helpers::*;
+use nix::sys::socket::{bind, setsockopt, sockopt,
+                       SockAddr, InetAddr};
 use rand::distributions::{IndependentSample, Range};
 use rand;
 use siphasher::sip::SipHasher13;
@@ -18,7 +17,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::net::{UdpSocket, Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::os::unix::io::{RawFd, FromRawFd};
+use std::os::unix::io::FromRawFd;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
@@ -27,7 +26,7 @@ use std::{u64, usize};
 use super::EdgeDNSContext;
 use varz::Varz;
 
-use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UDP_BUFFER_SIZE, UPSTREAM_TIMEOUT_MS,
+use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UPSTREAM_TIMEOUT_MS,
             UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY,
             MAX_EVENTS_PER_BATCH, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS,
             UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
@@ -686,39 +685,6 @@ impl NormalizedQuestion {
         let ext_udp_socket_tuple = &ext_udp_socket_tuples[random_token];
         Ok((query_packet, normalized_question_minimal, upstream_server_idx, ext_udp_socket_tuple))
     }
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-fn socket_udp_set_buffer_size(socket_fd: RawFd) {
-    let _ = setsockopt(socket_fd, sockopt::SndBufForce, &UDP_BUFFER_SIZE);
-    let _ = setsockopt(socket_fd, sockopt::RcvBufForce, &UDP_BUFFER_SIZE);
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-fn socket_udp_set_buffer_size(socket_fd: RawFd) {
-    let _ = setsockopt(socket_fd, sockopt::SndBuf, &UDP_BUFFER_SIZE);
-    let _ = setsockopt(socket_fd, sockopt::RcvBuf, &UDP_BUFFER_SIZE);
-}
-
-fn socket_udp_v4() -> io::Result<RawFd> {
-    let socket_fd = try!(socket(AddressFamily::Inet,
-                                SockType::Datagram,
-                                SockFlag::empty(),
-                                SockLevel::Udp as i32));
-    Ok(socket_fd)
-}
-
-fn socket_udp_v6() -> io::Result<RawFd> {
-    let socket_fd = try!(socket(AddressFamily::Inet6,
-                                SockType::Datagram,
-                                SockFlag::empty(),
-                                SockLevel::Udp as i32));
-    Ok(socket_fd)
-}
-
-fn set_nonblock(sock: RawFd) -> io::Result<()> {
-    try!(fcntl(sock, F_SETFL(O_NONBLOCK)));
-    Ok(())
 }
 
 fn mio_socket_udp_bound(port: u16) -> io::Result<udp::UdpSocket> {
