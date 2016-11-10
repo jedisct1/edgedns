@@ -1,20 +1,3 @@
-[global]
-# User name to drop privileges to
-# user = "_edgedns"
-
-# Group to drop privileges to, if not the primary group of the user
-# group = "_edgedns"
-
-# Directory to chroot() into
-# chroot = "/var/empty"
-
-# Number of threads handling client queries received over UDP
-# More than 1 is rarely required. Set to 0 to disable UDP.
-threads_udp = 1
-
-# Number of threads handling client queries received over TCP
-# More than 1 is very rarely required. Set to 0 to disable TCP.
-threads_tcp = 1
 
 [upstream]
 # Type of upstream servers: "resolver" or "authoritative"
@@ -59,3 +42,22 @@ enabled = false
 
 # Webservice address for Prometheus. Path will be /metrics
 listen = "0.0.0.0:9090"
+
+
+[global]
+# User name to drop privileges to
+# user = "_edgedns"
+
+# Group to drop privileges to, if not the primary group of the user
+# group = "_edgedns"
+
+# Directory to chroot() into
+# chroot = "/var/empty"
+
+# Number of threads handling client queries received over UDP
+# More than 1 is rarely required. Set to 0 to disable UDP.
+threads_udp = 1
+
+# Number of threads handling client queries received over TCP
+# More than 1 is very rarely required. Set to 0 to disable TCP.
+threads_tcp = 1
