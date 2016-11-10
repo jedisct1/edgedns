@@ -65,11 +65,11 @@ impl Cache {
         let now = Instant::now();
         let duration = Duration::from_secs(ttl as u64);
         let expiration = now + duration;
-        let mut cache = self.arc_mx.lock().unwrap();
         let cache_entry = CacheEntry {
             expiration: expiration,
             packet: packet,
         };
+        let mut cache = self.arc_mx.lock().unwrap();
         cache.insert(normalized_question_key, cache_entry)
     }
 
