@@ -7,6 +7,7 @@ use prometheus::{self, Encoder, TextEncoder};
 use varz::{StartInstant, Varz};
 use std::io;
 use std::sync::Arc;
+use std::sync::mpsc;
 use std::thread::spawn;
 
 use super::RPDNSContext;
@@ -44,7 +45,9 @@ impl WebService {
         res.send(&buffer).unwrap();
     }
 
-    pub fn spawn(rpdns_context: &RPDNSContext) -> io::Result<()> {
+    pub fn spawn(rpdns_context: &RPDNSContext,
+                 service_ready_tx: mpsc::SyncSender<u8>)
+                 -> io::Result<()> {
         let listen_addr = rpdns_context.config.webservice_listen_addr.to_owned();
         let web_service = WebService::new(rpdns_context);
         spawn(move || {

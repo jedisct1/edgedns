@@ -41,7 +41,7 @@ use privdrop::PrivDrop;
 use resolver::*;
 use std::net::UdpSocket;
 use std::sync::Arc;
-use std::sync::mpsc::sync_channel;
+use std::sync::mpsc;
 use tcp_listener::*;
 use udp_listener::*;
 use varz::*;
@@ -84,12 +84,15 @@ struct RPDNS;
 
 impl RPDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start(rpdns_context: &RPDNSContext) {
-        WebService::spawn(rpdns_context).expect("Unable to spawn the web service");
+    fn webservice_start(rpdns_context: &RPDNSContext, service_ready_tx: mpsc::SyncSender<u8>) {
+        WebService::spawn(rpdns_context, service_ready_tx)
+            .expect("Unable to spawn the web service");
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start(_rpdns_context: &RPDNSContext) {}
+    fn webservice_start(_rpdns_context: &RPDNSContext, _service_ready_tx: mpsc::SyncSender<u8>) {
+        debug!("This build was not compiled with support for webservices");
+    }
 
     fn privileges_drop(config: &Config) {
         let mut pd = PrivDrop::default();
@@ -118,10 +121,7 @@ impl RPDNS {
             varz: varz,
         };
         let resolver_tx = Resolver::spawn(&rpdns_context).expect("Unable to spawn the resolver");
-        if config.webservice_enabled {
-            Self::webservice_start(&rpdns_context);
-        }
-        let (service_ready_tx, service_ready_rx) = sync_channel::<u8>(1);
+        let (service_ready_tx, service_ready_rx) = mpsc::sync_channel::<u8>(1);
         let udp_listener = UdpListener::spawn(&rpdns_context,
                                               resolver_tx.clone(),
                                               service_ready_tx.clone())
@@ -132,6 +132,10 @@ impl RPDNS {
                                               service_ready_tx.clone())
             .expect("Unable to spawn a TCP listener");
         service_ready_rx.recv().unwrap();
+        if config.webservice_enabled {
+            Self::webservice_start(&rpdns_context, service_ready_tx.clone());
+            service_ready_rx.recv().unwrap();
+        }
         Self::privileges_drop(&config);
         info!("EdgeDNS is ready to process requests");
         let _ = udp_listener.join();
