@@ -20,6 +20,8 @@ pub struct Config {
     pub user: Option<String>,
     pub group: Option<String>,
     pub chroot_dir: Option<String>,
+    pub udp_listener_threads: usize,
+    pub tcp_listener_threads: usize,
 }
 
 impl Config {
@@ -119,6 +121,14 @@ impl Config {
         let chroot_dir = toml_config.lookup("global.chroot_dir")
             .map(|x| x.as_str().expect("global.chroot must be a string").to_owned());
 
+        let udp_listener_threads = toml_config.lookup("global.threads_udp").map_or(1, |x| {
+            x.as_integer().expect("global.threads_udp must be an integer")
+        }) as usize;
+
+        let tcp_listener_threads = toml_config.lookup("global.threads_tcp").map_or(1, |x| {
+            x.as_integer().expect("global.threads_tcp must be an integer")
+        }) as usize;
+
         Ok(Config {
             decrement_ttl: decrement_ttl,
             upstream_servers: upstream_servers,
@@ -134,6 +144,8 @@ impl Config {
             user: user,
             group: group,
             chroot_dir: chroot_dir,
+            udp_listener_threads: udp_listener_threads,
+            tcp_listener_threads: tcp_listener_threads,
         })
     }
 }
