@@ -8,7 +8,7 @@ use varz::{StartInstant, Varz};
 use std::io;
 use std::sync::Arc;
 use std::sync::mpsc;
-use std::thread::spawn;
+use std::thread;
 
 use super::RPDNSContext;
 use super::WEBSERVICE_THREADS;
@@ -47,12 +47,13 @@ impl WebService {
 
     pub fn spawn(rpdns_context: &RPDNSContext,
                  service_ready_tx: mpsc::SyncSender<u8>)
-                 -> io::Result<()> {
+                 -> io::Result<thread::JoinHandle<()>> {
         let listen_addr = rpdns_context.config.webservice_listen_addr.to_owned();
         let web_service = WebService::new(rpdns_context);
-        spawn(move || {
+        let webservice_th = thread::spawn(move || {
             let mut server = Server::http(&*listen_addr).expect("Unable to spawn the webservice");
             server.keep_alive(None);
+            service_ready_tx.send(2).unwrap();
             info!("Webservice started on {}", listen_addr);
             server.handle_threads(move |req: Request, res: Response| {
                                     web_service.handler(req, res)
@@ -60,6 +61,6 @@ impl WebService {
                                 WEBSERVICE_THREADS)
                 .expect("Unable to start the webservice");
         });
-        Ok(())
+        Ok(webservice_th)
     }
 }
