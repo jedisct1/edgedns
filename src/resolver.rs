@@ -506,7 +506,7 @@ impl Resolver {
 
     fn timeout_health_check(&mut self) {
         if self.upstream_servers_live.is_empty() {
-            info!("All resolvers are dead - forcing them back to life");
+            info!("All resolvers are dead - trying to bring them back to life");
             for upstream_server in &mut self.upstream_servers {
                 upstream_server.failures = 0;
                 upstream_server.offline = false;
