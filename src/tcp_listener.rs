@@ -6,9 +6,7 @@ use client::*;
 use dns;
 use mio;
 use mio::*;
-use std::net::{self, SocketAddr};
-use nix::sys::socket::{bind, listen, setsockopt, sockopt, AddressFamily, SockFlag, SockType,
-                       SockLevel, SockAddr, socket, InetAddr};
+use std::net;
 use rand;
 use rand::distributions::{IndependentSample, Range};
 use resolver::*;
@@ -18,10 +16,8 @@ use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::{Read, Write};
 use std::net::Shutdown;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::mpsc;
-use std::os::unix::io::{RawFd, FromRawFd};
 use std::thread;
 use std::time::{Duration, Instant};
 use std::usize;
@@ -31,8 +27,7 @@ use varz::Varz;
 type Slab<T> = slab::Slab<T, Token>;
 
 use super::{DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE, DNS_MAX_TCP_SIZE, MAX_ACTIVE_QUERIES,
-            MAX_EVENTS_PER_BATCH, MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE,
-            TCP_BACKLOG};
+            MAX_EVENTS_PER_BATCH, MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE};
 
 const NOTIFY_TOK: Token = Token(usize::MAX - 1);
 const TIMER_TOK: Token = Token(usize::MAX - 2);
@@ -466,36 +461,4 @@ impl<T> MapNonBlock<T> for io::Result<T> {
             }
         }
     }
-}
-
-fn socket_tcp_v4() -> io::Result<RawFd> {
-    let socket_fd = try!(socket(AddressFamily::Inet,
-                                SockType::Stream,
-                                SockFlag::empty(),
-                                SockLevel::Tcp as i32));
-    Ok(socket_fd)
-}
-
-fn socket_tcp_v6() -> io::Result<RawFd> {
-    let socket_fd = try!(socket(AddressFamily::Inet6,
-                                SockType::Stream,
-                                SockFlag::empty(),
-                                SockLevel::Tcp as i32));
-    Ok(socket_fd)
-}
-
-pub fn socket_tcp_bound(addr: &str) -> io::Result<net::TcpListener> {
-    let actual: SocketAddr = FromStr::from_str(addr).expect("Invalid address");
-    let nix_addr = SockAddr::Inet(InetAddr::from_std(&actual));
-    let socket_fd = match actual {
-        SocketAddr::V4(_) => try!(socket_tcp_v4()),
-        SocketAddr::V6(_) => try!(socket_tcp_v6()),
-    };
-    let _ = setsockopt(socket_fd, sockopt::ReuseAddr, &true);
-    let _ = setsockopt(socket_fd, sockopt::ReusePort, &true);
-    let _ = setsockopt(socket_fd, sockopt::TcpNoDelay, &true);
-    bind(socket_fd, &nix_addr).expect("Unable to bind a TCP socket");
-    listen(socket_fd, TCP_BACKLOG).expect("Unable to listen to the TCP socket");
-    let socket = unsafe { net::TcpListener::from_raw_fd(socket_fd) };
-    Ok(socket)
 }
