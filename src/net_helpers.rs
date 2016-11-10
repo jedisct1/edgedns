@@ -8,6 +8,7 @@ use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
 use super::{TCP_BACKLOG, UDP_BUFFER_SIZE};
 
+#[inline]
 pub fn socket_tcp_v4() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet,
                                 SockType::Stream,
@@ -16,6 +17,7 @@ pub fn socket_tcp_v4() -> io::Result<RawFd> {
     Ok(socket_fd)
 }
 
+#[inline]
 pub fn socket_tcp_v6() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet6,
                                 SockType::Stream,
@@ -52,6 +54,7 @@ pub fn socket_udp_set_buffer_size(socket_fd: RawFd) {
     let _ = setsockopt(socket_fd, sockopt::RcvBuf, &UDP_BUFFER_SIZE);
 }
 
+#[inline]
 pub fn socket_udp_v4() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet,
                                 SockType::Datagram,
@@ -60,6 +63,7 @@ pub fn socket_udp_v4() -> io::Result<RawFd> {
     Ok(socket_fd)
 }
 
+#[inline]
 pub fn socket_udp_v6() -> io::Result<RawFd> {
     let socket_fd = try!(socket(AddressFamily::Inet6,
                                 SockType::Datagram,
@@ -83,6 +87,7 @@ pub fn socket_udp_bound(addr: &str) -> io::Result<UdpSocket> {
     Ok(socket)
 }
 
+#[inline]
 pub fn set_nonblock(sock: RawFd) -> io::Result<()> {
     try!(fcntl(sock, F_SETFL(O_NONBLOCK)));
     Ok(())
