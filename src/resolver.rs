@@ -156,14 +156,14 @@ impl Resolver {
                              normalized_question_key: &NormalizedQuestionKey,
                              client_addr: SocketAddr,
                              local_port: u16) {
-        let active_query = match self.pending_queries.map.get(&normalized_question_key) {
+        let active_query = match self.pending_queries.map.get(normalized_question_key) {
             None => {
                 debug!("No clients waiting for this query");
                 return;
             }
             Some(active_query) => active_query,
         };
-        if self.verify_active_query(&active_query, packet, client_addr, local_port).is_err() {
+        if self.verify_active_query(active_query, packet, client_addr, local_port).is_err() {
             debug!("Received response is not valid for the query originally sent");
             return;
         }
