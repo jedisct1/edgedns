@@ -6,6 +6,9 @@ use client::*;
 use dns;
 use mio;
 use mio::*;
+use std::net::{self, SocketAddr};
+use nix::sys::socket::{bind, listen, setsockopt, sockopt, AddressFamily, SockFlag, SockType,
+                       SockLevel, SockAddr, socket, InetAddr};
 use rand;
 use rand::distributions::{IndependentSample, Range};
 use resolver::*;
@@ -15,8 +18,10 @@ use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::{Read, Write};
 use std::net::Shutdown;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::mpsc;
+use std::os::unix::io::{RawFd, FromRawFd};
 use std::thread;
 use std::time::{Duration, Instant};
 use std::usize;
@@ -26,7 +31,8 @@ use varz::Varz;
 type Slab<T> = slab::Slab<T, Token>;
 
 use super::{DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE, DNS_MAX_TCP_SIZE, MAX_ACTIVE_QUERIES,
-            MAX_EVENTS_PER_BATCH, MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE};
+            MAX_EVENTS_PER_BATCH, MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE,
+            TCP_BACKLOG};
 
 const NOTIFY_TOK: Token = Token(usize::MAX - 1);
 const TIMER_TOK: Token = Token(usize::MAX - 2);
@@ -355,7 +361,7 @@ impl TcpListenerHandler {
 }
 
 impl TcpListener {
-    fn run(self, addr: String) -> io::Result<()> {
+    fn run(self, tcp_socket: net::TcpListener, addr: String) -> io::Result<()> {
         let mio_poll = mio::Poll::new().expect("Couldn't instantiate an event loop");
         let mio_timers = timer::Builder::default()
             .num_slots(MAX_TCP_CLIENTS / 256)
@@ -364,7 +370,8 @@ impl TcpListener {
         mio_poll.register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
             .expect("Could not register the timers");
         let actual = addr.parse().expect("Unable to parse the TCP address to bind");
-        let mio_listener = tcp::TcpListener::bind(&actual).expect("Unable to bind the TCP socket");
+        let mio_listener = tcp::TcpListener::from_listener(tcp_socket, &actual)
+            .expect("Unable to use the TCP socket");
         debug!("tcp listener socket={:?}", mio_listener);
         self.service_ready_tx.send(1).unwrap();
         try!(mio_poll.register(&mio_listener,
@@ -419,6 +426,8 @@ impl TcpListener {
                  resolver_tx: channel::SyncSender<ClientQuery>,
                  service_ready_tx: mpsc::SyncSender<u8>)
                  -> io::Result<(thread::JoinHandle<()>)> {
+        let tcp_socket =
+            rpdns_context.tcp_socket.try_clone().expect("Unable to clone the TCP listening socket");
         let tcp_listener = TcpListener {
             resolver_tx: resolver_tx,
             service_ready_tx: service_ready_tx,
@@ -427,7 +436,8 @@ impl TcpListener {
         };
         let listen_addr = rpdns_context.listen_addr.clone();
         let tcp_listener_th = thread::spawn(move || {
-            tcp_listener.run(listen_addr).expect("Unable to spawn a TCP listener");
+            tcp_listener.run(tcp_socket, listen_addr)
+                .expect("Unable to spawn a TCP listener");
         });
         Ok((tcp_listener_th))
     }
@@ -452,4 +462,36 @@ impl<T> MapNonBlock<T> for io::Result<T> {
             }
         }
     }
+}
+
+fn socket_tcp_v4() -> io::Result<RawFd> {
+    let socket_fd = try!(socket(AddressFamily::Inet,
+                                SockType::Stream,
+                                SockFlag::empty(),
+                                SockLevel::Tcp as i32));
+    Ok(socket_fd)
+}
+
+fn socket_tcp_v6() -> io::Result<RawFd> {
+    let socket_fd = try!(socket(AddressFamily::Inet6,
+                                SockType::Stream,
+                                SockFlag::empty(),
+                                SockLevel::Tcp as i32));
+    Ok(socket_fd)
+}
+
+pub fn socket_tcp_bound(addr: &str) -> io::Result<net::TcpListener> {
+    let actual: SocketAddr = FromStr::from_str(addr).expect("Invalid address");
+    let nix_addr = SockAddr::Inet(InetAddr::from_std(&actual));
+    let socket_fd = match actual {
+        SocketAddr::V4(_) => try!(socket_tcp_v4()),
+        SocketAddr::V6(_) => try!(socket_tcp_v6()),
+    };
+    let _ = setsockopt(socket_fd, sockopt::ReuseAddr, &true);
+    let _ = setsockopt(socket_fd, sockopt::ReusePort, &true);
+    let _ = setsockopt(socket_fd, sockopt::TcpNoDelay, &true);
+    bind(socket_fd, &nix_addr).expect("Unable to bind a TCP socket");
+    listen(socket_fd, TCP_BACKLOG).expect("Unable to listen to the TCP socket");
+    let socket = unsafe { net::TcpListener::from_raw_fd(socket_fd) };
+    Ok(socket)
 }

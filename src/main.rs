@@ -39,7 +39,7 @@ use clap::{Arg, App};
 use config::Config;
 use privdrop::PrivDrop;
 use resolver::*;
-use std::net::UdpSocket;
+use std::net::{self, UdpSocket};
 use std::sync::Arc;
 use std::sync::mpsc;
 use tcp_listener::*;
@@ -64,6 +64,7 @@ const MAX_TCP_HASH_DISTANCE: usize = 10;
 const MAX_TCP_IDLE_MS: u64 = 10 * 1000;
 const MAX_WAITING_CLIENTS: usize = MAX_ACTIVE_QUERIES * 10;
 const FAILURE_TTL: u32 = 30;
+const TCP_BACKLOG: usize = 1024;
 const UDP_BUFFER_SIZE: usize = 16 * 1024 * 1024;
 const UPSTREAM_INITIAL_TIMEOUT_MS: u64 = 1 * 1000;
 const UPSTREAM_MAX_TIMEOUT_MS: u64 = 3 * 1000;
@@ -74,8 +75,9 @@ const WEBSERVICE_THREADS: usize = 1;
 
 pub struct RPDNSContext {
     pub config: Config,
-    pub udp_socket: UdpSocket,
     pub listen_addr: String,
+    pub udp_socket: UdpSocket,
+    pub tcp_socket: net::TcpListener,
     pub cache: Cache,
     pub varz: Arc<Varz>,
 }
@@ -112,11 +114,14 @@ impl RPDNS {
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
-            .expect("Unable to create a client socket");
+            .expect("Unable to create a UDP client socket");
+        let tcp_socket = socket_tcp_bound(&config.listen_addr)
+            .expect("Unable to create a TCP client socket");
         let rpdns_context = RPDNSContext {
             config: config.clone(),
-            udp_socket: udp_socket,
             listen_addr: config.listen_addr.to_owned(),
+            udp_socket: udp_socket,
+            tcp_socket: tcp_socket,
             cache: cache,
             varz: varz,
         };

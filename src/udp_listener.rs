@@ -139,6 +139,6 @@ pub fn socket_udp_bound(addr: &str) -> io::Result<UdpSocket> {
     let _ = setsockopt(socket_fd, sockopt::ReusePort, &true);
     socket_udp_set_buffer_size(socket_fd);
     bind(socket_fd, &nix_addr).expect("Unable to bind a UDP socket");
-    let socket: UdpSocket = unsafe { UdpSocket::from_raw_fd(socket_fd) };
+    let socket = unsafe { UdpSocket::from_raw_fd(socket_fd) };
     Ok(socket)
 }
