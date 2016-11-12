@@ -53,6 +53,7 @@ use varz::*;
 #[cfg(feature = "webservice")]
 use webservice::*;
 
+const CLOCK_RESOLUTION: u64 = 100;
 const DNS_MAX_SIZE: usize = 65535;
 const DNS_MAX_TCP_SIZE: usize = 65535;
 const DNS_MAX_UDP_SIZE: usize = 4096;
@@ -118,7 +119,7 @@ impl EdgeDNS {
     }
 
     fn new(config: Config) -> EdgeDNS {
-        let ct = coarsetime::Updater::new(100)
+        let ct = coarsetime::Updater::new(CLOCK_RESOLUTION)
             .start()
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
