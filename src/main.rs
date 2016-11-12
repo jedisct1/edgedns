@@ -6,6 +6,7 @@ extern crate log;
 extern crate clockpro_cache;
 extern crate bytes;
 extern crate clap;
+extern crate coarsetime;
 extern crate env_logger;
 extern crate mio;
 extern crate nix;
@@ -117,6 +118,7 @@ impl EdgeDNS {
     }
 
     fn new(config: Config) -> EdgeDNS {
+        let ct = coarsetime::Updater::new(100).start().expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
@@ -160,7 +162,7 @@ impl EdgeDNS {
         for task in tasks {
             let _ = task.join();
         }
-
+        ct.stop().unwrap();
         EdgeDNS
     }
 }

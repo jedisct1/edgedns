@@ -1,5 +1,6 @@
 use cache::Cache;
 use client_query::*;
+use coarsetime::{Duration, Instant};
 use config::Config;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
@@ -8,8 +9,7 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
 use mio;
 use mio::*;
 use net_helpers::*;
-use nix::sys::socket::{bind, setsockopt, sockopt,
-                       SockAddr, InetAddr};
+use nix::sys::socket::{bind, setsockopt, sockopt, SockAddr, InetAddr};
 use rand::distributions::{IndependentSample, Range};
 use rand;
 use siphasher::sip::SipHasher13;
@@ -21,15 +21,14 @@ use std::os::unix::io::FromRawFd;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time;
 use std::{u64, usize};
 use super::EdgeDNSContext;
 use varz::Varz;
 
-use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UPSTREAM_TIMEOUT_MS,
-            UPSTREAM_MAX_TIMEOUT_MS, MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY,
-            MAX_EVENTS_PER_BATCH, MAX_WAITING_CLIENTS, HEALTH_CHECK_MS,
-            UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
+use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UPSTREAM_TIMEOUT_MS, UPSTREAM_MAX_TIMEOUT_MS,
+            MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY, MAX_EVENTS_PER_BATCH,
+            MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
 
 const NOTIFY_TOK: Token = Token(usize::MAX - 1);
 const TIMER_TOK: Token = Token(usize::MAX - 2);
@@ -428,7 +427,7 @@ impl Resolver {
                 };
             let upstream_server = &self.upstream_servers[upstream_server_idx];
             let timeout = match self.mio_timers
-                .set_timeout(Duration::from_millis(UPSTREAM_TIMEOUT_MS),
+                .set_timeout(time::Duration::from_millis(UPSTREAM_TIMEOUT_MS),
                              TimeoutToken::Key(key.clone())) {
                 Err(_) => return,
                 Ok(timeout) => timeout,
@@ -528,7 +527,7 @@ impl Resolver {
             }
         }
         self.mio_timers
-            .set_timeout(Duration::from_millis(HEALTH_CHECK_MS),
+            .set_timeout(time::Duration::from_millis(HEALTH_CHECK_MS),
                          TimeoutToken::HealthCheck)
             .expect("Unable to reschedule the health check");
     }
@@ -582,7 +581,7 @@ impl Resolver {
             .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
-        mio_timers.set_timeout(Duration::from_millis(HEALTH_CHECK_MS),
+        mio_timers.set_timeout(time::Duration::from_millis(HEALTH_CHECK_MS),
                          TimeoutToken::HealthCheck)
             .expect("Unable to reschedule the health check");
         let mut resolver = Resolver {
@@ -607,31 +606,34 @@ impl Resolver {
         if config.failover {
             info!("Failover mode: upstream servers will be tried sequentially");
         }
-        thread::Builder::new().name("resolver".to_string()).spawn(move || {
-            let mut events = mio::Events::with_capacity(MAX_EVENTS_PER_BATCH);
-            loop {
-                match resolver.mio_poll.poll(&mut events, None) {
-                    Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
-                    Err(e) => return e,
-                    _ => {}
-                }
-                for event in events.iter() {
-                    match event.token() {
-                        NOTIFY_TOK => {
-                            while let Ok(client_query) = resolver_rx.try_recv() {
-                                resolver.notify(client_query)
+        thread::Builder::new()
+            .name("resolver".to_string())
+            .spawn(move || {
+                let mut events = mio::Events::with_capacity(MAX_EVENTS_PER_BATCH);
+                loop {
+                    match resolver.mio_poll.poll(&mut events, None) {
+                        Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                        Err(e) => return e,
+                        _ => {}
+                    }
+                    for event in events.iter() {
+                        match event.token() {
+                            NOTIFY_TOK => {
+                                while let Ok(client_query) = resolver_rx.try_recv() {
+                                    resolver.notify(client_query)
+                                }
                             }
-                        }
-                        TIMER_TOK => {
-                            while let Some(timeout_token) = resolver.mio_timers.poll() {
-                                resolver.timeout(timeout_token)
+                            TIMER_TOK => {
+                                while let Some(timeout_token) = resolver.mio_timers.poll() {
+                                    resolver.timeout(timeout_token)
+                                }
                             }
+                            token => resolver.ready(token, event.kind()),
                         }
-                        token => resolver.ready(token, event.kind()),
                     }
                 }
-            }
-        }).unwrap();
+            })
+            .unwrap();
         Ok(resolver_tx)
     }
 }

@@ -1,9 +1,9 @@
 use config::Config;
+use coarsetime::{Duration, Instant};
 use clockpro_cache::*;
 use dns;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 #[derive(Clone, Debug)]
 pub struct CacheEntry {

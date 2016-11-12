@@ -1,5 +1,6 @@
 use cache::Cache;
 use client_query::*;
+use coarsetime::Instant;
 use dns;
 use mio::*;
 use std::io;
@@ -7,7 +8,6 @@ use std::net::UdpSocket;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Instant;
 use super::EdgeDNSContext;
 use varz::Varz;
 

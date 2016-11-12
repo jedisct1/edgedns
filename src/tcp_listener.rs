@@ -3,6 +3,7 @@ use bytes::{Buf, BufMut, ByteBuf};
 use cache::Cache;
 use client_query::*;
 use client::*;
+use coarsetime::Instant;
 use dns;
 use mio;
 use mio::*;
@@ -19,7 +20,7 @@ use std::net::Shutdown;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time;
 use std::usize;
 use super::EdgeDNSContext;
 use varz::Varz;
@@ -224,7 +225,7 @@ impl TcpListenerHandler {
                       PollOpt::edge() | PollOpt::oneshot())
             .expect("Unable to register a connection");
         if let Ok(timeout) = self.mio_timers
-            .set_timeout(Duration::from_millis(MAX_TCP_IDLE_MS), client_tok) {
+            .set_timeout(time::Duration::from_millis(MAX_TCP_IDLE_MS), client_tok) {
             client.timeout = Some(timeout);
         }
         Ok(())

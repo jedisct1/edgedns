@@ -1,5 +1,5 @@
+use coarsetime::Instant;
 use prometheus::{Counter, Gauge};
-use std::time::Instant;
 
 pub struct StartInstant(pub Instant);
 

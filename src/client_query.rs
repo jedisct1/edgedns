@@ -1,8 +1,8 @@
+use coarsetime::Instant;
 use dns::NormalizedQuestion;
 use mio::*;
 use resolver::*;
 use std::net::SocketAddr;
-use std::time::Instant;
 
 #[derive(Copy, Clone, Debug)]
 pub enum ClientQueryProtocol {
