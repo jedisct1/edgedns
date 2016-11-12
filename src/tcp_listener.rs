@@ -324,7 +324,7 @@ impl TcpListenerHandler {
                             client_tok: Some(client_tok),
                             tcpclient_tx: Some(self.tcpclient_tx.clone()),
                             normalized_question: normalized_question.clone(),
-                            ts: Instant::now(),
+                            ts: Instant::recent(),
                         };
                         client.normalized_question = Some(normalized_question);
                         client.resolving = true;

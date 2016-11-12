@@ -172,7 +172,7 @@ impl Resolver {
             self.varz.upstream_received.inc();
             match client_query.proto {
                 ClientQueryProtocol::UDP => {
-                    if client_query.ts.elapsed() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                    if client_query.ts.elapsed_since_recent() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                         if packet.len() > client_query.normalized_question.payload_size as usize {
                             let packet = &build_tc_packet(&client_query.normalized_question)
                                 .unwrap();
@@ -346,7 +346,7 @@ impl Resolver {
                 info!("More than {} clients waiting for a response to the same query",
                       MAX_CLIENTS_WAITING_FOR_QUERY);
             }
-            let obsolete = active_query.ts.elapsed() >
+            let obsolete = active_query.ts.elapsed_since_recent() >
                            Duration::from_millis(active_query.delay as u64);
             if obsolete {
                 let mut new_server_went_offline = false;
@@ -437,7 +437,7 @@ impl Resolver {
                 socket_addr: upstream_server.socket_addr,
                 local_port: ext_udp_socket_tuple.local_port,
                 client_queries: vec![client_query.clone()],
-                ts: Instant::now(),
+                ts: Instant::recent(),
                 delay: UPSTREAM_INITIAL_TIMEOUT_MS,
                 upstream_server_idx: upstream_server_idx,
                 timeout: timeout,
@@ -474,7 +474,7 @@ impl Resolver {
                 self.varz.upstream_timeout.inc();
                 match client_query.proto {
                     ClientQueryProtocol::UDP => {
-                        if client_query.ts.elapsed() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                        if client_query.ts.elapsed_since_recent() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                             if packet.len() >
                                client_query.normalized_question.payload_size as usize {
                                 let packet = build_tc_packet(&client_query.normalized_question)

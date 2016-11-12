@@ -69,7 +69,7 @@ impl UdpListener {
                 client_addr: Some(client_addr),
                 tcpclient_tx: None,
                 normalized_question: normalized_question,
-                ts: Instant::now(),
+                ts: Instant::recent(),
             };
             let _ = self.resolver_tx.send(client_query);
         }
