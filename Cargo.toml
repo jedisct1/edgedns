@@ -31,10 +31,6 @@ git = "https://github.com/carllerche/bytes"
 [dependencies.mio]
 git = "https://github.com/carllerche/mio"
 
-[profile.dev]
-codegen-units = 4
-panic = "unwind"
-
 [profile.release]
 lto = true
 panic = "abort"
