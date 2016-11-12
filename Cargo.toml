@@ -5,7 +5,7 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
 webservice = ["hyper"]
-nightly = ["clap/nightly", "hyper/nightly", "log/nightly", "prometheus/nightly"]
+nightly = ["clap/nightly", "hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
 
 default = ["nightly", "webservice"]
 
@@ -13,6 +13,7 @@ default = ["nightly", "webservice"]
 clap = {version = "*"}
 clippy = {version = "*", optional = true}
 clockpro-cache = "*"
+coarsetime = "*"
 env_logger = "*"
 hyper = {version = "*", optional = true, default-features = false}
 log = {version = "*"}
