@@ -118,7 +118,9 @@ impl EdgeDNS {
     }
 
     fn new(config: Config) -> EdgeDNS {
-        let ct = coarsetime::Updater::new(100).start().expect("Unable to spawn the internal timer");
+        let ct = coarsetime::Updater::new(100)
+            .start()
+            .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
