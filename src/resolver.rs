@@ -172,7 +172,8 @@ impl Resolver {
             self.varz.upstream_received.inc();
             match client_query.proto {
                 ClientQueryProtocol::UDP => {
-                    if client_query.ts.elapsed_since_recent() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                    if client_query.ts.elapsed_since_recent() <
+                       Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                         if packet.len() > client_query.normalized_question.payload_size as usize {
                             let packet = &build_tc_packet(&client_query.normalized_question)
                                 .unwrap();
@@ -474,7 +475,8 @@ impl Resolver {
                 self.varz.upstream_timeout.inc();
                 match client_query.proto {
                     ClientQueryProtocol::UDP => {
-                        if client_query.ts.elapsed_since_recent() < Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                        if client_query.ts.elapsed_since_recent() <
+                           Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                             if packet.len() >
                                client_query.normalized_question.payload_size as usize {
                                 let packet = build_tc_packet(&client_query.normalized_question)
