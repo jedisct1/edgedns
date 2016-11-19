@@ -7,7 +7,10 @@ extern crate clockpro_cache;
 extern crate bytes;
 extern crate clap;
 extern crate coarsetime;
+#[cfg(feature = "nightly")]
+extern crate dnstap;
 extern crate env_logger;
+extern crate framestream;
 extern crate mio;
 extern crate nix;
 extern crate privdrop;
@@ -27,6 +30,8 @@ mod client_query;
 mod client;
 mod config;
 mod dns;
+#[cfg(feature = "nightly")]
+mod log_dnstap;
 mod net_helpers;
 mod resolver;
 mod tcp_listener;
@@ -39,6 +44,7 @@ mod webservice;
 use cache::Cache;
 use clap::{Arg, App};
 use config::Config;
+use log_dnstap::LogDNSTap;
 use net_helpers::*;
 use privdrop::PrivDrop;
 use resolver::*;
@@ -85,6 +91,7 @@ pub struct EdgeDNSContext {
     pub tcp_socket: net::TcpListener,
     pub cache: Cache,
     pub varz: Arc<Varz>,
+    pub dnstap_sender: Option<log_dnstap::Sender>,
 }
 
 struct EdgeDNS;
@@ -128,6 +135,13 @@ impl EdgeDNS {
             .expect("Unable to create a UDP client socket");
         let tcp_socket = socket_tcp_bound(&config.listen_addr)
             .expect("Unable to create a TCP client socket");
+        let (_log_dnstap, dnstap_sender) = if config.dnstap_enabled {
+            let log_dnstap = LogDNSTap::new(&config);
+            let dnstap_sender = log_dnstap.sender();
+            (Some(log_dnstap), Some(dnstap_sender))
+        } else {
+            (None, None)
+        };
         let edgedns_context = EdgeDNSContext {
             config: config.clone(),
             listen_addr: config.listen_addr.to_owned(),
@@ -135,6 +149,7 @@ impl EdgeDNS {
             tcp_socket: tcp_socket,
             cache: cache,
             varz: varz,
+            dnstap_sender: dnstap_sender,
         };
         let resolver_tx = Resolver::spawn(&edgedns_context).expect("Unable to spawn the resolver");
         let (service_ready_tx, service_ready_rx) = mpsc::sync_channel::<u8>(1);

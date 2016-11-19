@@ -6,6 +6,7 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
           build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
           DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
+use log_dnstap;
 use mio;
 use mio::*;
 use net_helpers::*;
@@ -72,6 +73,7 @@ pub struct Resolver {
     mio_poll: mio::Poll,
     mio_timers: timer::Timer<TimeoutToken>,
     config: Config,
+    dnstap_sender: Option<log_dnstap::Sender>,
     udp_socket: UdpSocket,
     pending_queries: PendingQueries,
     ext_udp_socket_tuples: Vec<ExtUdpSocketTuple>,
@@ -164,6 +166,9 @@ impl Resolver {
         if self.verify_active_query(active_query, packet, client_addr, local_port).is_err() {
             debug!("Received response is not valid for the query originally sent");
             return;
+        }
+        if let Some(ref dnstap_sender) = self.dnstap_sender {
+            dnstap_sender.send_forwarder_response(&packet, client_addr, local_port);
         }
         let client_queries = &active_query.client_queries;
         for client_query in client_queries {
@@ -590,6 +595,7 @@ impl Resolver {
             mio_poll: mio_poll,
             mio_timers: mio_timers,
             config: edgedns_context.config.clone(),
+            dnstap_sender: edgedns_context.dnstap_sender.clone(),
             udp_socket: udp_socket,
             pending_queries: pending_queries,
             ext_udp_socket_tuples: ext_udp_socket_tuples,

@@ -45,6 +45,23 @@ enabled = false
 listen = "0.0.0.0:9090"
 
 
+[dnstap]
+# Change to `true` in order to enable dnstap-based logging
+enabled = true
+
+# Backlog
+# backlog = 4096
+
+# UNIX socket path
+socket_path = "/var/run/edgedns.dnstap"
+
+# Identity (optional) - Should be set to the name of the host
+# identity = "hostname"
+
+# Version (optional) - Should be set to the software name
+version = "EdgeDNS"
+
+
 [global]
 # User name to drop privileges to
 # user = "_edgedns"

@@ -20,6 +20,7 @@ log = {version = "*"}
 nix = "~0.7.0"
 privdrop = "*"
 prometheus = {version = "*", default-features = false}
+protobuf = "*"
 rand = "*"
 siphasher = "*"
 slab = "*"
@@ -28,8 +29,14 @@ toml = "*"
 [dependencies.bytes]
 git = "https://github.com/carllerche/bytes"
 
+[dependencies.framestream]
+git = "https://github.com/jedisct1/rust-framestream"
+
 [dependencies.mio]
 git = "https://github.com/carllerche/mio"
+
+[dependencies.dnstap]
+git = "https://github.com/jedisct1/rust-dnstap"
 
 [profile.release]
 lto = true

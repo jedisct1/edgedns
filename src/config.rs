@@ -22,6 +22,11 @@ pub struct Config {
     pub chroot_dir: Option<String>,
     pub udp_listener_threads: usize,
     pub tcp_listener_threads: usize,
+    pub dnstap_enabled: bool,
+    pub dnstap_backlog: usize,
+    pub dnstap_socket_path: Option<String>,
+    pub dnstap_identity: Option<String>,
+    pub dnstap_version: Option<String>,
 }
 
 impl Config {
@@ -129,6 +134,23 @@ impl Config {
             x.as_integer().expect("global.threads_tcp must be an integer")
         }) as usize;
 
+        let dnstap_enabled = toml_config.lookup("dnstap.enabled").map_or(false, |x| {
+            x.as_bool().expect("dnstap.enabled must be a boolean")
+        });
+
+        let dnstap_backlog = toml_config.lookup("dnstap.backlog").map_or(4096, |x| {
+            x.as_integer().expect("dnstap.backlog must be an integer")
+        }) as usize;
+
+        let dnstap_socket_path = toml_config.lookup("dnstap.socket_path")
+            .map(|x| x.as_str().expect("dnstap.socket_path must be a string").to_owned());
+
+        let dnstap_identity = toml_config.lookup("dnstap.identity")
+            .map(|x| x.as_str().expect("dnstap.identity must be a string").to_owned());
+
+        let dnstap_version = toml_config.lookup("dnstap.version")
+            .map(|x| x.as_str().expect("dnstap.version must be a string").to_owned());
+
         Ok(Config {
             decrement_ttl: decrement_ttl,
             upstream_servers: upstream_servers,
@@ -146,6 +168,11 @@ impl Config {
             chroot_dir: chroot_dir,
             udp_listener_threads: udp_listener_threads,
             tcp_listener_threads: tcp_listener_threads,
+            dnstap_enabled: dnstap_enabled,
+            dnstap_backlog: dnstap_backlog,
+            dnstap_socket_path: dnstap_socket_path,
+            dnstap_identity: dnstap_identity,
+            dnstap_version: dnstap_version,
         })
     }
 }
