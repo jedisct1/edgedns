@@ -131,7 +131,7 @@ dependencies = [
 [[package]]
 name = "dnstap"
 version = "0.1.0"
-source = "git+https://github.com/jedisct1/rust-dnstap#a646dffb87ac5e75b40fb7c7217e123bf32cbcf6"
+source = "git+https://github.com/jedisct1/rust-dnstap#00365dfdca35bd27897486e3eec66a939dabcf5b"
 dependencies = [
  "framestream 0.1.0 (git+https://github.com/jedisct1/rust-framestream)",
  "mio 0.6.1 (git+https://github.com/carllerche/mio)",

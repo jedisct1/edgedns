@@ -47,7 +47,7 @@ listen = "0.0.0.0:9090"
 
 [dnstap]
 # Change to `true` in order to enable dnstap-based logging
-enabled = true
+enabled = false
 
 # Backlog
 # backlog = 4096
