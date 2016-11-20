@@ -41,7 +41,7 @@ impl LogDNSTap {
     }
 
     pub fn sender(&self) -> Sender {
-        Sender::new(self.dnstap_writer.as_ref().unwrap(),
+        Sender::new(self.dnstap_pending_writer.as_ref().unwrap().sender(),
                     self.dnstap_identity.clone(),
                     self.dnstap_version.clone())
     }
@@ -54,7 +54,7 @@ pub struct Sender {
 }
 
 impl Sender {
-    pub fn new(dnstap_writer: &DNSTapWriter,
+    pub fn new(dnstap_sender: dnstap::Sender,
                dnstap_identity: Option<Vec<u8>>,
                dnstap_version: Option<Vec<u8>>)
                -> Sender {
@@ -62,7 +62,7 @@ impl Sender {
             template_forwarder_response: DNSMessage::new(dnstap_identity,
                                                          dnstap_version,
                                                          MessageType::FORWARDER_RESPONSE),
-            dnstap_sender: dnstap_writer.sender(),
+            dnstap_sender: dnstap_sender
         }
     }
 
