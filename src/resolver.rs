@@ -168,7 +168,7 @@ impl Resolver {
             return;
         }
         if let Some(ref dnstap_sender) = self.dnstap_sender {
-            dnstap_sender.send_forwarder_response(&packet, client_addr, local_port);
+            dnstap_sender.send_forwarder_response(packet, client_addr, local_port);
         }
         let client_queries = &active_query.client_queries;
         for client_query in client_queries {
