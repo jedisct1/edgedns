@@ -52,7 +52,7 @@ enabled = false
 # Backlog
 # backlog = 4096
 
-# UNIX socket path
+# UNIX socket path, relative to the chroot directory
 socket_path = "/var/run/edgedns.dnstap"
 
 # Identity (optional) - Should be set to the name of the host
