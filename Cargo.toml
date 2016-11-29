@@ -16,6 +16,7 @@ clockpro-cache = "*"
 coarsetime = "*"
 env_logger = "*"
 hyper = {version = "*", optional = true, default-features = false}
+jumphash = "*"
 log = {version = "*"}
 nix = "~0.7.0"
 privdrop = "*"

@@ -11,6 +11,7 @@ extern crate coarsetime;
 extern crate dnstap;
 extern crate env_logger;
 extern crate framestream;
+extern crate jumphash;
 extern crate mio;
 extern crate nix;
 extern crate privdrop;

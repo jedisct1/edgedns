@@ -97,9 +97,9 @@ cache, sitting between a recursive **resolver** and stub resolvers.
 "virtual DNS" is the default mode, but this can be changed with the
 `type` property in the `[upstream]` section.
 
-By default, the load is distributed using consistent hashing, ensuring
-that the upstream servers get a similar share, but queries for a given
-zone always favor the same upstream server.
+By default, the load is distributed using jump consistent hashing,
+ensuring that the upstream servers get a similar share, but queries for
+a given zone always favor the same upstream server.
 
 As an alternative, servers can be tried sequentially, and queries are
 eventually sent to the first responsive server.

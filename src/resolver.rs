@@ -6,6 +6,7 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
           build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
           build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
           DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
+use jumphash::JumpHasher;
 use log_dnstap;
 use mio;
 use mio::*;
@@ -13,9 +14,7 @@ use net_helpers::*;
 use nix::sys::socket::{bind, setsockopt, sockopt, SockAddr, InetAddr};
 use rand::distributions::{IndependentSample, Range};
 use rand;
-use siphasher::sip::SipHasher13;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 use std::io;
 use std::net::{UdpSocket, Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::FromRawFd;
@@ -661,13 +660,7 @@ impl NormalizedQuestion {
         if failover {
             return Ok(upstream_servers_live[0]);
         }
-        let mut hs = SipHasher13::new();
-        self.qname.hash(&mut hs);
-        let h = hs.finish();
-        let mut i = (h / (u64::MAX / (live_count as u64))) as usize;
-        if i >= live_count {
-            i = live_count - 1;
-        }
+        let mut i = JumpHasher::new_with_keys(0, 0).slot(&self.qname, live_count as u32) as usize;
         if is_retry {
             i = (i + 1) % live_count;
         }
