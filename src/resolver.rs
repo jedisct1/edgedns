@@ -84,7 +84,7 @@ pub struct Resolver {
     decrement_ttl: bool,
     failover: bool,
     upstream_max_failures: u32,
-    jumphash_keys: (u64, u64)
+    jumphasher: JumpHasher,
 }
 
 struct PendingQueries {
@@ -403,7 +403,7 @@ impl Resolver {
                     match normalized_question.new_active_query(&self.upstream_servers,
                                                                &self.upstream_servers_live,
                                                                &self.ext_udp_socket_tuples,
-                                                               &self.jumphash_keys,
+                                                               &self.jumphasher,
                                                                true,
                                                                self.failover) {
                         Err(_) => return,
@@ -427,7 +427,7 @@ impl Resolver {
                 match normalized_question.new_active_query(&self.upstream_servers,
                                                            &self.upstream_servers_live,
                                                            &self.ext_udp_socket_tuples,
-                                                           &self.jumphash_keys,
+                                                           &self.jumphasher,
                                                            false,
                                                            self.failover) {
                     Err(_) => return,
@@ -609,7 +609,7 @@ impl Resolver {
             decrement_ttl: config.decrement_ttl,
             failover: config.failover,
             upstream_max_failures: config.upstream_max_failures,
-            jumphash_keys: (0, 0),
+            jumphasher: JumpHasher::default(),
         };
         if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
@@ -653,7 +653,7 @@ impl NormalizedQuestion {
     fn pick_upstream(&self,
                      _upstream_servers: &Vec<UpstreamServer>,
                      upstream_servers_live: &Vec<usize>,
-                     jumphash_keys: &(u64, u64),
+                     jumphasher: &JumpHasher,
                      is_retry: bool,
                      failover: bool)
                      -> Result<usize, &'static str> {
@@ -665,8 +665,7 @@ impl NormalizedQuestion {
         if failover {
             return Ok(upstream_servers_live[0]);
         }
-        let mut i = JumpHasher::new_with_keys(jumphash_keys.0, jumphash_keys.1)
-            .slot(&self.qname, live_count as u32) as usize;
+        let mut i = jumphasher.slot(&self.qname, live_count as u32) as usize;
         if is_retry {
             i = (i + 1) % live_count;
         }
@@ -678,14 +677,14 @@ impl NormalizedQuestion {
          upstream_servers: &Vec<UpstreamServer>,
          upstream_servers_live: &Vec<usize>,
          ext_udp_socket_tuples: &'t Vec<ExtUdpSocketTuple>,
-         jumphash_keys: &(u64, u64),
+         jumphasher: &JumpHasher,
          is_retry: bool,
          failover: bool)
          -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
         let (query_packet, normalized_question_minimal) = build_query_packet(self, false)
             .expect("Unable to build a new query packet");
         let upstream_server_idx =
-            match self.pick_upstream(upstream_servers, upstream_servers_live, jumphash_keys, is_retry, failover) {
+            match self.pick_upstream(upstream_servers, upstream_servers_live, jumphasher, is_retry, failover) {
                 Err(e) => return Err(e),
                 Ok(upstream_server_idx) => upstream_server_idx,
             };
