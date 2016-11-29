@@ -327,7 +327,51 @@ impl Resolver {
         }
     }
 
+    fn respond_from_cache(&mut self, client_query: &ClientQuery) -> Result<(), &'static str> {
+        let normalized_question = &client_query.normalized_question;
+        let normalized_question_key = normalized_question.key();
+        let cache_entry = self.cache.get(&normalized_question_key);
+        let mut packet = if let Some(cache_entry) = cache_entry {
+            cache_entry.packet.clone()
+        } else {
+            return Err("Response is not present in cache");
+        };
+        debug!("Responding from cache");
+        overwrite_qname(&mut packet, &client_query.normalized_question.qname);
+        set_tid(&mut packet, client_query.normalized_question.tid);
+        match client_query.proto {
+            ClientQueryProtocol::UDP => {
+                if client_query.ts.elapsed_since_recent() <
+                   Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
+                    if packet.len() > client_query.normalized_question.payload_size as usize {
+                        let packet = build_tc_packet(&client_query.normalized_question).unwrap();
+                        let _ = self.udp_socket
+                            .send_to(&packet, client_query.client_addr.unwrap());
+                    } else {
+                        let _ = self.udp_socket
+                            .send_to(&packet, client_query.client_addr.unwrap());
+                    };
+                }
+            }
+            ClientQueryProtocol::TCP => {
+                let resolver_response = ResolverResponse {
+                    response: packet.to_vec(),
+                    client_tok: client_query.client_tok.unwrap(),
+                    dnssec: client_query.normalized_question.dnssec,
+                };
+                let tcpclient_tx = client_query.tcpclient_tx.clone().unwrap();
+                let _ = tcpclient_tx.send(resolver_response);
+            }
+        }
+        Ok(())
+    }
+
     fn notify(&mut self, client_query: ClientQuery) {
+        if self.upstream_servers_live.is_empty() {
+            if self.respond_from_cache(&client_query).is_ok() {
+                return;
+            }
+        }
         let normalized_question = &client_query.normalized_question;
         let key = normalized_question.key();
         if self.waiting_clients_count > MAX_WAITING_CLIENTS {
@@ -513,12 +557,10 @@ impl Resolver {
 
     fn timeout_health_check(&mut self) {
         if self.upstream_servers_live.is_empty() {
-            info!("All resolvers are dead - trying to bring them back to life");
+            info!("All resolvers are dead");
             for upstream_server in &mut self.upstream_servers {
                 upstream_server.failures = 0;
-                upstream_server.offline = false;
             }
-            self.upstream_servers_live = (0..self.upstream_servers.len()).collect();
         } else {
             let (packet, _normalized_question) = build_health_check_packet().unwrap();
             let mut rng = rand::thread_rng();
@@ -683,11 +725,14 @@ impl NormalizedQuestion {
          -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
         let (query_packet, normalized_question_minimal) = build_query_packet(self, false)
             .expect("Unable to build a new query packet");
-        let upstream_server_idx =
-            match self.pick_upstream(upstream_servers, upstream_servers_live, jumphasher, is_retry, failover) {
-                Err(e) => return Err(e),
-                Ok(upstream_server_idx) => upstream_server_idx,
-            };
+        let upstream_server_idx = match self.pick_upstream(upstream_servers,
+                                                           upstream_servers_live,
+                                                           jumphasher,
+                                                           is_retry,
+                                                           failover) {
+            Err(e) => return Err(e),
+            Ok(upstream_server_idx) => upstream_server_idx,
+        };
         let mut rng = rand::thread_rng();
         let random_token_range = Range::new(0usize, ext_udp_socket_tuples.len());
         let random_token = random_token_range.ind_sample(&mut rng);
