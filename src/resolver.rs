@@ -222,6 +222,7 @@ impl Resolver {
                 }
                 Some(cache_entry) => {
                     self.cache.insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
+                    self.varz.client_queries_offline.inc();
                 }
             }
         } else {
@@ -337,6 +338,7 @@ impl Resolver {
             return Err("Response is not present in cache");
         };
         debug!("Responding from cache");
+        self.varz.client_queries_offline.inc();
         overwrite_qname(&mut packet, &client_query.normalized_question.qname);
         set_tid(&mut packet, client_query.normalized_question.tid);
         match client_query.proto {
@@ -515,6 +517,7 @@ impl Resolver {
             let client_queries = &active_query.client_queries;
             for client_query in client_queries {
                 let mut packet = if let Some(ref outdated_packet) = outdated_packet {
+                    self.varz.client_queries_offline.inc();
                     let mut outdated_packet = outdated_packet.clone();
                     overwrite_qname(&mut outdated_packet,
                                     &client_query.normalized_question.qname);

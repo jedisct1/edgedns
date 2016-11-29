@@ -16,6 +16,7 @@ pub struct Varz {
     pub client_queries_tcp: Counter,
     pub client_queries_cached: Counter,
     pub client_queries_expired: Counter,
+    pub client_queries_offline: Counter,
     pub client_queries_errors: Counter,
     pub upstream_errors: Counter,
     pub upstream_received: Counter,
@@ -74,6 +75,12 @@ impl Varz {
                 .unwrap(),
             client_queries_expired: register_counter!(opts!("edgedns_client_queries_expired",
                                                             "Number of expired client queries",
+                                                            labels!{"handler" => "all",}))
+                .unwrap(),
+            client_queries_offline: register_counter!(opts!("edgedns_client_queries_offline",
+                                                            "Number of client queries answered \
+                                                             while upstream resolvers are \
+                                                             unresponsive",
                                                             labels!{"handler" => "all",}))
                 .unwrap(),
             client_queries_errors: register_counter!(opts!("edgedns_client_queries_errors",
