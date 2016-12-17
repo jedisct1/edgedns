@@ -459,9 +459,8 @@ impl Resolver {
                 active_query.normalized_question_minimal = normalized_question_minimal;
                 active_query.socket_addr = upstream_server.socket_addr;
                 active_query.local_port = ext_udp_socket_tuple.local_port;
-                ext_udp_socket_tuple.ext_udp_socket
-                    .send_to(&query_packet, &upstream_server.socket_addr)
-                    .unwrap();
+                let _ = ext_udp_socket_tuple.ext_udp_socket
+                    .send_to(&query_packet, &upstream_server.socket_addr);
             }
             debug_assert_eq!(create_active_query, false);
         }
@@ -498,9 +497,8 @@ impl Resolver {
             };
             self.pending_queries.map.insert(key, active_query);
             self.waiting_clients_count += 1;
-            ext_udp_socket_tuple.ext_udp_socket
-                .send_to(&query_packet, &upstream_server.socket_addr)
-                .unwrap();
+            let _ = ext_udp_socket_tuple.ext_udp_socket
+                .send_to(&query_packet, &upstream_server.socket_addr);
         }
     }
 }
