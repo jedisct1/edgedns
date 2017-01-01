@@ -12,7 +12,6 @@ use rand;
 use rand::distributions::{IndependentSample, Range};
 use resolver::*;
 use siphasher::sip::SipHasher13;
-use slab;
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::{Read, Write};
@@ -24,8 +23,6 @@ use std::time;
 use std::usize;
 use super::EdgeDNSContext;
 use varz::Varz;
-
-type Slab<T> = slab::Slab<T, Token>;
 
 use super::{DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE, DNS_MAX_TCP_SIZE, MAX_ACTIVE_QUERIES,
             MAX_EVENTS_PER_BATCH, MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE};
