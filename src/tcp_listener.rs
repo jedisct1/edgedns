@@ -434,7 +434,7 @@ impl TcpListener {
                     .expect("Unable to spawn a TCP listener");
             })
             .unwrap();
-        Ok((tcp_listener_th))
+        Ok(tcp_listener_th)
     }
 }
 

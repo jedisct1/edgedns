@@ -94,6 +94,6 @@ impl UdpListener {
             .spawn(move || { udp_listener.run().expect("Unable to spawn a UDP listener"); })
             .unwrap();
         info!("UDP listener is ready");
-        Ok((udp_listener_th))
+        Ok(udp_listener_th)
     }
 }
