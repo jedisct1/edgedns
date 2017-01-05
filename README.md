@@ -105,8 +105,8 @@ As an alternative, servers can be tried sequentially, and queries are
 eventually sent to the first responsive server.
 
 That behavior is controlled by the `strategy` property in the
-`[upstream]` section. `uniform` enables consistent hashing, and
-`fallback` selects servers in sequence.
+`[upstream]` section. `uniform` enables consistent hashing, `fallback`
+selects servers in sequence and `minload` uses the power-of-two algorithm.
 
 A unique feature of EdgeDNS is that it uses a fixed number of UDP
 sockets. Sockets designed to receive responses from upstream servers

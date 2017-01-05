@@ -48,6 +48,7 @@ struct ExtUdpSocketTuple {
 struct UpstreamServer {
     remote_addr: String,
     socket_addr: SocketAddr,
+    pending_queries: u64,
     failures: u32,
     offline: bool,
 }
@@ -61,11 +62,19 @@ impl UpstreamServer {
         let upstream_server = UpstreamServer {
             remote_addr: remote_addr.to_owned(),
             socket_addr: socket_addr,
+            pending_queries: 0,
             failures: 0,
             offline: false,
         };
         Ok(upstream_server)
     }
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+pub enum LoadBalancingMode {
+    Uniform,
+    Fallback,
+    P2,
 }
 
 pub struct Resolver {
@@ -82,7 +91,7 @@ pub struct Resolver {
     cache: Cache,
     varz: Arc<Varz>,
     decrement_ttl: bool,
-    failover: bool,
+    lbmode: LoadBalancingMode,
     upstream_max_failures: u32,
     jumphasher: JumpHasher,
 }
@@ -310,17 +319,23 @@ impl Resolver {
                 .iter()
                 .position(|upstream_server| upstream_server.socket_addr == client_addr) {
                 if !self.upstream_servers_live.iter().any(|&x| x == idx) {
+                    self.upstream_servers[idx].pending_queries = 0;
                     self.upstream_servers[idx].failures = 0;
                     self.upstream_servers[idx].offline = false;
                     self.upstream_servers_live.push(idx);
                     self.upstream_servers_live.sort();
                     info!("{} came back online",
                           self.upstream_servers[idx].remote_addr);
-                } else if self.upstream_servers[idx].failures > 0 {
-                    self.upstream_servers[idx].failures -= 1;
-                    debug!("Failures count for server {} decreased to {}",
-                           idx,
-                           self.upstream_servers[idx].failures);
+                } else {
+                    if self.upstream_servers[idx].pending_queries > 0 {
+                        self.upstream_servers[idx].pending_queries -= 1;
+                    }
+                    if self.upstream_servers[idx].failures > 0 {
+                        self.upstream_servers[idx].failures -= 1;
+                        debug!("Failures count for server {} decreased to {}",
+                               idx,
+                               self.upstream_servers[idx].failures);
+                    }
                 }
             }
             let packet = &mut packet[..count];
@@ -451,14 +466,15 @@ impl Resolver {
                                                                &self.ext_udp_socket_tuples,
                                                                &self.jumphasher,
                                                                true,
-                                                               self.failover) {
+                                                               self.lbmode) {
                         Err(_) => return,
                         Ok(res) => res,
                     };
-                let upstream_server = &self.upstream_servers[upstream_server_idx];
+                let mut upstream_server = &mut self.upstream_servers[upstream_server_idx];
                 active_query.normalized_question_minimal = normalized_question_minimal;
                 active_query.socket_addr = upstream_server.socket_addr;
                 active_query.local_port = ext_udp_socket_tuple.local_port;
+                upstream_server.pending_queries += 1;
                 let _ = ext_udp_socket_tuple.ext_udp_socket
                     .send_to(&query_packet, &upstream_server.socket_addr);
             }
@@ -474,7 +490,7 @@ impl Resolver {
                                                            &self.ext_udp_socket_tuples,
                                                            &self.jumphasher,
                                                            false,
-                                                           self.failover) {
+                                                           self.lbmode) {
                     Err(_) => return,
                     Ok(res) => res,
                 };
@@ -650,15 +666,12 @@ impl Resolver {
             cache: edgedns_context.cache.clone(),
             varz: edgedns_context.varz.clone(),
             decrement_ttl: config.decrement_ttl,
-            failover: config.failover,
+            lbmode: config.lbmode,
             upstream_max_failures: config.upstream_max_failures,
             jumphasher: JumpHasher::default(),
         };
         if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
-        }
-        if config.failover {
-            info!("Failover mode: upstream servers will be tried sequentially");
         }
         thread::Builder::new()
             .name("resolver".to_string())
@@ -694,25 +707,39 @@ impl Resolver {
 
 impl NormalizedQuestion {
     fn pick_upstream(&self,
-                     _upstream_servers: &Vec<UpstreamServer>,
+                     upstream_servers: &Vec<UpstreamServer>,
                      upstream_servers_live: &Vec<usize>,
                      jumphasher: &JumpHasher,
                      is_retry: bool,
-                     failover: bool)
+                     lbmode: LoadBalancingMode)
                      -> Result<usize, &'static str> {
         let live_count = upstream_servers_live.len();
         if live_count == 0 {
             debug!("All upstream servers are down");
             return Err("All upstream servers are down");
         }
-        if failover {
-            return Ok(upstream_servers_live[0]);
+        match lbmode {
+            LoadBalancingMode::Fallback => Ok(upstream_servers_live[0]),
+            LoadBalancingMode::Uniform => {
+                let mut i = jumphasher.slot(&self.qname, live_count as u32) as usize;
+                if is_retry {
+                    i = (i + 1) % live_count;
+                }
+                Ok(upstream_servers_live[i])
+            }
+            LoadBalancingMode::P2 => {
+                let mut busy_map = upstream_servers_live.iter()
+                    .map(|&i| (i, upstream_servers[i].pending_queries))
+                    .collect::<Vec<(usize, u64)>>();
+                busy_map.sort_by_key(|x| x.1);
+                let i = if busy_map.len() == 1 {
+                    0
+                } else {
+                    ((self.tid as usize) + (is_retry as usize & 1)) & 1
+                };
+                Ok(busy_map.iter().skip(i).next().unwrap().0)
+            }
         }
-        let mut i = jumphasher.slot(&self.qname, live_count as u32) as usize;
-        if is_retry {
-            i = (i + 1) % live_count;
-        }
-        Ok(upstream_servers_live[i])
     }
 
     fn new_active_query<'t>
@@ -722,7 +749,7 @@ impl NormalizedQuestion {
          ext_udp_socket_tuples: &'t Vec<ExtUdpSocketTuple>,
          jumphasher: &JumpHasher,
          is_retry: bool,
-         failover: bool)
+         lbmode: LoadBalancingMode)
          -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
         let (query_packet, normalized_question_minimal) = build_query_packet(self, false)
             .expect("Unable to build a new query packet");
@@ -730,7 +757,7 @@ impl NormalizedQuestion {
                                                            upstream_servers_live,
                                                            jumphasher,
                                                            is_retry,
-                                                           failover) {
+                                                           lbmode) {
             Err(e) => return Err(e),
             Ok(upstream_server_idx) => upstream_server_idx,
         };

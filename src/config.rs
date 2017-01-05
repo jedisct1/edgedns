@@ -2,13 +2,14 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::io::{Error, ErrorKind};
 use std::path::Path;
+use resolver::LoadBalancingMode;
 use toml;
 
 #[derive(Clone, Debug)]
 pub struct Config {
     pub decrement_ttl: bool,
     pub upstream_servers: Vec<String>,
-    pub failover: bool,
+    pub lbmode: LoadBalancingMode,
     pub upstream_max_failures: u32,
     pub cache_size: usize,
     pub udp_ports: u16,
@@ -70,12 +71,13 @@ impl Config {
             .map(|x| x.as_str().expect("upstream servers must be strings").to_owned())
             .collect();
 
-        let failover_str = toml_config.lookup("upstream.strategy").map_or("uniform", |x| {
+        let lbmode_str = toml_config.lookup("upstream.strategy").map_or("uniform", |x| {
             x.as_str().expect("upstream.strategy must be a string")
         });
-        let failover = match failover_str {
-            "uniform" => false,
-            "fallback" => true,
+        let lbmode = match lbmode_str {
+            "uniform" => LoadBalancingMode::Uniform,
+            "fallback" => LoadBalancingMode::Fallback,
+            "minload" => LoadBalancingMode::P2,
             _ => {
                 return Err(Error::new(ErrorKind::InvalidData,
                                       "Invalid value for the load balancing/failover strategy"))
@@ -154,7 +156,7 @@ impl Config {
         Ok(Config {
             decrement_ttl: decrement_ttl,
             upstream_servers: upstream_servers,
-            failover: failover,
+            lbmode: lbmode,
             upstream_max_failures: upstream_max_failures,
             cache_size: cache_size,
             udp_ports: udp_ports,

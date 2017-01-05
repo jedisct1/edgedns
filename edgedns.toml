@@ -7,7 +7,7 @@ type = "resolver"
 # Upstream servers
 servers = ["8.8.8.8:53", "8.8.4.4:53"]
 
-# Load balancing/failover strategy: "uniform" or "fallback"
+# Load balancing/failover strategy: "uniform", "fallback" or "minload"
 strategy = "uniform"
 
 # Max failures before marking a server as temporarily unresponsive
