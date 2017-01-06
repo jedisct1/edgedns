@@ -4,6 +4,8 @@
 #[macro_use]
 extern crate log;
 extern crate clockpro_cache;
+#[macro_use]
+extern crate bpf;
 extern crate bytes;
 extern crate clap;
 extern crate coarsetime;

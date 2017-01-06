@@ -2,6 +2,7 @@
 name = "edgedns"
 version = "0.2.1"
 dependencies = [
+ "bpf 0.1.0 (git+https://github.com/jedisct1/rust-bpf)",
  "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "clippy 0.0.106 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -46,6 +47,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "bitflags"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "bpf"
+version = "0.1.0"
+source = "git+https://github.com/jedisct1/rust-bpf#bc133c792ff3b05b432315ef32072a62e069055b"
+dependencies = [
+ "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "byteorder"
@@ -597,6 +606,7 @@ dependencies = [
 "checksum ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "23ac7c30002a5accbf7e8987d0632fa6de155b7c3d39d0067317a391e00a2ef6"
 "checksum bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8dead7461c1127cf637931a1e50934eb6eee8bff2f74433ac7909e9afcee04a3"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
+"checksum bpf 0.1.0 (git+https://github.com/jedisct1/rust-bpf)" = "<none>"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
 "checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
 "checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)" = "<none>"

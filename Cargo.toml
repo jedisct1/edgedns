@@ -39,6 +39,9 @@ git = "https://github.com/carllerche/mio"
 [dependencies.dnstap]
 git = "https://github.com/jedisct1/rust-dnstap"
 
+[dependencies.bpf]
+git = "https://github.com/jedisct1/rust-bpf"
+
 [profile.release]
 lto = true
 panic = "abort"
