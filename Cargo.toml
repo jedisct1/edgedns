@@ -21,7 +21,6 @@ log = {version = "*"}
 nix = "~0.7.0"
 privdrop = "*"
 prometheus = {version = "*", default-features = false}
-protobuf = "*"
 rand = "*"
 siphasher = "*"
 slab = "*"
