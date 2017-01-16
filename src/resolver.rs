@@ -737,7 +737,7 @@ impl NormalizedQuestion {
                 } else {
                     ((self.tid as usize) + (is_retry as usize & 1)) & 1
                 };
-                Ok(busy_map.get(i).unwrap().0)
+                Ok(busy_map[i].0)
             }
         }
     }
