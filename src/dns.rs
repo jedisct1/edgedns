@@ -216,7 +216,7 @@ pub fn overwrite_qname(packet: &mut [u8], qname: &[u8]) {
         return;
     }
     assert_eq!(to[qname_len], 0);
-    to.write(qname).unwrap();
+    let _ = to.write(qname).unwrap();
 }
 
 pub struct QuestionRR<'t> {
