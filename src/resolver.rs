@@ -474,7 +474,7 @@ impl Resolver {
                 active_query.normalized_question_minimal = normalized_question_minimal;
                 active_query.socket_addr = upstream_server.socket_addr;
                 active_query.local_port = ext_udp_socket_tuple.local_port;
-                upstream_server.pending_queries += 1;
+                upstream_server.pending_queries = upstream_server.pending_queries.wrapping_add(1);
                 let _ = ext_udp_socket_tuple.ext_udp_socket
                     .send_to(&query_packet, &upstream_server.socket_addr);
             }
