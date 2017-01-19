@@ -1,6 +1,6 @@
 [package]
 name = "edgedns"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
