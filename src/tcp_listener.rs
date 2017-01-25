@@ -4,6 +4,7 @@ use cache::Cache;
 use client_query::*;
 use client::*;
 use coarsetime::Instant;
+use config::Config;
 use dns;
 use mio;
 use mio::*;
@@ -24,8 +25,8 @@ use std::usize;
 use super::EdgeDNSContext;
 use varz::Varz;
 
-use super::{DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE, DNS_MAX_TCP_SIZE, MAX_ACTIVE_QUERIES,
-            MAX_EVENTS_PER_BATCH, MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE};
+use super::{DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE, DNS_MAX_TCP_SIZE, MAX_EVENTS_PER_BATCH,
+            MAX_TCP_CLIENTS, MAX_TCP_IDLE_MS, MAX_TCP_HASH_DISTANCE};
 
 const NOTIFY_TOK: Token = Token(usize::MAX - 1);
 const TIMER_TOK: Token = Token(usize::MAX - 2);
@@ -36,6 +37,7 @@ pub const TCP_QUERY_HEADER_SIZE: usize = 2;
 pub struct TcpListener {
     resolver_tx: channel::SyncSender<ClientQuery>,
     service_ready_tx: mpsc::SyncSender<u8>,
+    config: Config,
     cache: Cache,
     varz: Arc<Varz>,
 }
@@ -371,7 +373,7 @@ impl TcpListener {
                                PollOpt::edge() | PollOpt::oneshot()));
         let (tcpclient_tx, tcpclient_rx): (channel::SyncSender<ResolverResponse>,
                                            channel::Receiver<ResolverResponse>) =
-            channel::sync_channel(MAX_ACTIVE_QUERIES);
+            channel::sync_channel(self.config.max_active_queries);
         mio_poll.register(&tcpclient_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
             .expect("Could not register the resolver channel");
         let mut handler = TcpListenerHandler {
@@ -423,6 +425,7 @@ impl TcpListener {
         let tcp_listener = TcpListener {
             resolver_tx: resolver_tx,
             service_ready_tx: service_ready_tx,
+            config: edgedns_context.config.clone(),
             cache: edgedns_context.cache.clone(),
             varz: edgedns_context.varz.clone(),
         };

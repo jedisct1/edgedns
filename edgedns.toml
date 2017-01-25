@@ -79,3 +79,12 @@ threads_udp = 1
 # Number of threads handling client queries received over TCP
 # More than 1 is very rarely required. Set to 0 to disable TCP.
 threads_tcp = 1
+
+# Max number of clients waiting for a response
+max_waiting_clients = 1000000
+
+# Max number of inflight queries
+max_active_queries = 100000
+
+# Max number of clients waiting for a response to the same query
+max_clients_waiting_for_query = 1000

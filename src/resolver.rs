@@ -2,10 +2,9 @@ use cache::Cache;
 use client_query::*;
 use coarsetime::{Duration, Instant};
 use config::Config;
-use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
-          build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
-          build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
-          DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
+use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal, build_query_packet,
+          normalize, tid, set_tid, overwrite_qname, build_tc_packet, build_health_check_packet,
+          build_servfail_packet, min_ttl, set_ttl, rcode, DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
 use jumphash::JumpHasher;
 use log_dnstap;
 use mio;
@@ -27,8 +26,7 @@ use super::EdgeDNSContext;
 use varz::Varz;
 
 use super::{DNS_MAX_SIZE, DNS_QUERY_MIN_SIZE, UPSTREAM_TIMEOUT_MS, UPSTREAM_MAX_TIMEOUT_MS,
-            MAX_ACTIVE_QUERIES, MAX_CLIENTS_WAITING_FOR_QUERY, MAX_EVENTS_PER_BATCH,
-            MAX_WAITING_CLIENTS, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
+            MAX_EVENTS_PER_BATCH, HEALTH_CHECK_MS, UPSTREAM_INITIAL_TIMEOUT_MS, FAILURE_TTL};
 
 const NOTIFY_TOK: Token = Token(usize::MAX - 1);
 const TIMER_TOK: Token = Token(usize::MAX - 2);
@@ -391,7 +389,7 @@ impl Resolver {
         }
         let normalized_question = &client_query.normalized_question;
         let key = normalized_question.key();
-        if self.waiting_clients_count > MAX_WAITING_CLIENTS {
+        if self.waiting_clients_count > self.config.max_waiting_clients {
             info!("Too many waiting clients, dropping the first slot");
             let key = match self.pending_queries.map.keys().next() {
                 None => return,
@@ -406,20 +404,20 @@ impl Resolver {
         let mut create_active_query = true;
         if let Some(active_query) = self.pending_queries.map.get_mut(&key) {
             create_active_query = false;
-            if active_query.client_queries.len() < MAX_CLIENTS_WAITING_FOR_QUERY {
+            if active_query.client_queries.len() < self.config.max_clients_waiting_for_query {
                 active_query.client_queries.push(client_query.clone());
                 self.waiting_clients_count += 1;
             } else {
                 info!("More than {} clients waiting for a response to the same query",
-                      MAX_CLIENTS_WAITING_FOR_QUERY);
+                      self.config.max_clients_waiting_for_query);
             }
             let obsolete = active_query.ts.elapsed_since_recent() >
                            Duration::from_millis(active_query.delay as u64);
             if obsolete {
                 let mut new_server_went_offline = false;
                 {
-                    let mut previous_upstream_server =
-                        &mut self.upstream_servers[active_query.upstream_server_idx];
+                    let mut previous_upstream_server = &mut self.upstream_servers
+                                                                [active_query.upstream_server_idx];
                     if previous_upstream_server.failures >= self.upstream_max_failures {
                         if !previous_upstream_server.offline {
                             warn!("Putting {:?} offline", previous_upstream_server.socket_addr);
@@ -607,14 +605,14 @@ impl Resolver {
             .expect("Unable to clone the UDP listening socket");
         let mio_poll = mio::Poll::new().expect("Couldn't instantiate an event loop");
         let mut mio_timers = timer::Builder::default()
-            .num_slots(MAX_ACTIVE_QUERIES / 256)
-            .capacity(MAX_ACTIVE_QUERIES)
+            .num_slots(edgedns_context.config.max_active_queries / 256)
+            .capacity(edgedns_context.config.max_active_queries)
             .build();
         mio_poll.register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
             .expect("Could not register the timers");
         let (resolver_tx, resolver_rx): (channel::SyncSender<ClientQuery>,
                                          channel::Receiver<ClientQuery>) =
-            channel::sync_channel(MAX_ACTIVE_QUERIES);
+            channel::sync_channel(edgedns_context.config.max_active_queries);
         mio_poll.register(&resolver_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
             .expect("Could not register the resolver channel");
         let pending_queries = PendingQueries::new();

@@ -28,6 +28,9 @@ pub struct Config {
     pub dnstap_socket_path: Option<String>,
     pub dnstap_identity: Option<String>,
     pub dnstap_version: Option<String>,
+    pub max_waiting_clients: usize,
+    pub max_active_queries: usize,
+    pub max_clients_waiting_for_query: usize,
 }
 
 impl Config {
@@ -84,10 +87,10 @@ impl Config {
             }
         };
 
-        let upstream_max_failures =
-            toml_config.lookup("upstream.max_failures").map_or(3, |x| {
-                x.as_integer().expect("upstream.max_failures must be an integer")
-            }) as u32;
+        let upstream_max_failures = toml_config.lookup("upstream.max_failures").map_or(3, |x| {
+            x.as_integer().expect("upstream.max_failures must be an integer")
+        }) as
+                                    u32;
 
         let cache_size = toml_config.lookup("cache.max_items").map_or(250_000, |x| {
             x.as_integer().expect("cache.max_items must be an integer")
@@ -136,6 +139,21 @@ impl Config {
             x.as_integer().expect("global.threads_tcp must be an integer")
         }) as usize;
 
+        let max_waiting_clients = toml_config.lookup("global.max_waiting_clients")
+            .map_or(1_000_000,
+                    |x| x.as_integer().expect("global.max_waiting_clients must be an integer")) as
+                                  usize;
+
+        let max_active_queries = toml_config.lookup("global.max_active_queries")
+            .map_or(100_000,
+                    |x| x.as_integer().expect("global.max_active_queries must be an integer")) as
+                                 usize;
+
+        let max_clients_waiting_for_query =
+            toml_config.lookup("global.max_clients_waiting_for_query").map_or(1_000, |x| {
+                x.as_integer().expect("global.max_clients_waiting_for_query must be an integer")
+            }) as usize;
+
         let dnstap_enabled = toml_config.lookup("dnstap.enabled").map_or(false, |x| {
             x.as_bool().expect("dnstap.enabled must be a boolean")
         });
@@ -175,6 +193,9 @@ impl Config {
             dnstap_socket_path: dnstap_socket_path,
             dnstap_identity: dnstap_identity,
             dnstap_version: dnstap_version,
+            max_waiting_clients: max_waiting_clients,
+            max_active_queries: max_active_queries,
+            max_clients_waiting_for_query: max_clients_waiting_for_query,
         })
     }
 }

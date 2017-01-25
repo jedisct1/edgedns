@@ -62,7 +62,7 @@ impl Sender {
             template_forwarder_response: DNSMessage::new(dnstap_identity,
                                                          dnstap_version,
                                                          MessageType::FORWARDER_RESPONSE),
-            dnstap_sender: dnstap_sender
+            dnstap_sender: dnstap_sender,
         }
     }
 
