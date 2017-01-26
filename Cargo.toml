@@ -10,19 +10,21 @@ nightly = ["clap/nightly", "hyper/nightly", "log/nightly", "prometheus/nightly",
 default = ["nightly", "webservice"]
 
 [dependencies]
-clap = {version = "*"}
+bpf = "*"
+clap = "*"
 clippy = {version = "*", optional = true}
 clockpro-cache = "*"
 coarsetime = "*"
 env_logger = "*"
 hyper = {version = "*", optional = true, default-features = false}
 jumphash = "*"
-log = {version = "*"}
+log = "*"
 nix = "~0.7.0"
 privdrop = "*"
 prometheus = {version = "*", default-features = false}
 rand = "*"
 siphasher = "*"
+socket-priority = "*"
 slab = "*"
 toml = "*"
 
@@ -37,9 +39,6 @@ git = "https://github.com/carllerche/mio"
 
 [dependencies.dnstap]
 git = "https://github.com/jedisct1/rust-dnstap"
-
-[dependencies.bpf]
-git = "https://github.com/jedisct1/rust-bpf"
 
 [profile.release]
 lto = true

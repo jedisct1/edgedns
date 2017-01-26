@@ -20,6 +20,7 @@ extern crate privdrop;
 extern crate rand;
 extern crate siphasher;
 extern crate slab;
+extern crate socket_priority;
 extern crate toml;
 
 #[cfg(feature = "webservice")]
