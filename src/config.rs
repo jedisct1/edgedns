@@ -53,9 +53,11 @@ impl Config {
     }
 
     fn parse(toml_config: toml::Value) -> Result<Config, Error> {
-        let decrement_ttl_str = toml_config.lookup("upstream.type").map_or("authoritative", |x| {
-            x.as_str().expect("upstream.type must be a string")
-        });
+        let config_upstream = toml_config.get("upstream");
+        let decrement_ttl_str =
+            config_upstream.and_then(|x| x.get("type")).map_or("authoritative", |x| {
+                x.as_str().expect("upstream.type must be a string")
+            });
         let decrement_ttl = match decrement_ttl_str {
             "authoritative" => false,
             "resolver" => true,
@@ -66,15 +68,15 @@ impl Config {
             }
         };
 
-        let upstream_servers = toml_config.lookup("upstream.servers")
+        let upstream_servers = config_upstream.and_then(|x| x.get("servers"))
             .expect("upstream.servers is required")
-            .as_slice()
+            .as_array()
             .expect("Invalid list of upstream servers")
             .iter()
             .map(|x| x.as_str().expect("upstream servers must be strings").to_owned())
             .collect();
 
-        let lbmode_str = toml_config.lookup("upstream.strategy").map_or("uniform", |x| {
+        let lbmode_str = config_upstream.and_then(|x| x.get("strategy")).map_or("uniform", |x| {
             x.as_str().expect("upstream.strategy must be a string")
         });
         let lbmode = match lbmode_str {
@@ -87,88 +89,102 @@ impl Config {
             }
         };
 
-        let upstream_max_failures = toml_config.lookup("upstream.max_failures").map_or(3, |x| {
-            x.as_integer().expect("upstream.max_failures must be an integer")
-        }) as
+        let upstream_max_failures = config_upstream.and_then(|x| x.get("max_failures"))
+            .map_or(3,
+                    |x| x.as_integer().expect("upstream.max_failures must be an integer")) as
                                     u32;
 
-        let cache_size = toml_config.lookup("cache.max_items").map_or(250_000, |x| {
+        let config_cache = toml_config.get("cache");
+
+        let cache_size = config_cache.and_then(|x| x.get("max_items")).map_or(250_000, |x| {
             x.as_integer().expect("cache.max_items must be an integer")
         }) as usize;
 
-        let min_ttl = toml_config.lookup("cache.min_ttl").map_or(60, |x| {
+        let min_ttl = config_cache.and_then(|x| x.get("min_ttl")).map_or(60, |x| {
             x.as_integer().expect("cache.min_ttl must be an integer")
         }) as u32;
 
-        let max_ttl = toml_config.lookup("cache.max_ttl").map_or(86_400, |x| {
+        let max_ttl = config_cache.and_then(|x| x.get("max_ttl")).map_or(86_400, |x| {
             x.as_integer().expect("cache.max_ttl must be an integer")
         }) as u32;
 
-        let udp_ports = toml_config.lookup("network.udp_ports").map_or(8, |x| {
+        let config_network = toml_config.get("network");
+
+        let udp_ports = config_network.and_then(|x| x.get("udp_ports")).map_or(8, |x| {
             x.as_integer().expect("network.udp_ports must be an integer")
         }) as u16;
 
-        let listen_addr = toml_config.lookup("network.listen")
+        let listen_addr = config_network.and_then(|x| x.get("listen"))
             .map_or("0.0.0.0:53",
                     |x| x.as_str().expect("network.listen_addr must be a string"))
             .to_owned();
 
-        let webservice_enabled = toml_config.lookup("webservice.enabled").map_or(false, |x| {
-            x.as_bool().expect("webservice.enabled must be a boolean")
-        });
+        let config_webservice = toml_config.get("webservice");
 
-        let webservice_listen_addr = toml_config.lookup("webservice.listen")
+        let webservice_enabled =
+            config_webservice.and_then(|x| x.get("enabled")).map_or(false, |x| {
+                x.as_bool().expect("webservice.enabled must be a boolean")
+            });
+
+        let webservice_listen_addr = config_webservice.and_then(|x| x.get("listen"))
             .map_or("0.0.0.0:9090",
                     |x| x.as_str().expect("webservice.listen_addr must be a string"))
             .to_owned();
 
-        let user = toml_config.lookup("global.user")
+        let config_global = toml_config.get("global");
+
+        let user = config_global.and_then(|x| x.get("user"))
             .map(|x| x.as_str().expect("global.user must be a string").to_owned());
 
-        let group = toml_config.lookup("global.group")
+        let group = config_global.and_then(|x| x.get("group"))
             .map(|x| x.as_str().expect("global.group must be a string").to_owned());
 
-        let chroot_dir = toml_config.lookup("global.chroot_dir")
+        let chroot_dir = config_global.and_then(|x| x.get("chroot_dir"))
             .map(|x| x.as_str().expect("global.chroot must be a string").to_owned());
 
-        let udp_listener_threads = toml_config.lookup("global.threads_udp").map_or(1, |x| {
-            x.as_integer().expect("global.threads_udp must be an integer")
-        }) as usize;
+        let udp_listener_threads = config_global.and_then(|x| x.get("threads_udp"))
+            .map_or(1,
+                    |x| x.as_integer().expect("global.threads_udp must be an integer")) as
+                                   usize;
 
-        let tcp_listener_threads = toml_config.lookup("global.threads_tcp").map_or(1, |x| {
-            x.as_integer().expect("global.threads_tcp must be an integer")
-        }) as usize;
+        let tcp_listener_threads = config_global.and_then(|x| x.get("threads_tcp"))
+            .map_or(1,
+                    |x| x.as_integer().expect("global.threads_tcp must be an integer")) as
+                                   usize;
 
-        let max_waiting_clients = toml_config.lookup("global.max_waiting_clients")
+        let max_waiting_clients = config_global.and_then(|x| x.get("max_waiting_clients"))
             .map_or(1_000_000,
                     |x| x.as_integer().expect("global.max_waiting_clients must be an integer")) as
                                   usize;
 
-        let max_active_queries = toml_config.lookup("global.max_active_queries")
+        let max_active_queries = config_global.and_then(|x| x.get("max_active_queries"))
             .map_or(100_000,
                     |x| x.as_integer().expect("global.max_active_queries must be an integer")) as
                                  usize;
 
         let max_clients_waiting_for_query =
-            toml_config.lookup("global.max_clients_waiting_for_query").map_or(1_000, |x| {
-                x.as_integer().expect("global.max_clients_waiting_for_query must be an integer")
-            }) as usize;
+            config_global.and_then(|x| x.get("max_clients_waiting_for_query"))
+                .map_or(1_000, |x| {
+                    x.as_integer().expect("global.max_clients_waiting_for_query must be an integer")
+                }) as usize;
 
-        let dnstap_enabled = toml_config.lookup("dnstap.enabled").map_or(false, |x| {
+        let config_dnstap = toml_config.get("dnstap");
+
+        let dnstap_enabled = config_dnstap.and_then(|x| x.get("enabled")).map_or(false, |x| {
             x.as_bool().expect("dnstap.enabled must be a boolean")
         });
 
-        let dnstap_backlog = toml_config.lookup("dnstap.backlog").map_or(4096, |x| {
+        let dnstap_backlog = config_dnstap.and_then(|x| x.get("backlog")).map_or(4096, |x| {
             x.as_integer().expect("dnstap.backlog must be an integer")
         }) as usize;
 
-        let dnstap_socket_path = toml_config.lookup("dnstap.socket_path")
+        let dnstap_socket_path = config_dnstap.and_then(|x| x.get("socket_path"))
             .map(|x| x.as_str().expect("dnstap.socket_path must be a string").to_owned());
 
-        let dnstap_identity = toml_config.lookup("dnstap.identity")
+        let dnstap_identity = config_dnstap.and_then(|x| x.get("identity"))
             .map(|x| x.as_str().expect("dnstap.identity must be a string").to_owned());
 
-        let dnstap_version = toml_config.lookup("dnstap.version")
+        let dnstap_version = config_dnstap.and_then(|x| x.get("version"))
             .map(|x| x.as_str().expect("dnstap.version must be a string").to_owned());
 
         Ok(Config {
