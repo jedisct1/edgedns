@@ -1,5 +1,5 @@
 
-use bytes::{Buf, BufMut, ByteBuf};
+use bytes::{BufMut, BytesMut};
 use cache::Cache;
 use client_query::*;
 use client::*;
@@ -117,11 +117,11 @@ impl TcpListenerHandler {
             debug!("Received a response that doesn't match the question (for TCP)");
             return;
         }
-        let mut write_buf = ByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
+        let mut write_buf = BytesMut::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
         let binlen = [(packet_len >> 8) as u8, packet_len as u8];
         write_buf.copy_from_slice(&binlen);
         write_buf.copy_from_slice(&packet);
-        let _ = client.tcp_stream.write(write_buf.bytes());
+        let _ = client.tcp_stream.write(write_buf.as_ref());
         let _ = client.tcp_stream.shutdown(Shutdown::Read);
     }
 
@@ -254,7 +254,7 @@ impl TcpListenerHandler {
                 Ok(Some(count)) => {
                     debug!("Client socket got {} bytes", count);
                     unsafe { BufMut::advance_mut(read_buf, count) };
-                    let bytes = read_buf.bytes();
+                    let bytes = read_buf.as_ref();
                     let bytes_len = bytes.len();
                     if bytes_len < TCP_QUERY_HEADER_SIZE {
                         assert!(client.expected_len.is_none());
@@ -304,12 +304,12 @@ impl TcpListenerHandler {
                                 dns::set_tid(&mut cache_entry.packet, normalized_question.tid);
                                 dns::overwrite_qname(&mut cache_entry.packet,
                                                      &normalized_question.qname);
-                                let mut write_buf = ByteBuf::with_capacity(TCP_QUERY_HEADER_SIZE +
-                                                                           packet_len);
+                                let mut write_buf = BytesMut::with_capacity(TCP_QUERY_HEADER_SIZE +
+                                                                            packet_len);
                                 let binlen = [(packet_len >> 8) as u8, packet_len as u8];
                                 write_buf.copy_from_slice(&binlen);
                                 write_buf.copy_from_slice(&cache_entry.packet);
-                                let _ = client.tcp_stream.write(write_buf.bytes());
+                                let _ = client.tcp_stream.write(write_buf.as_ref());
                                 let _ = client.tcp_stream.shutdown(Shutdown::Read);
                                 continue;
                             }

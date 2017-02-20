@@ -3,7 +3,7 @@ name = "edgedns"
 version = "0.2.2"
 dependencies = [
  "bpf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=53d1c788e07cb5c52044e6a8929f9d436876fdb6)",
+ "bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)",
  "clap 2.20.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "clippy 0.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -65,14 +65,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "bytes"
 version = "0.4.0-dev"
 source = "git+https://github.com/carllerche/bytes#0360f191f81b0e053b8ead0c3625630ab48cabf2"
-dependencies = [
- "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "bytes"
-version = "0.4.0-dev"
-source = "git+https://github.com/carllerche/bytes?rev=53d1c788e07cb5c52044e6a8929f9d436876fdb6#53d1c788e07cb5c52044e6a8929f9d436876fdb6"
 dependencies = [
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -704,7 +696,6 @@ dependencies = [
 "checksum bpf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "62c1235c3b211e35be175066c671b8aa400ef79753be87e3dedbbd1e0a7948d2"
 "checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
 "checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes)" = "<none>"
-"checksum bytes 0.4.0-dev (git+https://github.com/carllerche/bytes?rev=53d1c788e07cb5c52044e6a8929f9d436876fdb6)" = "<none>"
 "checksum cargo_metadata 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "34fdab49a2904acb112c83b62f0118de3de3ce28e52a9188dec2858e43878f25"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
 "checksum clap 2.20.5 (registry+https://github.com/rust-lang/crates.io-index)" = "7db281b0520e97fbd15cd615dcd8f8bcad0c26f5f7d5effe705f090f39e9a758"

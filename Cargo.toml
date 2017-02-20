@@ -30,7 +30,6 @@ toml = "*"
 
 [dependencies.bytes]
 git = "https://github.com/carllerche/bytes"
-rev = "53d1c788e07cb5c52044e6a8929f9d436876fdb6"
 
 [dependencies.framestream]
 git = "https://github.com/jedisct1/rust-framestream"
