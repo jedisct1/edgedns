@@ -36,6 +36,7 @@ git = "https://github.com/jedisct1/rust-framestream"
 
 [dependencies.mio]
 git = "https://github.com/carllerche/mio"
+rev = "9276b16f9fdfca070a9a2345549bbd310ec595c3"
 
 [dependencies.dnstap]
 git = "https://github.com/jedisct1/rust-dnstap"
