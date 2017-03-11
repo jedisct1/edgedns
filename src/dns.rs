@@ -346,7 +346,7 @@ impl fmt::Display for NormalizedQuestion {
         let mut offset: usize = 0;
         while offset < qname_len {
             let label_len = qname[offset] as usize;
-            assert!(label_len != 0);
+            assert_eq!(label_len, 0);
             if label_len & 0xc0 == 0xc0 {
                 res.push(b'&');
                 offset += 2;
@@ -394,7 +394,7 @@ pub fn qname_lc(qname: &[u8]) -> Vec<u8> {
     while offset < qname_len {
         res[offset] = qname[offset];
         let label_len = qname[offset] as usize;
-        assert!(label_len != 0);
+        assert_ne!(label_len, 0);
         if label_len & 0xc0 == 0xc0 {
             offset += 2;
             continue;
@@ -728,8 +728,8 @@ pub fn build_version_packet(normalized_question: &NormalizedQuestion,
     packet.extend_from_slice(&normalized_question.qname);
     packet.push(0);
 
-    debug_assert!(normalized_question.qtype == DNS_TYPE_TXT);
-    debug_assert!(normalized_question.qclass == DNS_CLASS_CH);
+    debug_assert_eq!(normalized_question.qtype, DNS_TYPE_TXT);
+    debug_assert_eq!(normalized_question.qclass, DNS_CLASS_CH);
     packet.push((DNS_TYPE_TXT >> 8) as u8);
     packet.push(DNS_TYPE_TXT as u8);
     packet.push((DNS_CLASS_CH >> 8) as u8);

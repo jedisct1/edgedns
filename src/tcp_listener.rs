@@ -126,7 +126,7 @@ impl TcpListenerHandler {
     }
 
     fn ready(&mut self, token: Token, events: Ready) {
-        assert!(token != Token(0));
+        assert_ne!(token, Token(0));
         let token_usize = usize::from(token);
         if events.is_error() {
             debug!("Error event for {:?}", token);
