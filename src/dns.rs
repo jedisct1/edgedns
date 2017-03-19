@@ -333,9 +333,9 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
         payload_size = DNS_UDP_NOEDNS0_MAX_SIZE as u16;
     }
     Some(EDNS0 {
-        payload_size: payload_size,
-        dnssec: dnssec,
-    })
+             payload_size: payload_size,
+             dnssec: dnssec,
+         })
 }
 
 impl fmt::Display for NormalizedQuestion {

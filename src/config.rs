@@ -89,10 +89,10 @@ impl Config {
             }
         };
 
-        let upstream_max_failures = config_upstream.and_then(|x| x.get("max_failures"))
-            .map_or(3,
-                    |x| x.as_integer().expect("upstream.max_failures must be an integer")) as
-                                    u32;
+        let upstream_max_failures =
+            config_upstream.and_then(|x| x.get("max_failures")).map_or(3, |x| {
+                x.as_integer().expect("upstream.max_failures must be an integer")
+            }) as u32;
 
         let config_cache = toml_config.get("cache");
 
@@ -142,25 +142,25 @@ impl Config {
         let chroot_dir = config_global.and_then(|x| x.get("chroot_dir"))
             .map(|x| x.as_str().expect("global.chroot must be a string").to_owned());
 
-        let udp_listener_threads = config_global.and_then(|x| x.get("threads_udp"))
-            .map_or(1,
-                    |x| x.as_integer().expect("global.threads_udp must be an integer")) as
-                                   usize;
+        let udp_listener_threads =
+            config_global.and_then(|x| x.get("threads_udp")).map_or(1, |x| {
+                x.as_integer().expect("global.threads_udp must be an integer")
+            }) as usize;
 
-        let tcp_listener_threads = config_global.and_then(|x| x.get("threads_tcp"))
-            .map_or(1,
-                    |x| x.as_integer().expect("global.threads_tcp must be an integer")) as
-                                   usize;
+        let tcp_listener_threads =
+            config_global.and_then(|x| x.get("threads_tcp")).map_or(1, |x| {
+                x.as_integer().expect("global.threads_tcp must be an integer")
+            }) as usize;
 
-        let max_waiting_clients = config_global.and_then(|x| x.get("max_waiting_clients"))
-            .map_or(1_000_000,
-                    |x| x.as_integer().expect("global.max_waiting_clients must be an integer")) as
-                                  usize;
+        let max_waiting_clients =
+            config_global.and_then(|x| x.get("max_waiting_clients")).map_or(1_000_000, |x| {
+                x.as_integer().expect("global.max_waiting_clients must be an integer")
+            }) as usize;
 
-        let max_active_queries = config_global.and_then(|x| x.get("max_active_queries"))
-            .map_or(100_000,
-                    |x| x.as_integer().expect("global.max_active_queries must be an integer")) as
-                                 usize;
+        let max_active_queries =
+            config_global.and_then(|x| x.get("max_active_queries")).map_or(100_000, |x| {
+                x.as_integer().expect("global.max_active_queries must be an integer")
+            }) as usize;
 
         let max_clients_waiting_for_query =
             config_global.and_then(|x| x.get("max_clients_waiting_for_query"))
@@ -188,30 +188,30 @@ impl Config {
             .map(|x| x.as_str().expect("dnstap.version must be a string").to_owned());
 
         Ok(Config {
-            decrement_ttl: decrement_ttl,
-            upstream_servers: upstream_servers,
-            lbmode: lbmode,
-            upstream_max_failures: upstream_max_failures,
-            cache_size: cache_size,
-            udp_ports: udp_ports,
-            listen_addr: listen_addr,
-            webservice_enabled: webservice_enabled,
-            webservice_listen_addr: webservice_listen_addr,
-            min_ttl: min_ttl,
-            max_ttl: max_ttl,
-            user: user,
-            group: group,
-            chroot_dir: chroot_dir,
-            udp_listener_threads: udp_listener_threads,
-            tcp_listener_threads: tcp_listener_threads,
-            dnstap_enabled: dnstap_enabled,
-            dnstap_backlog: dnstap_backlog,
-            dnstap_socket_path: dnstap_socket_path,
-            dnstap_identity: dnstap_identity,
-            dnstap_version: dnstap_version,
-            max_waiting_clients: max_waiting_clients,
-            max_active_queries: max_active_queries,
-            max_clients_waiting_for_query: max_clients_waiting_for_query,
-        })
+               decrement_ttl: decrement_ttl,
+               upstream_servers: upstream_servers,
+               lbmode: lbmode,
+               upstream_max_failures: upstream_max_failures,
+               cache_size: cache_size,
+               udp_ports: udp_ports,
+               listen_addr: listen_addr,
+               webservice_enabled: webservice_enabled,
+               webservice_listen_addr: webservice_listen_addr,
+               min_ttl: min_ttl,
+               max_ttl: max_ttl,
+               user: user,
+               group: group,
+               chroot_dir: chroot_dir,
+               udp_listener_threads: udp_listener_threads,
+               tcp_listener_threads: tcp_listener_threads,
+               dnstap_enabled: dnstap_enabled,
+               dnstap_backlog: dnstap_backlog,
+               dnstap_socket_path: dnstap_socket_path,
+               dnstap_identity: dnstap_identity,
+               dnstap_version: dnstap_version,
+               max_waiting_clients: max_waiting_clients,
+               max_active_queries: max_active_queries,
+               max_clients_waiting_for_query: max_clients_waiting_for_query,
+           })
     }
 }

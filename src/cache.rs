@@ -81,14 +81,16 @@ impl Cache {
     pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {
-                expiration: Instant::recent() + Duration::from_secs(self.config.max_ttl as u64),
-                packet: special_packet,
-            })
+                     expiration: Instant::recent() +
+                                 Duration::from_secs(self.config.max_ttl as u64),
+                     packet: special_packet,
+                 })
         } else if normalized_question.qclass != DNS_CLASS_IN {
             Some(CacheEntry {
-                expiration: Instant::recent() + Duration::from_secs(self.config.max_ttl as u64),
-                packet: dns::build_refused_packet(normalized_question).unwrap(),
-            })
+                     expiration: Instant::recent() +
+                                 Duration::from_secs(self.config.max_ttl as u64),
+                     packet: dns::build_refused_packet(normalized_question).unwrap(),
+                 })
         } else {
             let normalized_question_key = normalized_question.key();
             let cache_entry = self.get(&normalized_question_key);
@@ -115,9 +117,10 @@ impl Cache {
                            dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN {
                             debug!("Shifted query returned NXDOMAIN");
                             return Some(CacheEntry {
-                                expiration: shifted_cache_entry.expiration,
-                                packet: dns::build_nxdomain_packet(normalized_question).unwrap(),
-                            });
+                                            expiration: shifted_cache_entry.expiration,
+                                            packet: dns::build_nxdomain_packet(normalized_question)
+                                                .unwrap(),
+                                        });
                         }
                     }
                 }

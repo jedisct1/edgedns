@@ -59,12 +59,12 @@ impl TcpListenerHandler {
         let client_idx = usize::from(client_tok) - 2;
         {
             let client = &mut match self.clients[client_idx].as_mut() {
-                None => {
-                    debug!("Timeout from a nonexistent client received");
-                    return;
-                }
-                Some(client) => client,
-            };
+                                  None => {
+                debug!("Timeout from a nonexistent client received");
+                return;
+            }
+                                  Some(client) => client,
+                              };
             if client.attic {
                 debug!("Timeout from a client in the attic");
                 return;
@@ -79,12 +79,12 @@ impl TcpListenerHandler {
         debug!("notify: client_tok: {:?}", client_tok);
         let client_idx = usize::from(client_tok) - 2;
         let client = &mut match self.clients[client_idx].as_mut() {
-            None => {
-                debug!("Client token not found but notification received");
-                return;
-            }
-            Some(client) => client,
-        };
+                              None => {
+            debug!("Client token not found but notification received");
+            return;
+        }
+                              Some(client) => client,
+                          };
         if !client.resolving {
             debug!("Received a notification from a client that is not resolving yet");
             return;
@@ -223,8 +223,8 @@ impl TcpListenerHandler {
                       client.interest,
                       PollOpt::edge() | PollOpt::oneshot())
             .expect("Unable to register a connection");
-        if let Ok(timeout) = self.mio_timers
-            .set_timeout(time::Duration::from_millis(MAX_TCP_IDLE_MS), client_tok) {
+        if let Ok(timeout) =
+            self.mio_timers.set_timeout(time::Duration::from_millis(MAX_TCP_IDLE_MS), client_tok) {
             client.timeout = Some(timeout);
         }
         Ok(())
@@ -433,9 +433,9 @@ impl TcpListener {
         let tcp_listener_th = thread::Builder::new()
             .name("tcp_listener".to_string())
             .spawn(move || {
-                tcp_listener.run(tcp_socket, listen_addr)
+                       tcp_listener.run(tcp_socket, listen_addr)
                     .expect("Unable to spawn a TCP listener");
-            })
+                   })
             .unwrap();
         Ok(tcp_listener_th)
     }

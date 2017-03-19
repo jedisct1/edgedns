@@ -132,10 +132,10 @@ impl EdgeDNS {
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
-        let udp_socket = socket_udp_bound(&config.listen_addr)
-            .expect("Unable to create a UDP client socket");
-        let tcp_socket = socket_tcp_bound(&config.listen_addr)
-            .expect("Unable to create a TCP client socket");
+        let udp_socket =
+            socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");
+        let tcp_socket =
+            socket_tcp_bound(&config.listen_addr).expect("Unable to create a TCP client socket");
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
             let log_dnstap = LogDNSTap::new(&config);
             let dnstap_sender = log_dnstap.sender();
@@ -159,7 +159,7 @@ impl EdgeDNS {
             let udp_listener = UdpListener::spawn(&edgedns_context,
                                                   resolver_tx.clone(),
                                                   service_ready_tx.clone())
-                .expect("Unable to spawn a UDP listener");
+                    .expect("Unable to spawn a UDP listener");
             tasks.push(udp_listener);
             service_ready_rx.recv().unwrap();
         }
@@ -167,7 +167,7 @@ impl EdgeDNS {
             let tcp_listener = TcpListener::spawn(&edgedns_context,
                                                   resolver_tx.clone(),
                                                   service_ready_tx.clone())
-                .expect("Unable to spawn a TCP listener");
+                    .expect("Unable to spawn a TCP listener");
             tasks.push(tcp_listener);
             service_ready_rx.recv().unwrap();
         }
@@ -195,12 +195,12 @@ fn main() {
         .author("Frank Denis")
         .about("A caching DNS reverse proxy")
         .arg(Arg::with_name("config_file")
-            .short("c")
-            .long("config")
-            .value_name("FILE")
-            .help("Path to the edgedns.toml config file")
-            .takes_value(true)
-            .required(true))
+                 .short("c")
+                 .long("config")
+                 .value_name("FILE")
+                 .help("Path to the edgedns.toml config file")
+                 .takes_value(true)
+                 .required(true))
         .get_matches();
 
     let config_file = match matches.value_of("config_file") {

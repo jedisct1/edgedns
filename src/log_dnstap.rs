@@ -14,9 +14,8 @@ pub struct LogDNSTap {
 impl LogDNSTap {
     pub fn new(config: &Config) -> LogDNSTap {
         assert!(config.dnstap_enabled);
-        let socket_path = config.dnstap_socket_path
-            .clone()
-            .expect("dnstap requires a UNIX socket path");
+        let socket_path =
+            config.dnstap_socket_path.clone().expect("dnstap requires a UNIX socket path");
         let dnstap_pending_writer = DNSTapBuilder::default()
             .backlog(config.dnstap_backlog)
             .unix_socket_path(socket_path.clone())
@@ -41,7 +40,10 @@ impl LogDNSTap {
     }
 
     pub fn sender(&self) -> Sender {
-        Sender::new(self.dnstap_pending_writer.as_ref().unwrap().sender(),
+        Sender::new(self.dnstap_pending_writer
+                        .as_ref()
+                        .unwrap()
+                        .sender(),
                     self.dnstap_identity.clone(),
                     self.dnstap_version.clone())
     }

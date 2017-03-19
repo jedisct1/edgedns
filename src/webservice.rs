@@ -40,8 +40,7 @@ impl WebService {
         let mut buffer = vec![];
         let encoder = TextEncoder::new();
         encoder.encode(&metric_families, &mut buffer).unwrap();
-        res.headers_mut()
-            .set(ContentType(encoder.format_type().parse::<Mime>().unwrap()));
+        res.headers_mut().set(ContentType(encoder.format_type().parse::<Mime>().unwrap()));
         res.send(&buffer).unwrap();
     }
 
@@ -53,15 +52,15 @@ impl WebService {
         let webservice_th = thread::Builder::new()
             .name("webservice".to_string())
             .spawn(move || {
-                let mut server = Server::http(&*listen_addr)
-                    .expect("Unable to spawn the webservice");
+                let mut server =
+                    Server::http(&*listen_addr).expect("Unable to spawn the webservice");
                 server.keep_alive(None);
                 service_ready_tx.send(2).unwrap();
                 info!("Webservice started on {}", listen_addr);
                 server.handle_threads(move |req: Request, res: Response| {
-                                        web_service.handler(req, res)
-                                    },
-                                    WEBSERVICE_THREADS)
+                                          web_service.handler(req, res)
+                                      },
+                                      WEBSERVICE_THREADS)
                     .expect("Unable to start the webservice");
             })
             .unwrap();
