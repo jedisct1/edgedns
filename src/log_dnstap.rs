@@ -56,10 +56,11 @@ pub struct Sender {
 }
 
 impl Sender {
-    pub fn new(dnstap_sender: dnstap::Sender,
-               dnstap_identity: Option<Vec<u8>>,
-               dnstap_version: Option<Vec<u8>>)
-               -> Sender {
+    pub fn new(
+        dnstap_sender: dnstap::Sender,
+        dnstap_identity: Option<Vec<u8>>,
+        dnstap_version: Option<Vec<u8>>,
+    ) -> Sender {
         Sender {
             template_forwarder_response: DNSMessage::new(dnstap_identity,
                                                          dnstap_version,
@@ -68,10 +69,12 @@ impl Sender {
         }
     }
 
-    pub fn send_forwarder_response(&self,
-                                   packet: &[u8],
-                                   client_addr: SocketAddr,
-                                   client_port: u16) {
+    pub fn send_forwarder_response(
+        &self,
+        packet: &[u8],
+        client_addr: SocketAddr,
+        client_port: u16,
+    ) {
         let mut dns_message = self.template_forwarder_response.clone();
         dns_message.socket_protocol = Some(SocketProtocol::UDP);
         dns_message.query_port = Some(client_port);

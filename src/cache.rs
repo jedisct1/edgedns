@@ -53,11 +53,12 @@ impl Cache {
         }
     }
 
-    pub fn insert(&mut self,
-                  normalized_question_key: NormalizedQuestionKey,
-                  packet: Vec<u8>,
-                  ttl: u32)
-                  -> bool {
+    pub fn insert(
+        &mut self,
+        normalized_question_key: NormalizedQuestionKey,
+        packet: Vec<u8>,
+        ttl: u32,
+    ) -> bool {
         debug_assert!(packet.len() >= dns::DNS_HEADER_SIZE);
         if packet.len() < dns::DNS_HEADER_SIZE {
             return false;

@@ -131,12 +131,13 @@ impl Resolver {
         }
     }
 
-    fn verify_active_query(&self,
-                           active_query: &ActiveQuery,
-                           packet: &[u8],
-                           client_addr: SocketAddr,
-                           local_port: u16)
-                           -> Result<(), &'static str> {
+    fn verify_active_query(
+        &self,
+        active_query: &ActiveQuery,
+        packet: &[u8],
+        client_addr: SocketAddr,
+        local_port: u16,
+    ) -> Result<(), &'static str> {
         if local_port != active_query.local_port {
             debug!("Got a reponse on port {} for a query sent on port {}",
                    local_port,
@@ -158,11 +159,13 @@ impl Resolver {
         Ok(())
     }
 
-    fn dispatch_active_query(&mut self,
-                             packet: &mut [u8],
-                             normalized_question_key: &NormalizedQuestionKey,
-                             client_addr: SocketAddr,
-                             local_port: u16) {
+    fn dispatch_active_query(
+        &mut self,
+        packet: &mut [u8],
+        normalized_question_key: &NormalizedQuestionKey,
+        client_addr: SocketAddr,
+        local_port: u16,
+    ) {
         let active_query = match self.pending_queries.map.get(normalized_question_key) {
             None => {
                 debug!("No clients waiting for this query");
@@ -211,12 +214,14 @@ impl Resolver {
         self.mio_timers.cancel_timeout(&active_query.timeout);
     }
 
-    fn complete_active_query(&mut self,
-                             packet: &mut [u8],
-                             normalized_question: NormalizedQuestion,
-                             client_addr: SocketAddr,
-                             local_port: u16,
-                             ttl: u32) {
+    fn complete_active_query(
+        &mut self,
+        packet: &mut [u8],
+        normalized_question: NormalizedQuestion,
+        client_addr: SocketAddr,
+        local_port: u16,
+        ttl: u32,
+    ) {
         let normalized_question_key = normalized_question.key();
         self.dispatch_active_query(packet, &normalized_question_key, client_addr, local_port);
         if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
@@ -246,10 +251,12 @@ impl Resolver {
         self.varz.cache_evicted.set(cache_stats.evicted as f64);
     }
 
-    fn handle_upstream_response(&mut self,
-                                packet: &mut [u8],
-                                client_addr: SocketAddr,
-                                local_port: u16) {
+    fn handle_upstream_response(
+        &mut self,
+        packet: &mut [u8],
+        client_addr: SocketAddr,
+        local_port: u16,
+    ) {
         if packet.len() < DNS_QUERY_MIN_SIZE {
             info!("Short response without a query, using UDP");
             self.varz.upstream_errors.inc();
@@ -263,9 +270,9 @@ impl Resolver {
             Ok(normalized_question) => normalized_question,
         };
         let ttl = match min_ttl(packet,
-                      self.config.min_ttl,
-                      self.config.max_ttl,
-                      FAILURE_TTL) {
+                                self.config.min_ttl,
+                                self.config.max_ttl,
+                                FAILURE_TTL) {
             Err(e) => {
                 info!("Unexpected answers in a response ({}): {}",
                       normalized_question,
@@ -496,13 +503,12 @@ impl Resolver {
                     Ok(res) => res,
                 };
             let upstream_server = &self.upstream_servers[upstream_server_idx];
-            let timeout =
-                match self.mio_timers
-                          .set_timeout(time::Duration::from_millis(UPSTREAM_TIMEOUT_MS),
-                                       TimeoutToken::Key(key.clone())) {
-                    Err(_) => return,
-                    Ok(timeout) => timeout,
-                };
+            let timeout = match self.mio_timers
+                      .set_timeout(time::Duration::from_millis(UPSTREAM_TIMEOUT_MS),
+                                   TimeoutToken::Key(key.clone())) {
+                Err(_) => return,
+                Ok(timeout) => timeout,
+            };
             let active_query = ActiveQuery {
                 normalized_question_minimal: normalized_question_minimal,
                 socket_addr: upstream_server.socket_addr,
@@ -711,13 +717,14 @@ impl Resolver {
 }
 
 impl NormalizedQuestion {
-    fn pick_upstream(&self,
-                     upstream_servers: &Vec<UpstreamServer>,
-                     upstream_servers_live: &Vec<usize>,
-                     jumphasher: &JumpHasher,
-                     is_retry: bool,
-                     lbmode: LoadBalancingMode)
-                     -> Result<usize, &'static str> {
+    fn pick_upstream(
+        &self,
+        upstream_servers: &Vec<UpstreamServer>,
+        upstream_servers_live: &Vec<usize>,
+        jumphasher: &JumpHasher,
+        is_retry: bool,
+        lbmode: LoadBalancingMode,
+    ) -> Result<usize, &'static str> {
         let live_count = upstream_servers_live.len();
         if live_count == 0 {
             debug!("All upstream servers are down");
@@ -748,21 +755,22 @@ impl NormalizedQuestion {
     }
 
     fn new_active_query<'t>
-        (&self,
-         upstream_servers: &Vec<UpstreamServer>,
-         upstream_servers_live: &Vec<usize>,
-         ext_udp_socket_tuples: &'t Vec<ExtUdpSocketTuple>,
-         jumphasher: &JumpHasher,
-         is_retry: bool,
-         lbmode: LoadBalancingMode)
-         -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
+        (
+        &self,
+        upstream_servers: &Vec<UpstreamServer>,
+        upstream_servers_live: &Vec<usize>,
+        ext_udp_socket_tuples: &'t Vec<ExtUdpSocketTuple>,
+        jumphasher: &JumpHasher,
+        is_retry: bool,
+        lbmode: LoadBalancingMode,
+    ) -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
         let (query_packet, normalized_question_minimal) =
             build_query_packet(self, false).expect("Unable to build a new query packet");
         let upstream_server_idx = match self.pick_upstream(upstream_servers,
-                                 upstream_servers_live,
-                                 jumphasher,
-                                 is_retry,
-                                 lbmode) {
+                                                           upstream_servers_live,
+                                                           jumphasher,
+                                                           is_retry,
+                                                           lbmode) {
             Err(e) => return Err(e),
             Ok(upstream_server_idx) => upstream_server_idx,
         };

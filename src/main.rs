@@ -99,16 +99,19 @@ struct EdgeDNS;
 
 impl EdgeDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start(edgedns_context: &EdgeDNSContext,
-                        service_ready_tx: mpsc::SyncSender<u8>)
-                        -> thread::JoinHandle<()> {
+    fn webservice_start(
+        edgedns_context: &EdgeDNSContext,
+        service_ready_tx: mpsc::SyncSender<u8>,
+    ) -> thread::JoinHandle<()> {
         WebService::spawn(edgedns_context, service_ready_tx)
             .expect("Unable to spawn the web service")
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start(_edgedns_context: &EdgeDNSContext,
-                        _service_ready_tx: mpsc::SyncSender<u8>) {
+    fn webservice_start(
+        _edgedns_context: &EdgeDNSContext,
+        _service_ready_tx: mpsc::SyncSender<u8>,
+    ) {
         debug!("This build was not compiled with support for webservices");
     }
 

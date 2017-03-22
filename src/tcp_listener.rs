@@ -415,10 +415,11 @@ impl TcpListener {
         }
     }
 
-    pub fn spawn(edgedns_context: &EdgeDNSContext,
-                 resolver_tx: channel::SyncSender<ClientQuery>,
-                 service_ready_tx: mpsc::SyncSender<u8>)
-                 -> io::Result<(thread::JoinHandle<()>)> {
+    pub fn spawn(
+        edgedns_context: &EdgeDNSContext,
+        resolver_tx: channel::SyncSender<ClientQuery>,
+        service_ready_tx: mpsc::SyncSender<u8>,
+    ) -> io::Result<(thread::JoinHandle<()>)> {
         let tcp_socket = edgedns_context.tcp_socket
             .try_clone()
             .expect("Unable to clone the TCP listening socket");
