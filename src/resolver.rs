@@ -2,9 +2,10 @@ use cache::Cache;
 use client_query::*;
 use coarsetime::{Duration, Instant};
 use config::Config;
-use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal, build_query_packet,
-          normalize, tid, set_tid, overwrite_qname, build_tc_packet, build_health_check_packet,
-          build_servfail_packet, min_ttl, set_ttl, rcode, DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
+use dns::{NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal,
+          build_query_packet, normalize, tid, set_tid, overwrite_qname, build_tc_packet,
+          build_health_check_packet, build_servfail_packet, min_ttl, set_ttl, rcode,
+          DNS_HEADER_SIZE, DNS_RCODE_SERVFAIL};
 use jumphash::JumpHasher;
 use log_dnstap;
 use mio;
