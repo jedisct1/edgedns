@@ -217,7 +217,7 @@ fn main() {
     let config_file = match matches.value_of("config_file") {
         None => {
             error!("A path to the configuration file is required");
-            return;
+            std::process::exit(1);
         }
         Some(config_file) => config_file,
     };
@@ -226,12 +226,15 @@ fn main() {
             error!("The configuration couldn't be loaded -- [{}]: [{}]",
                    config_file,
                    err);
-            return;
+            std::process::exit(1);
         }
         Ok(config) => config,
     };
     match EdgeDNS::new(config) {
-        Err(errstr) => error!("Failed to start EdgeDNS: {}", errstr),
+        Err(errstr) => {
+            error!("Failed to start EdgeDNS: {}", errstr);
+            std::process::exit(1);
+        },
         Ok(_) => return,
     }
 }
