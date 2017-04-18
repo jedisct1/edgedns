@@ -129,16 +129,24 @@ impl EdgeDNS {
         pd.apply().unwrap();
     }
 
-    fn new(config: Config) -> EdgeDNS {
+    fn new(config: Config) -> Result<EdgeDNS, std::string::String> {
         let ct = coarsetime::Updater::new(CLOCK_RESOLUTION)
             .start()
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
-        let udp_socket =
-            socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");
-        let tcp_socket =
-            socket_tcp_bound(&config.listen_addr).expect("Unable to create a TCP client socket");
+        let udp_socket = match socket_udp_bound(&config.listen_addr) {
+            Err(err) => {
+                return Err(format!("Unable to create a UDP client socket ({}): {}", &config.listen_addr, err));
+            },
+            Ok(udp_socket) => udp_socket,
+        };
+        let tcp_socket = match socket_tcp_bound(&config.listen_addr) {
+            Err(err) => {
+                return Err(format!("Unable to create a TCP client socket ({}): {}", &config.listen_addr, err));
+            },
+            Ok(tcp_socket) => tcp_socket,
+        };
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
             let log_dnstap = LogDNSTap::new(&config);
             let dnstap_sender = log_dnstap.sender();
@@ -186,7 +194,7 @@ impl EdgeDNS {
             let _ = task.join();
         }
         ct.stop().unwrap();
-        EdgeDNS
+        Ok(EdgeDNS)
     }
 }
 
@@ -222,5 +230,8 @@ fn main() {
         }
         Ok(config) => config,
     };
-    EdgeDNS::new(config);
+    match EdgeDNS::new(config) {
+        Err(errstr) => error!("Failed to start EdgeDNS: {}", errstr),
+        Ok(_) => return,
+    }
 }

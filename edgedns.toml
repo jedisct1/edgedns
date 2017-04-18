@@ -19,7 +19,7 @@ max_failures = 3
 max_items = 250000
 
 # Minimum TTL - Records with a TTL shorter than that one will not trigger a
-# cache refrseh. Increasing that value increases the cache hit ratio,
+# cache refresh. Increasing that value increases the cache hit ratio,
 # improves reliability and reduces the load on upstream servers, but zones
 # changes will obviously require more time to be visible by clients.
 min_ttl = 60
