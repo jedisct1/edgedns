@@ -119,8 +119,8 @@ impl TcpListenerHandler {
         }
         let mut write_buf = BytesMut::with_capacity(TCP_QUERY_HEADER_SIZE + packet_len);
         let binlen = [(packet_len >> 8) as u8, packet_len as u8];
-        write_buf.copy_from_slice(&binlen);
-        write_buf.copy_from_slice(&packet);
+        write_buf.put_slice(&binlen);
+        write_buf.put_slice(&packet);
         let _ = client.tcp_stream.write(write_buf.as_ref());
         let _ = client.tcp_stream.shutdown(Shutdown::Read);
     }
@@ -307,8 +307,8 @@ impl TcpListenerHandler {
                                 let mut write_buf = BytesMut::with_capacity(TCP_QUERY_HEADER_SIZE +
                                                                             packet_len);
                                 let binlen = [(packet_len >> 8) as u8, packet_len as u8];
-                                write_buf.copy_from_slice(&binlen);
-                                write_buf.copy_from_slice(&cache_entry.packet);
+                                write_buf.put_slice(&binlen);
+                                write_buf.put_slice(&cache_entry.packet);
                                 let _ = client.tcp_stream.write(write_buf.as_ref());
                                 let _ = client.tcp_stream.shutdown(Shutdown::Read);
                                 continue;
