@@ -99,19 +99,16 @@ struct EdgeDNS;
 
 impl EdgeDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start(
-        edgedns_context: &EdgeDNSContext,
-        service_ready_tx: mpsc::SyncSender<u8>,
-    ) -> thread::JoinHandle<()> {
+    fn webservice_start(edgedns_context: &EdgeDNSContext,
+                        service_ready_tx: mpsc::SyncSender<u8>)
+                        -> thread::JoinHandle<()> {
         WebService::spawn(edgedns_context, service_ready_tx)
             .expect("Unable to spawn the web service")
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start(
-        _edgedns_context: &EdgeDNSContext,
-        _service_ready_tx: mpsc::SyncSender<u8>,
-    ) {
+    fn webservice_start(_edgedns_context: &EdgeDNSContext,
+                        _service_ready_tx: mpsc::SyncSender<u8>) {
         debug!("This build was not compiled with support for webservices");
     }
 
@@ -137,14 +134,18 @@ impl EdgeDNS {
         let cache = Cache::new(config.clone());
         let udp_socket = match socket_udp_bound(&config.listen_addr) {
             Err(err) => {
-                return Err(format!("Unable to create a UDP client socket ({}): {}", &config.listen_addr, err));
-            },
+                return Err(format!("Unable to create a UDP client socket ({}): {}",
+                                   &config.listen_addr,
+                                   err));
+            }
             Ok(udp_socket) => udp_socket,
         };
         let tcp_socket = match socket_tcp_bound(&config.listen_addr) {
             Err(err) => {
-                return Err(format!("Unable to create a TCP client socket ({}): {}", &config.listen_addr, err));
-            },
+                return Err(format!("Unable to create a TCP client socket ({}): {}",
+                                   &config.listen_addr,
+                                   err));
+            }
             Ok(tcp_socket) => tcp_socket,
         };
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
@@ -234,7 +235,7 @@ fn main() {
         Err(errstr) => {
             error!("Failed to start EdgeDNS: {}", errstr);
             std::process::exit(1);
-        },
+        }
         Ok(_) => return,
     }
 }

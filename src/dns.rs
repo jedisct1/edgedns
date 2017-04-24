@@ -467,12 +467,11 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
     Ok(normalized_question)
 }
 
-pub fn min_ttl(
-    packet: &[u8],
-    min_ttl: u32,
-    max_ttl: u32,
-    failure_ttl: u32,
-) -> Result<u32, &'static str> {
+pub fn min_ttl(packet: &[u8],
+               min_ttl: u32,
+               max_ttl: u32,
+               failure_ttl: u32)
+               -> Result<u32, &'static str> {
     if qdcount(packet) != 1 {
         return Err("Unsupported number of questions");
     }
@@ -606,8 +605,8 @@ pub fn build_tc_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u
     Ok(packet)
 }
 
-pub fn build_servfail_packet(normalized_question: &NormalizedQuestion,)
-    -> Result<Vec<u8>, &'static str> {
+pub fn build_servfail_packet(normalized_question: &NormalizedQuestion)
+                             -> Result<Vec<u8>, &'static str> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -626,8 +625,8 @@ pub fn build_servfail_packet(normalized_question: &NormalizedQuestion,)
     Ok(packet)
 }
 
-pub fn build_refused_packet(normalized_question: &NormalizedQuestion,)
-    -> Result<Vec<u8>, &'static str> {
+pub fn build_refused_packet(normalized_question: &NormalizedQuestion)
+                            -> Result<Vec<u8>, &'static str> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -646,8 +645,8 @@ pub fn build_refused_packet(normalized_question: &NormalizedQuestion,)
     Ok(packet)
 }
 
-pub fn build_nxdomain_packet(normalized_question: &NormalizedQuestion,)
-    -> Result<Vec<u8>, &'static str> {
+pub fn build_nxdomain_packet(normalized_question: &NormalizedQuestion)
+                             -> Result<Vec<u8>, &'static str> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -666,10 +665,9 @@ pub fn build_nxdomain_packet(normalized_question: &NormalizedQuestion,)
     Ok(packet)
 }
 
-pub fn build_any_packet(
-    normalized_question: &NormalizedQuestion,
-    ttl: u32,
-) -> Result<Vec<u8>, &'static str> {
+pub fn build_any_packet(normalized_question: &NormalizedQuestion,
+                        ttl: u32)
+                        -> Result<Vec<u8>, &'static str> {
     let hinfo_cpu = b"draft-ietf-dnsop-refuse-any";
     let hinfo_rdata = b"";
     let rdata_len = 1 + hinfo_cpu.len() + 1 + hinfo_rdata.len();
@@ -714,10 +712,9 @@ pub fn build_any_packet(
     Ok(packet)
 }
 
-pub fn build_version_packet(
-    normalized_question: &NormalizedQuestion,
-    ttl: u32,
-) -> Result<Vec<u8>, &'static str> {
+pub fn build_version_packet(normalized_question: &NormalizedQuestion,
+                            ttl: u32)
+                            -> Result<Vec<u8>, &'static str> {
     let txt = b"EdgeDNS";
     let rdata_len = 1 + txt.len();
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
@@ -779,10 +776,9 @@ pub fn build_health_check_packet() -> Result<(Vec<u8>, NormalizedQuestion), &'st
     Ok((packet, normalized_question))
 }
 
-pub fn build_query_packet(
-    normalized_question: &NormalizedQuestion,
-    force_dnssec: bool,
-) -> Result<(Vec<u8>, NormalizedQuestionMinimal), &'static str> {
+pub fn build_query_packet(normalized_question: &NormalizedQuestion,
+                          force_dnssec: bool)
+                          -> Result<(Vec<u8>, NormalizedQuestionMinimal), &'static str> {
     let mut qname = qname_lc(&normalized_question.qname);
     let qname_len = qname.len();
     let force_dnssec = if qname_len == 0 { true } else { force_dnssec };

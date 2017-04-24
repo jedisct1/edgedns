@@ -132,13 +132,12 @@ impl Resolver {
         }
     }
 
-    fn verify_active_query(
-        &self,
-        active_query: &ActiveQuery,
-        packet: &[u8],
-        client_addr: SocketAddr,
-        local_port: u16,
-    ) -> Result<(), &'static str> {
+    fn verify_active_query(&self,
+                           active_query: &ActiveQuery,
+                           packet: &[u8],
+                           client_addr: SocketAddr,
+                           local_port: u16)
+                           -> Result<(), &'static str> {
         if local_port != active_query.local_port {
             debug!("Got a reponse on port {} for a query sent on port {}",
                    local_port,
@@ -160,13 +159,11 @@ impl Resolver {
         Ok(())
     }
 
-    fn dispatch_active_query(
-        &mut self,
-        packet: &mut [u8],
-        normalized_question_key: &NormalizedQuestionKey,
-        client_addr: SocketAddr,
-        local_port: u16,
-    ) {
+    fn dispatch_active_query(&mut self,
+                             packet: &mut [u8],
+                             normalized_question_key: &NormalizedQuestionKey,
+                             client_addr: SocketAddr,
+                             local_port: u16) {
         let active_query = match self.pending_queries.map.get(normalized_question_key) {
             None => {
                 debug!("No clients waiting for this query");
@@ -174,7 +171,8 @@ impl Resolver {
             }
             Some(active_query) => active_query,
         };
-        if self.verify_active_query(active_query, packet, client_addr, local_port).is_err() {
+        if self.verify_active_query(active_query, packet, client_addr, local_port)
+               .is_err() {
             debug!("Received response is not valid for the query originally sent");
             return;
         }
@@ -193,11 +191,11 @@ impl Resolver {
                         if packet.len() > client_query.normalized_question.payload_size as usize {
                             let packet = &build_tc_packet(&client_query.normalized_question)
                                               .unwrap();
-                            let _ =
-                                self.udp_socket.send_to(packet, client_query.client_addr.unwrap());
+                            let _ = self.udp_socket
+                                .send_to(packet, client_query.client_addr.unwrap());
                         } else {
-                            let _ =
-                                self.udp_socket.send_to(packet, client_query.client_addr.unwrap());
+                            let _ = self.udp_socket
+                                .send_to(packet, client_query.client_addr.unwrap());
                         };
                     }
                 }
@@ -215,49 +213,59 @@ impl Resolver {
         self.mio_timers.cancel_timeout(&active_query.timeout);
     }
 
-    fn complete_active_query(
-        &mut self,
-        packet: &mut [u8],
-        normalized_question: NormalizedQuestion,
-        client_addr: SocketAddr,
-        local_port: u16,
-        ttl: u32,
-    ) {
+    fn complete_active_query(&mut self,
+                             packet: &mut [u8],
+                             normalized_question: NormalizedQuestion,
+                             client_addr: SocketAddr,
+                             local_port: u16,
+                             ttl: u32) {
         let normalized_question_key = normalized_question.key();
         self.dispatch_active_query(packet, &normalized_question_key, client_addr, local_port);
-        if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
+        if let Some(active_query) =
+            self.pending_queries
+                .map
+                .remove(&normalized_question_key) {
             self.waiting_clients_count -= active_query.client_queries.len();
         }
         if rcode(packet) == DNS_RCODE_SERVFAIL {
             match self.cache.get(&normalized_question_key) {
                 None => {
-                    self.cache.insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
+                    self.cache
+                        .insert(normalized_question_key, packet.to_owned(), FAILURE_TTL);
                 }
                 Some(cache_entry) => {
-                    self.cache.insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
+                    self.cache
+                        .insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
                     self.varz.client_queries_offline.inc();
                 }
             }
         } else {
-            self.cache.insert(normalized_question_key, packet.to_owned(), ttl);
+            self.cache
+                .insert(normalized_question_key, packet.to_owned(), ttl);
         }
     }
 
     fn update_cache_stats(&mut self) {
         let cache_stats = self.cache.stats();
-        self.varz.cache_frequent_len.set(cache_stats.frequent_len as f64);
-        self.varz.cache_recent_len.set(cache_stats.recent_len as f64);
-        self.varz.cache_test_len.set(cache_stats.test_len as f64);
-        self.varz.cache_inserted.set(cache_stats.inserted as f64);
+        self.varz
+            .cache_frequent_len
+            .set(cache_stats.frequent_len as f64);
+        self.varz
+            .cache_recent_len
+            .set(cache_stats.recent_len as f64);
+        self.varz
+            .cache_test_len
+            .set(cache_stats.test_len as f64);
+        self.varz
+            .cache_inserted
+            .set(cache_stats.inserted as f64);
         self.varz.cache_evicted.set(cache_stats.evicted as f64);
     }
 
-    fn handle_upstream_response(
-        &mut self,
-        packet: &mut [u8],
-        client_addr: SocketAddr,
-        local_port: u16,
-    ) {
+    fn handle_upstream_response(&mut self,
+                                packet: &mut [u8],
+                                client_addr: SocketAddr,
+                                local_port: u16) {
         if packet.len() < DNS_QUERY_MIN_SIZE {
             info!("Short response without a query, using UDP");
             self.varz.upstream_errors.inc();
@@ -309,7 +317,9 @@ impl Resolver {
             let (count, client_addr, local_port) = {
                 let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[usize::from(token)];
                 let ext_udp_socket = &ext_udp_socket_tuple.ext_udp_socket;
-                match ext_udp_socket.recv_from(&mut packet).expect("UDP socket error") {
+                match ext_udp_socket
+                          .recv_from(&mut packet)
+                          .expect("UDP socket error") {
                     None => break,
                     Some((count, client_addr)) => {
                         (count, client_addr, ext_udp_socket_tuple.local_port)
@@ -322,9 +332,9 @@ impl Resolver {
                 continue;
             }
             if let Some(idx) =
-                self.upstream_servers.iter().position(|upstream_server| {
-                                                          upstream_server.socket_addr == client_addr
-                                                      }) {
+                self.upstream_servers
+                    .iter()
+                    .position(|upstream_server| upstream_server.socket_addr == client_addr) {
                 if !self.upstream_servers_live.iter().any(|&x| x == idx) {
                     self.upstream_servers[idx].pending_queries = 0;
                     self.upstream_servers[idx].failures = 0;
@@ -369,9 +379,11 @@ impl Resolver {
                    Duration::from_millis(UPSTREAM_TIMEOUT_MS) {
                     if packet.len() > client_query.normalized_question.payload_size as usize {
                         let packet = build_tc_packet(&client_query.normalized_question).unwrap();
-                        let _ = self.udp_socket.send_to(&packet, client_query.client_addr.unwrap());
+                        let _ = self.udp_socket
+                            .send_to(&packet, client_query.client_addr.unwrap());
                     } else {
-                        let _ = self.udp_socket.send_to(&packet, client_query.client_addr.unwrap());
+                        let _ = self.udp_socket
+                            .send_to(&packet, client_query.client_addr.unwrap());
                     };
                 }
             }
@@ -398,10 +410,7 @@ impl Resolver {
         let key = normalized_question.key();
         if self.waiting_clients_count > self.config.max_waiting_clients {
             info!("Too many waiting clients, dropping the first slot");
-            let key = match self.pending_queries
-                      .map
-                      .keys()
-                      .next() {
+            let key = match self.pending_queries.map.keys().next() {
                 None => return,
                 Some(key) => key.clone(),
             };
@@ -468,24 +477,24 @@ impl Resolver {
                 let (query_packet,
                      normalized_question_minimal,
                      upstream_server_idx,
-                     ext_udp_socket_tuple) =
-                    match normalized_question.new_active_query(&self.upstream_servers,
-                                                               &self.upstream_servers_live,
-                                                               &self.ext_udp_socket_tuples,
-                                                               &self.jumphasher,
-                                                               true,
-                                                               self.lbmode) {
-                        Err(_) => return,
-                        Ok(res) => res,
-                    };
+                     ext_udp_socket_tuple) = match normalized_question
+                          .new_active_query(&self.upstream_servers,
+                                            &self.upstream_servers_live,
+                                            &self.ext_udp_socket_tuples,
+                                            &self.jumphasher,
+                                            true,
+                                            self.lbmode) {
+                    Err(_) => return,
+                    Ok(res) => res,
+                };
                 let mut upstream_server = &mut self.upstream_servers[upstream_server_idx];
                 active_query.normalized_question_minimal = normalized_question_minimal;
                 active_query.socket_addr = upstream_server.socket_addr;
                 active_query.local_port = ext_udp_socket_tuple.local_port;
                 upstream_server.pending_queries = upstream_server.pending_queries.wrapping_add(1);
-                let _ =
-                    ext_udp_socket_tuple.ext_udp_socket.send_to(&query_packet,
-                                                                &upstream_server.socket_addr);
+                let _ = ext_udp_socket_tuple
+                    .ext_udp_socket
+                    .send_to(&query_packet, &upstream_server.socket_addr);
             }
             debug_assert_eq!(create_active_query, false);
         }
@@ -493,16 +502,16 @@ impl Resolver {
             let (query_packet,
                  normalized_question_minimal,
                  upstream_server_idx,
-                 ext_udp_socket_tuple) =
-                match normalized_question.new_active_query(&self.upstream_servers,
-                                                           &self.upstream_servers_live,
-                                                           &self.ext_udp_socket_tuples,
-                                                           &self.jumphasher,
-                                                           false,
-                                                           self.lbmode) {
-                    Err(_) => return,
-                    Ok(res) => res,
-                };
+                 ext_udp_socket_tuple) = match normalized_question
+                      .new_active_query(&self.upstream_servers,
+                                        &self.upstream_servers_live,
+                                        &self.ext_udp_socket_tuples,
+                                        &self.jumphasher,
+                                        false,
+                                        self.lbmode) {
+                Err(_) => return,
+                Ok(res) => res,
+            };
             let upstream_server = &self.upstream_servers[upstream_server_idx];
             let timeout = match self.mio_timers
                       .set_timeout(time::Duration::from_millis(UPSTREAM_TIMEOUT_MS),
@@ -522,16 +531,19 @@ impl Resolver {
             };
             self.pending_queries.map.insert(key, active_query);
             self.waiting_clients_count += 1;
-            let _ =
-                ext_udp_socket_tuple.ext_udp_socket.send_to(&query_packet,
-                                                            &upstream_server.socket_addr);
+            let _ = ext_udp_socket_tuple
+                .ext_udp_socket
+                .send_to(&query_packet, &upstream_server.socket_addr);
         }
     }
 }
 
 impl Resolver {
     fn timeout_question(&mut self, normalized_question_key: NormalizedQuestionKey) {
-        if let Some(active_query) = self.pending_queries.map.remove(&normalized_question_key) {
+        if let Some(active_query) =
+            self.pending_queries
+                .map
+                .remove(&normalized_question_key) {
             let cache_entry = self.cache.get(&normalized_question_key);
             let outdated_packet = if let Some(cache_entry) = cache_entry {
                 Some(cache_entry.packet)
@@ -559,13 +571,11 @@ impl Resolver {
                                client_query.normalized_question.payload_size as usize {
                                 let packet = build_tc_packet(&client_query.normalized_question)
                                     .unwrap();
-                                let _ =
-                                    self.udp_socket.send_to(&packet,
-                                                            client_query.client_addr.unwrap());
+                                let _ = self.udp_socket
+                                    .send_to(&packet, client_query.client_addr.unwrap());
                             } else {
-                                let _ =
-                                    self.udp_socket.send_to(&packet,
-                                                            client_query.client_addr.unwrap());
+                                let _ = self.udp_socket
+                                    .send_to(&packet, client_query.client_addr.unwrap());
                             };
                         }
                     }
@@ -594,13 +604,14 @@ impl Resolver {
             let (packet, _normalized_question) = build_health_check_packet().unwrap();
             let mut rng = rand::thread_rng();
             let random_token_range = Range::new(0usize, self.ext_udp_socket_tuples.len());
-            for upstream_server in self.upstream_servers.iter().filter(|upstream_server| {
-                                                                           upstream_server.offline
-                                                                       }) {
+            for upstream_server in self.upstream_servers
+                    .iter()
+                    .filter(|upstream_server| upstream_server.offline) {
                 let random_token = random_token_range.ind_sample(&mut rng);
                 let ext_udp_socket_tuple = &self.ext_udp_socket_tuples[random_token];
-                match ext_udp_socket_tuple.ext_udp_socket.send_to(&packet,
-                                                                  &upstream_server.socket_addr) {
+                match ext_udp_socket_tuple
+                          .ext_udp_socket
+                          .send_to(&packet, &upstream_server.socket_addr) {
                     Ok(_) => debug!("Health check send to {:?}", upstream_server.socket_addr),
                     Err(e) => warn!("Couldn't send a health check packet: {}", e),
                 };
@@ -614,7 +625,8 @@ impl Resolver {
 
     pub fn spawn(edgedns_context: &EdgeDNSContext) -> io::Result<channel::SyncSender<ClientQuery>> {
         let config = &edgedns_context.config;
-        let udp_socket = edgedns_context.udp_socket
+        let udp_socket = edgedns_context
+            .udp_socket
             .try_clone()
             .expect("Unable to clone the UDP listening socket");
         let mio_poll = mio::Poll::new().expect("Couldn't instantiate an event loop");
@@ -622,12 +634,14 @@ impl Resolver {
             .num_slots(edgedns_context.config.max_active_queries / 256)
             .capacity(edgedns_context.config.max_active_queries)
             .build();
-        mio_poll.register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
+        mio_poll
+            .register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
             .expect("Could not register the timers");
         let (resolver_tx, resolver_rx): (channel::SyncSender<ClientQuery>,
                                          channel::Receiver<ClientQuery>) =
             channel::sync_channel(edgedns_context.config.max_active_queries);
-        mio_poll.register(&resolver_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
+        mio_poll
+            .register(&resolver_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
             .expect("Could not register the resolver channel");
         let pending_queries = PendingQueries::new();
         let mut ext_udp_socket_tuples = Vec::new();
@@ -641,10 +655,11 @@ impl Resolver {
                 info!("Binding ports... {}/{}", port, ports)
             }
             if let Ok(ext_udp_socket) = mio_socket_udp_bound(port) {
-                mio_poll.register(&ext_udp_socket,
-                                  Token(ext_udp_socket_tuples.len()),
-                                  Ready::readable(),
-                                  PollOpt::edge())
+                mio_poll
+                    .register(&ext_udp_socket,
+                              Token(ext_udp_socket_tuples.len()),
+                              Ready::readable(),
+                              PollOpt::edge())
                     .unwrap();
                 let ext_udp_socket_tuple = ExtUdpSocketTuple {
                     local_port: port,
@@ -656,13 +671,15 @@ impl Resolver {
         if ext_udp_socket_tuples.is_empty() {
             panic!("Couldn't bind any ports");
         }
-        let upstream_servers: Vec<UpstreamServer> = config.upstream_servers
+        let upstream_servers: Vec<UpstreamServer> = config
+            .upstream_servers
             .iter()
             .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
-        mio_timers.set_timeout(time::Duration::from_millis(HEALTH_CHECK_MS),
-                               TimeoutToken::HealthCheck)
+        mio_timers
+            .set_timeout(time::Duration::from_millis(HEALTH_CHECK_MS),
+                         TimeoutToken::HealthCheck)
             .expect("Unable to reschedule the health check");
         let mut resolver = Resolver {
             mio_poll: mio_poll,
@@ -718,14 +735,13 @@ impl Resolver {
 }
 
 impl NormalizedQuestion {
-    fn pick_upstream(
-        &self,
-        upstream_servers: &Vec<UpstreamServer>,
-        upstream_servers_live: &Vec<usize>,
-        jumphasher: &JumpHasher,
-        is_retry: bool,
-        lbmode: LoadBalancingMode,
-    ) -> Result<usize, &'static str> {
+    fn pick_upstream(&self,
+                     upstream_servers: &Vec<UpstreamServer>,
+                     upstream_servers_live: &Vec<usize>,
+                     jumphasher: &JumpHasher,
+                     is_retry: bool,
+                     lbmode: LoadBalancingMode)
+                     -> Result<usize, &'static str> {
         let live_count = upstream_servers_live.len();
         if live_count == 0 {
             debug!("All upstream servers are down");
@@ -741,7 +757,8 @@ impl NormalizedQuestion {
                 Ok(upstream_servers_live[i])
             }
             LoadBalancingMode::P2 => {
-                let mut busy_map = upstream_servers_live.iter()
+                let mut busy_map = upstream_servers_live
+                    .iter()
                     .map(|&i| (i, upstream_servers[i].pending_queries))
                     .collect::<Vec<(usize, u64)>>();
                 busy_map.sort_by_key(|x| x.1);
@@ -756,15 +773,14 @@ impl NormalizedQuestion {
     }
 
     fn new_active_query<'t>
-        (
-        &self,
-        upstream_servers: &Vec<UpstreamServer>,
-        upstream_servers_live: &Vec<usize>,
-        ext_udp_socket_tuples: &'t Vec<ExtUdpSocketTuple>,
-        jumphasher: &JumpHasher,
-        is_retry: bool,
-        lbmode: LoadBalancingMode,
-    ) -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
+        (&self,
+         upstream_servers: &Vec<UpstreamServer>,
+         upstream_servers_live: &Vec<usize>,
+         ext_udp_socket_tuples: &'t Vec<ExtUdpSocketTuple>,
+         jumphasher: &JumpHasher,
+         is_retry: bool,
+         lbmode: LoadBalancingMode)
+         -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t ExtUdpSocketTuple), &'static str> {
         let (query_packet, normalized_question_minimal) =
             build_query_packet(self, false).expect("Unable to build a new query packet");
         let upstream_server_idx = match self.pick_upstream(upstream_servers,

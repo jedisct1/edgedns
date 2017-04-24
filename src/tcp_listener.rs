@@ -201,8 +201,8 @@ impl TcpListenerHandler {
             let random_slot = (slot + random_distance.ind_sample(&mut rng)) % self.clients.len();
             {
                 let client = &self.clients[random_slot]
-                    .as_ref()
-                    .expect("Random TCP slot should not have been free");
+                                  .as_ref()
+                                  .expect("Random TCP slot should not have been free");
                 let _ = client.tcp_stream.shutdown(Shutdown::Both);
             }
             self.reset_connection(random_slot);
@@ -224,7 +224,8 @@ impl TcpListenerHandler {
                       PollOpt::edge() | PollOpt::oneshot())
             .expect("Unable to register a connection");
         if let Ok(timeout) =
-            self.mio_timers.set_timeout(time::Duration::from_millis(MAX_TCP_IDLE_MS), client_tok) {
+            self.mio_timers
+                .set_timeout(time::Duration::from_millis(MAX_TCP_IDLE_MS), client_tok) {
             client.timeout = Some(timeout);
         }
         Ok(())
@@ -233,11 +234,15 @@ impl TcpListenerHandler {
     fn data_received(&mut self, client_tok: Token) -> io::Result<()> {
         debug!("data received {:?}", client_tok);
         let client_idx = usize::from(client_tok) - 2;
-        let mut client =
-            &mut self.clients[client_idx].as_mut().expect("Data received from an unwired client");
+        let mut client = &mut self.clients[client_idx]
+                                  .as_mut()
+                                  .expect("Data received from an unwired client");
         let mut read_buf = &mut client.read_buf;
         loop {
-            let res = client.tcp_stream.read(unsafe { read_buf.bytes_mut() }).map_non_block();
+            let res = client
+                .tcp_stream
+                .read(unsafe { read_buf.bytes_mut() })
+                .map_non_block();
             match res {
                 Err(e) => {
                     error!("{:?} Error while reading socket: {:?}", client_tok, e);
@@ -339,8 +344,9 @@ impl TcpListenerHandler {
     fn reset_connection(&mut self, client_idx: usize) {
         debug!("TCP reset; removing client #{:?}", client_idx);
         {
-            let mut client =
-                &mut self.clients[client_idx].as_mut().expect("Reseting nonexistent connection");
+            let mut client = &mut self.clients[client_idx]
+                                      .as_mut()
+                                      .expect("Reseting nonexistent connection");
             assert_eq!(client.attic, false);
             client.attic = true;
             client.interest = Ready::none();
@@ -360,9 +366,11 @@ impl TcpListener {
             .num_slots(MAX_TCP_CLIENTS / 256)
             .capacity(MAX_TCP_CLIENTS)
             .build();
-        mio_poll.register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
+        mio_poll
+            .register(&mio_timers, TIMER_TOK, Ready::readable(), PollOpt::edge())
             .expect("Could not register the timers");
-        let actual = addr.parse().expect("Unable to parse the TCP address to bind");
+        let actual = addr.parse()
+            .expect("Unable to parse the TCP address to bind");
         let mio_listener = tcp::TcpListener::from_listener(tcp_socket, &actual)
             .expect("Unable to use the TCP socket");
         debug!("tcp listener socket={:?}", mio_listener);
@@ -374,7 +382,8 @@ impl TcpListener {
         let (tcpclient_tx, tcpclient_rx): (channel::SyncSender<ResolverResponse>,
                                            channel::Receiver<ResolverResponse>) =
             channel::sync_channel(self.config.max_active_queries);
-        mio_poll.register(&tcpclient_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
+        mio_poll
+            .register(&tcpclient_rx, NOTIFY_TOK, Ready::all(), PollOpt::edge())
             .expect("Could not register the resolver channel");
         let mut handler = TcpListenerHandler {
             mio_poll: mio_poll,
@@ -415,12 +424,12 @@ impl TcpListener {
         }
     }
 
-    pub fn spawn(
-        edgedns_context: &EdgeDNSContext,
-        resolver_tx: channel::SyncSender<ClientQuery>,
-        service_ready_tx: mpsc::SyncSender<u8>,
-    ) -> io::Result<(thread::JoinHandle<()>)> {
-        let tcp_socket = edgedns_context.tcp_socket
+    pub fn spawn(edgedns_context: &EdgeDNSContext,
+                 resolver_tx: channel::SyncSender<ClientQuery>,
+                 service_ready_tx: mpsc::SyncSender<u8>)
+                 -> io::Result<(thread::JoinHandle<()>)> {
+        let tcp_socket = edgedns_context
+            .tcp_socket
             .try_clone()
             .expect("Unable to clone the TCP listening socket");
         let tcp_listener = TcpListener {
@@ -434,8 +443,9 @@ impl TcpListener {
         let tcp_listener_th = thread::Builder::new()
             .name("tcp_listener".to_string())
             .spawn(move || {
-                       tcp_listener.run(tcp_socket, listen_addr)
-                    .expect("Unable to spawn a TCP listener");
+                       tcp_listener
+                           .run(tcp_socket, listen_addr)
+                           .expect("Unable to spawn a TCP listener");
                    })
             .unwrap();
         Ok(tcp_listener_th)

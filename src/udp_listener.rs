@@ -27,8 +27,9 @@ impl UdpListener {
         self.service_ready_tx.send(0).unwrap();
         let mut packet = [0u8; DNS_MAX_UDP_SIZE];
         loop {
-            let (count, client_addr) =
-                self.socket.recv_from(&mut packet).expect("UDP socket error");
+            let (count, client_addr) = self.socket
+                .recv_from(&mut packet)
+                .expect("UDP socket error");
             self.varz.client_queries_udp.inc();
             if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
                 info!("Short query using UDP");
@@ -75,12 +76,12 @@ impl UdpListener {
         }
     }
 
-    pub fn spawn(
-        edgedns_context: &EdgeDNSContext,
-        resolver_tx: channel::SyncSender<ClientQuery>,
-        service_ready_tx: mpsc::SyncSender<u8>,
-    ) -> io::Result<(thread::JoinHandle<()>)> {
-        let udp_socket = edgedns_context.udp_socket
+    pub fn spawn(edgedns_context: &EdgeDNSContext,
+                 resolver_tx: channel::SyncSender<ClientQuery>,
+                 service_ready_tx: mpsc::SyncSender<u8>)
+                 -> io::Result<(thread::JoinHandle<()>)> {
+        let udp_socket = edgedns_context
+            .udp_socket
             .try_clone()
             .expect("Unable to clone the UDP listening socket");
         let udp_listener = UdpListener {
@@ -92,7 +93,11 @@ impl UdpListener {
         };
         let udp_listener_th = thread::Builder::new()
             .name("udp_listener".to_string())
-            .spawn(move || { udp_listener.run().expect("Unable to spawn a UDP listener"); })
+            .spawn(move || {
+                       udp_listener
+                           .run()
+                           .expect("Unable to spawn a UDP listener");
+                   })
             .unwrap();
         info!("UDP listener is ready");
         Ok(udp_listener_th)
