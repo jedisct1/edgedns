@@ -255,6 +255,7 @@ impl ClientQueriesHandler {
                upstream_server.socket_addr);
         map.insert(key, pending_query);
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
+        self.varz.upstream_sent.inc();
         upstream_server.pending_queries = upstream_server.pending_queries.wrapping_add(1);
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(1));
