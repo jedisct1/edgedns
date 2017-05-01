@@ -1,13 +1,15 @@
+//! Unix-specific helpers to create sockets with specific options
+
 use bpf;
 use nix::fcntl::FcntlArg::F_SETFL;
 use nix::fcntl::{fcntl, O_NONBLOCK};
 use nix::sys::socket::{bind, listen, setsockopt, sockopt, AddressFamily, SockFlag, SockType,
                        SockLevel, SockAddr, socket, InetAddr};
+use socket_priority;
 use std::net::{self, SocketAddr, UdpSocket};
 use std::io;
 use std::os::unix::io::{RawFd, FromRawFd};
 use std::str::FromStr;
-use socket_priority;
 use super::{TCP_BACKLOG, UDP_BUFFER_SIZE};
 
 #[inline]
@@ -39,8 +41,8 @@ pub fn socket_tcp_bound(addr: &str) -> io::Result<net::TcpListener> {
     let _ = setsockopt(socket_fd, sockopt::ReusePort, &true);
     let _ = setsockopt(socket_fd, sockopt::TcpNoDelay, &true);
     let _ = socket_priority::set_priority(socket_fd, socket_priority::Priority::Interactive);
-    bind(socket_fd, &nix_addr)?;
-    listen(socket_fd, TCP_BACKLOG)?;
+    bind(socket_fd, &nix_addr).expect("Unable to bind a TCP socket");
+    listen(socket_fd, TCP_BACKLOG).expect("Unable to listen to the TCP socket");
     let socket = unsafe { net::TcpListener::from_raw_fd(socket_fd) };
     Ok(socket)
 }
@@ -87,7 +89,7 @@ pub fn socket_udp_bound(addr: &str) -> io::Result<UdpSocket> {
     let _ = set_bpf_udp_dns(socket_fd);
     let _ = socket_priority::set_priority(socket_fd, socket_priority::Priority::Interactive);
     socket_udp_set_buffer_size(socket_fd);
-    bind(socket_fd, &nix_addr)?;
+    bind(socket_fd, &nix_addr).expect("Unable to bind a UDP socket");
     let socket = unsafe { UdpSocket::from_raw_fd(socket_fd) };
     Ok(socket)
 }

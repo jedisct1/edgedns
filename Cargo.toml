@@ -1,45 +1,21 @@
 [package]
 name = "edgedns"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
-webservice = ["hyper"]
-nightly = ["clap/nightly", "hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
+webservice = ["libedgedns/webservice"]
+nightly = ["libedgedns/nightly", "clap/nightly"]
 
 default = ["nightly", "webservice"]
 
+[dependencies.libedgedns]
+path = "src/libedgedns"
+
 [dependencies]
-bpf = "*"
 clap = "*"
-clippy = {version = "*", optional = true}
-clockpro-cache = "*"
-coarsetime = "*"
 env_logger = "*"
-hyper = {version = "*", optional = true, default-features = false}
-jumphash = "*"
 log = "*"
-nix = "~0.7.0"
-privdrop = "*"
-prometheus = {version = "*", default-features = false}
-rand = "*"
-siphasher = "*"
-socket-priority = "*"
-slab = "*"
-toml = "*"
-
-[dependencies.bytes]
-git = "https://github.com/carllerche/bytes"
-
-[dependencies.framestream]
-git = "https://github.com/jedisct1/rust-framestream"
-
-[dependencies.mio]
-git = "https://github.com/carllerche/mio"
-rev = "9276b16f9fdfca070a9a2345549bbd310ec595c3"
-
-[dependencies.dnstap]
-git = "https://github.com/jedisct1/rust-dnstap"
 
 [profile.release]
 lto = true

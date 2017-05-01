@@ -1,3 +1,8 @@
+//! Metrics
+//!
+//! Varz are updated by pretty much all components, using only two
+//! operations: set() and inc().
+
 use coarsetime::Instant;
 use prometheus::{Counter, Gauge};
 

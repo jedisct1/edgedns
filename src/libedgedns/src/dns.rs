@@ -1,11 +1,14 @@
+//! Helpers for parsing DNS packets, modifying properties, and building
+//! common responses.
+
 use rand::random;
 use std::fmt;
 use std::io::Write;
 
 use super::{DNS_QUERY_MIN_SIZE, DNS_UDP_NOEDNS0_MAX_SIZE};
 
-pub const DNS_CLASS_IN: u16 = 1;
 pub const DNS_CLASS_CH: u16 = 3;
+pub const DNS_CLASS_IN: u16 = 1;
 pub const DNS_HEADER_SIZE: usize = 12;
 pub const DNS_MAX_HOSTNAME_LEN: usize = 256;
 pub const DNS_MAX_PACKET_SIZE: usize = 65535;
@@ -14,12 +17,12 @@ pub const DNS_OFFSET_EDNS_PAYLOAD_SIZE: usize = 2;
 pub const DNS_OFFSET_EDNS_TYPE: usize = 0;
 pub const DNS_OFFSET_QUESTION: usize = DNS_HEADER_SIZE;
 pub const DNS_QTYPE_PLUS_QCLASS_LEN: usize = 4;
-pub const DNS_RCODE_SERVFAIL: u8 = 2;
 pub const DNS_RCODE_NXDOMAIN: u8 = 3;
 pub const DNS_RCODE_REFUSED: u8 = 5;
+pub const DNS_RCODE_SERVFAIL: u8 = 2;
 pub const DNS_TYPE_ANY: u16 = 255;
-pub const DNS_TYPE_OPT: u16 = 41;
 pub const DNS_TYPE_HINFO: u16 = 13;
+pub const DNS_TYPE_OPT: u16 = 41;
 pub const DNS_TYPE_SOA: u16 = 6;
 pub const DNS_TYPE_TXT: u16 = 16;
 
@@ -757,23 +760,21 @@ pub fn build_version_packet(normalized_question: &NormalizedQuestion,
     Ok(packet)
 }
 
-pub fn build_health_check_packet() -> Result<(Vec<u8>, NormalizedQuestion), &'static str> {
-    let capacity = DNS_HEADER_SIZE /* + 0 */ + 1;
+pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, &'static str> {
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
     set_tid(&mut packet, random());
     set_rd(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.push(0);
-
+    packet.extend_from_slice(qname);
     let qtype = DNS_TYPE_SOA;
     let qclass = DNS_CLASS_IN;
     packet.push((qtype >> 8) as u8);
     packet.push(qtype as u8);
     packet.push((qclass >> 8) as u8);
     packet.push(qclass as u8);
-    let normalized_question = normalize(&packet, true).unwrap();
-    Ok((packet, normalized_question))
+    Ok(packet)
 }
 
 pub fn build_query_packet(normalized_question: &NormalizedQuestion,
@@ -823,4 +824,29 @@ pub fn build_query_packet(normalized_question: &NormalizedQuestion,
         qclass: normalized_question.qclass,
     };
     Ok((packet, normalized_question_minimal))
+}
+
+pub fn qname_encode(name: &str) -> Result<Vec<u8>, &'static str> {
+    let mut encoded = Vec::with_capacity(name.len() + 1);
+    let mut final_dot = false;
+    for part in name.split('.') {
+        if final_dot {
+            return Err("Invalid name: unexpected dots");
+        }
+        let len = part.len();
+        if len > 0x3f {
+            return Err("Invalid name: label too long (> 63 characters)");
+        } else if len == 0 {
+            if name.len() == 1 {
+                break;
+            }
+            final_dot = true;
+        }
+        encoded.push(len as u8);
+        encoded.extend_from_slice(part.as_bytes());
+    }
+    if !final_dot {
+        encoded.push(0);
+    }
+    Ok(encoded)
 }

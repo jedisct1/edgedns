@@ -1,0 +1,45 @@
+[package]
+name = "libedgedns"
+version = "0.3.0"
+authors = ["Frank Denis <github@pureftpd.org>"]
+publish = false
+
+[features]
+webservice = ["hyper"]
+nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
+
+default = ["nightly", "webservice"]
+
+[dependencies]
+base64 = "*"
+bpf = "*"
+byteorder = "*"
+bytes = "*"
+clippy = {version = "*", optional = true}
+clockpro-cache = "*"
+coarsetime = "*"
+dnstap = "*"
+env_logger = "*"
+futures = "*"
+hyper = {version = "*", optional = true, default-features = false}
+jumphash = "*"
+lazy_static = "*"
+log = "*"
+net2 = "*"
+nix = "~0.8 "
+parking_lot = "*"
+privdrop = "*"
+prometheus = {version = "*", default-features = false}
+rand = "*"
+siphasher = "*"
+slab = "*"
+socket-priority = "*"
+tokio-core = "*"
+tokio-io = "*"
+tokio-timer = "*"
+toml = "*"
+
+[profile.release]
+lto = true
+panic = "abort"
+opt-level = 3

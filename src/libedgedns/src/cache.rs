@@ -1,9 +1,28 @@
-use config::Config;
-use coarsetime::{Duration, Instant};
+//! Shared cache for DNS responses
+//!
+//! The cache is currently shared across all threads, and maps
+//! `NormalizedQuestionKey` keys to DNS responses in wire format.
+//!
+//! DNS responses are stored as originally received from upstream servers,
+//! and need to be modified to fit the original format of client queries
+//! before being actually sent to clients.
+//!
+//! The cache current uses the CLOCK-Pro algorithm, but can be trivially
+//! replaced with the `arc-cache` or `cart-cache` crates that expose a
+//! similar API (but might be subject to patents).
+//!
+//! With a typical workload, it is expected that the vast majority of cached
+//! responses end up in the `frequent` section of the cache.
+//! The `test` and `recent` section act as a security valve when a spike of
+//! previously unknown queries is observed.
+
 use clockpro_cache::*;
-use dns;
+use coarsetime::{Duration, Instant};
+use config::Config;
 use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
-use std::sync::{Arc, Mutex};
+use dns;
+use parking_lot::Mutex;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct CacheEntry {
@@ -43,7 +62,7 @@ impl Cache {
     }
 
     pub fn stats(&self) -> CacheStats {
-        let cache = self.arc_mx.lock().unwrap();
+        let cache = self.arc_mx.lock();
         CacheStats {
             frequent_len: cache.frequent_len(),
             recent_len: cache.recent_len(),
@@ -69,17 +88,31 @@ impl Cache {
             expiration: expiration,
             packet: packet,
         };
-        let mut cache = self.arc_mx.lock().unwrap();
+        let mut cache = self.arc_mx.lock();
         cache.insert(normalized_question_key, cache_entry)
     }
 
     pub fn get(&mut self, normalized_question_key: &NormalizedQuestionKey) -> Option<CacheEntry> {
-        let mut cache = self.arc_mx.lock().unwrap();
+        let mut cache = self.arc_mx.lock();
         cache
             .get_mut(normalized_question_key)
             .and_then(|res| Some(res.clone()))
     }
 
+    /// get2() does a couple things before checking that a key is present in the cache.
+    ///
+    /// It handles special queries (responses to `ANY` queries and `CHAOS TXT`) as if they
+    /// were cached, although they obviously don't need to actually use the cache.
+    /// It also rejects queries that are not in the `IN` class, that we probably never
+    /// want to cache.
+    ///
+    /// It then checks if a cached response is present and still valid.
+    /// If `x.example.com` is not present, but `example.com` is cached with an `NXDOMAIN`
+    /// response code, we assume that `x.example.com` doesn't exist either (RFC 8020).
+    ///
+    /// We are not checking additional cache entries for now. Both to be minimize
+    /// possible incompatibilities with RFC 8020, and for speed.
+    /// This might be revisited later.
     pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {

@@ -1,14 +1,16 @@
+//! Expose metrics via the Prometheus API
+
 use hyper::header::ContentType;
 use hyper::mime::Mime;
 use hyper::server::{Server, Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri::AbsolutePath;
 use prometheus::{self, Encoder, TextEncoder};
-use varz::{StartInstant, Varz};
 use std::io;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
+use varz::{StartInstant, Varz};
 
 use super::EdgeDNSContext;
 use super::WEBSERVICE_THREADS;

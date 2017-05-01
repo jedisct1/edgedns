@@ -1,0 +1,26 @@
+
+[package]
+name = "edgedns-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.libedgedns]
+path = "../src/libedgedns"
+[dependencies.libfuzzer-sys]
+git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "dns_normalize"
+path = "fuzzers/dns_normalize.rs"
+
+[[bin]]
+name = "dns_question"
+path = "fuzzers/dns_question.rs"

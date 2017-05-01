@@ -1,3 +1,5 @@
+//! Send authoritative data received from upstream servers to a dnstap socket
+
 use config::Config;
 use coarsetime::Clock;
 use dnstap::{self, DNSMessage, DNSTapBuilder, DNSTapPendingWriter, DNSTapWriter, MessageType,

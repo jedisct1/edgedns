@@ -1,8 +1,13 @@
+//! Global configuration of the EdgeDNS server
+//!
+//! This configuration cannot currently be updated without restarting the
+//! server.
+
+use resolver::LoadBalancingMode;
 use std::io::prelude::*;
 use std::fs::File;
 use std::io::{Error, ErrorKind};
 use std::path::Path;
-use resolver::LoadBalancingMode;
 use toml;
 
 #[derive(Clone, Debug)]
@@ -21,13 +26,14 @@ pub struct Config {
     pub user: Option<String>,
     pub group: Option<String>,
     pub chroot_dir: Option<String>,
-    pub udp_listener_threads: usize,
-    pub tcp_listener_threads: usize,
+    pub udp_acceptor_threads: usize,
+    pub tcp_acceptor_threads: usize,
     pub dnstap_enabled: bool,
     pub dnstap_backlog: usize,
     pub dnstap_socket_path: Option<String>,
     pub dnstap_identity: Option<String>,
     pub dnstap_version: Option<String>,
+    pub max_tcp_clients: usize,
     pub max_waiting_clients: usize,
     pub max_active_queries: usize,
     pub max_clients_waiting_for_query: usize,
@@ -105,12 +111,12 @@ impl Config {
 
         let config_cache = toml_config.get("cache");
 
-        let cache_size = config_cache
-            .and_then(|x| x.get("max_items"))
-            .map_or(250_000, |x| {
-                x.as_integer()
-                    .expect("cache.max_items must be an integer")
-            }) as usize;
+        let cache_size =
+            config_cache
+                .and_then(|x| x.get("max_items"))
+                .map_or(250_000,
+                        |x| x.as_integer().expect("cache.max_items must be an integer")) as
+            usize;
 
         let min_ttl = config_cache
             .and_then(|x| x.get("min_ttl"))
@@ -141,12 +147,11 @@ impl Config {
 
         let config_webservice = toml_config.get("webservice");
 
-        let webservice_enabled = config_webservice
-            .and_then(|x| x.get("enabled"))
-            .map_or(false, |x| {
-                x.as_bool()
-                    .expect("webservice.enabled must be a boolean")
-            });
+        let webservice_enabled =
+            config_webservice
+                .and_then(|x| x.get("enabled"))
+                .map_or(false,
+                        |x| x.as_bool().expect("webservice.enabled must be a boolean"));
 
         let webservice_listen_addr = config_webservice
             .and_then(|x| x.get("listen"))
@@ -182,18 +187,25 @@ impl Config {
                          .to_owned()
                  });
 
-        let udp_listener_threads = config_global
+        let udp_acceptor_threads = config_global
             .and_then(|x| x.get("threads_udp"))
             .map_or(1, |x| {
                 x.as_integer()
                     .expect("global.threads_udp must be an integer")
             }) as usize;
 
-        let tcp_listener_threads = config_global
+        let tcp_acceptor_threads = config_global
             .and_then(|x| x.get("threads_tcp"))
             .map_or(1, |x| {
                 x.as_integer()
                     .expect("global.threads_tcp must be an integer")
+            }) as usize;
+
+        let max_tcp_clients = config_global
+            .and_then(|x| x.get("max_tcp_clients"))
+            .map_or(250, |x| {
+                x.as_integer()
+                    .expect("global.max_tcp_clients must be an integer")
             }) as usize;
 
         let max_waiting_clients = config_global
@@ -225,12 +237,12 @@ impl Config {
                 .map_or(false,
                         |x| x.as_bool().expect("dnstap.enabled must be a boolean"));
 
-        let dnstap_backlog = config_dnstap
-            .and_then(|x| x.get("backlog"))
-            .map_or(4096, |x| {
-                x.as_integer()
-                    .expect("dnstap.backlog must be an integer")
-            }) as usize;
+        let dnstap_backlog =
+            config_dnstap
+                .and_then(|x| x.get("backlog"))
+                .map_or(4096,
+                        |x| x.as_integer().expect("dnstap.backlog must be an integer")) as
+            usize;
 
         let dnstap_socket_path = config_dnstap
             .and_then(|x| x.get("socket_path"))
@@ -271,13 +283,14 @@ impl Config {
                user: user,
                group: group,
                chroot_dir: chroot_dir,
-               udp_listener_threads: udp_listener_threads,
-               tcp_listener_threads: tcp_listener_threads,
+               udp_acceptor_threads: udp_acceptor_threads,
+               tcp_acceptor_threads: tcp_acceptor_threads,
                dnstap_enabled: dnstap_enabled,
                dnstap_backlog: dnstap_backlog,
                dnstap_socket_path: dnstap_socket_path,
                dnstap_identity: dnstap_identity,
                dnstap_version: dnstap_version,
+               max_tcp_clients: max_tcp_clients,
                max_waiting_clients: max_waiting_clients,
                max_active_queries: max_active_queries,
                max_clients_waiting_for_query: max_clients_waiting_for_query,
