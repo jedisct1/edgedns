@@ -174,8 +174,7 @@ impl ExtResponse {
     fn dispatch_client_query(&self,
                              mut packet: &mut [u8],
                              client_query: &ClientQuery)
-                             -> Result<(), io::Error> {
-        self.varz.upstream_received.inc();
+                             -> Result<(), io::Error> {      
         client_query
             .response_send(&mut packet, Some(&self.net_udp_socket))
             .wait()
@@ -185,6 +184,7 @@ impl ExtResponse {
                                mut packet: &mut [u8],
                                client_queries: &Vec<ClientQuery>)
                                -> Result<(), &'static str> {
+        self.varz.upstream_received.inc();                                   
         for client_query in client_queries {
             let _ = self.dispatch_client_query(packet, client_query);
         }

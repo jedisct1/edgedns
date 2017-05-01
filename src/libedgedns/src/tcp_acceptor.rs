@@ -73,7 +73,6 @@ impl TcpClientQuery {
     fn fut_process_query(mut self,
                          normalized_question: NormalizedQuestion)
                          -> Box<Future<Item = (), Error = io::Error>> {
-        debug!("Normalized question: {:?}", normalized_question);
         let (tcpclient_tx, tcpclient_rx) = channel(1);
         let cache_entry = self.cache.get2(&normalized_question);
         let client_query = ClientQuery::tcp(tcpclient_tx, normalized_question);
@@ -136,8 +135,9 @@ impl TcpAcceptor {
         };
         debug!("Incoming connection using TCP, session index {}",
                session_idx);
-        let (rh, wh) = client.split();
         let varz = self.varz.clone();
+        varz.client_queries_tcp.inc();
+        let (rh, wh) = client.split();
         let fut_expected_len = read_exact(rh, vec![0u8; 2]).and_then(move |(rh, len_buf)| {
             let expected_len = BigEndian::read_u16(&len_buf) as usize;
             if expected_len < DNS_QUERY_MIN_SIZE || expected_len > DNS_QUERY_MAX_SIZE {
