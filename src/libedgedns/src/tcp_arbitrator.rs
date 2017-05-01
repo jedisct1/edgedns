@@ -43,7 +43,7 @@ impl TcpArbitrator {
     pub fn new_session(&mut self,
                        client_addr: &SocketAddr)
                        -> Result<(oneshot::Receiver<()>, usize), &'static str> {
-        let mut hasher = self.hasher.clone();
+        let mut hasher = self.hasher;
         client_addr.ip().hash(&mut hasher);
         let h = hasher.finish();
         let (session_tx, session_rx) = oneshot::channel();
