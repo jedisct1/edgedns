@@ -14,6 +14,7 @@ path = "src/libedgedns"
 
 [dependencies]
 clap = "*"
+clippy = {version = "*", optional = true}
 env_logger = "*"
 log = "*"
 
