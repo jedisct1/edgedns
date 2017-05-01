@@ -3,7 +3,6 @@ name = "edgedns"
 version = "0.3.0"
 dependencies = [
  "clap 2.23.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "clippy 0.0.129 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libedgedns 0.3.0",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -284,6 +283,7 @@ dependencies = [
  "bpf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy 0.0.129 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "coarsetime 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "dnstap 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",

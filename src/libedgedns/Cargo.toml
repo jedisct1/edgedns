@@ -8,8 +8,6 @@ publish = false
 webservice = ["hyper"]
 nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
 
-default = ["nightly", "webservice"]
-
 [dependencies]
 base64 = "*"
 bpf = "*"

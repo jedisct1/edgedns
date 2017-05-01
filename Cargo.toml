@@ -6,6 +6,7 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 [features]
 webservice = ["libedgedns/webservice"]
 nightly = ["libedgedns/nightly", "clap/nightly", "log/nightly"]
+clippy = ["libedgedns/clippy"]
 
 default = ["nightly", "webservice"]
 
@@ -14,7 +15,6 @@ path = "src/libedgedns"
 
 [dependencies]
 clap = "*"
-clippy = {version = "*", optional = true}
 env_logger = "*"
 log = "*"
 

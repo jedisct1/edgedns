@@ -50,10 +50,10 @@ mod client_queries_handler;
 mod config;
 pub mod dns;
 mod ext_response;
-#[cfg(feature = "nightly")]
 mod log_dnstap;
 mod net_helpers;
 mod resolver;
+use std::io;
 mod tcp_acceptor;
 mod tcp_arbitrator;
 mod udp_acceptor;
@@ -123,15 +123,16 @@ impl EdgeDNS {
     #[cfg(feature = "webservice")]
     fn webservice_start(edgedns_context: &EdgeDNSContext,
                         service_ready_tx: mpsc::SyncSender<u8>)
-                        -> thread::JoinHandle<()> {
+                        -> io::Result<thread::JoinHandle<()>> {
         WebService::spawn(edgedns_context, service_ready_tx)
-            .expect("Unable to spawn the web service")
     }
 
     #[cfg(not(feature = "webservice"))]
     fn webservice_start(_edgedns_context: &EdgeDNSContext,
-                        _service_ready_tx: mpsc::SyncSender<u8>) {
-        debug!("This build was not compiled with support for webservices");
+                        _service_ready_tx: mpsc::SyncSender<u8>)
+                        -> io::Result<thread::JoinHandle<()>> {
+        Err(io::Error::new(io::ErrorKind::NotFound,
+                           "Support for metrics was not compiled in"))
     }
 
     fn privileges_drop(config: &Config) {
@@ -198,7 +199,7 @@ impl EdgeDNS {
         }
         if config.webservice_enabled {
             let webservice = Self::webservice_start(&edgedns_context, service_ready_tx.clone());
-            tasks.push(webservice);
+            tasks.push(webservice.unwrap());
             service_ready_rx.recv().unwrap();
         }
         Self::privileges_drop(&config);

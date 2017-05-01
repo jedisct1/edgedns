@@ -98,13 +98,14 @@ impl Varz {
                                                      labels!{"handler" => "all",}))
                     .unwrap(),
             upstream_sent: register_counter!(opts!("edgedns_upstream_sent",
-                                                       "Number of upstream servers queries sent",
-                                                       labels!{"handler" => "all",}))
+                                                   "Number of upstream servers queries sent",
+                                                   labels!{"handler" => "all",}))
                     .unwrap(),
-            upstream_received: register_counter!(opts!("edgedns_upstream_received",
-                                                       "Number of upstream servers responses received",
-                                                       labels!{"handler" => "all",}))
-                    .unwrap(),
+            upstream_received:
+                register_counter!(opts!("edgedns_upstream_received",
+                                        "Number of upstream servers responses received",
+                                        labels!{"handler" => "all",}))
+                        .unwrap(),
             upstream_timeout: register_counter!(opts!("edgedns_upstream_timeout",
                                                       "Number of upstream servers responses \
                                                        having timed out",
