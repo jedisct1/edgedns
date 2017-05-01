@@ -198,14 +198,14 @@ fn net_socket_udp_bound(port: u16) -> io::Result<net::UdpSocket> {
     let actual = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port));
     let nix_addr = SockAddr::Inet(InetAddr::from_std(&actual));
     let socket_fd = match actual {
-        SocketAddr::V4(_) => try!(socket_udp_v4()),
-        SocketAddr::V6(_) => try!(socket_udp_v6()),
+        SocketAddr::V4(_) => socket_udp_v4()?,
+        SocketAddr::V6(_) => socket_udp_v6()?,
     };
-    try!(set_nonblock(socket_fd));
-    try!(setsockopt(socket_fd, sockopt::ReuseAddr, &true));
-    try!(setsockopt(socket_fd, sockopt::ReusePort, &true));
+    set_nonblock(socket_fd)?;
+    setsockopt(socket_fd, sockopt::ReuseAddr, &true)?;
+    setsockopt(socket_fd, sockopt::ReusePort, &true)?;
     socket_udp_set_buffer_size(socket_fd);
-    try!(bind(socket_fd, &nix_addr));
+    bind(socket_fd, &nix_addr)?;
     let net_socket: net::UdpSocket = unsafe { net::UdpSocket::from_raw_fd(socket_fd) };
     Ok(net_socket)
 }

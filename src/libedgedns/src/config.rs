@@ -41,9 +41,9 @@ pub struct Config {
 
 impl Config {
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Config, Error> {
-        let mut fd = try!(File::open(path));
+        let mut fd = File::open(path)?;
         let mut toml = String::new();
-        try!(fd.read_to_string(&mut toml));
+        fd.read_to_string(&mut toml)?;
         Self::from_string(&toml)
     }
 
