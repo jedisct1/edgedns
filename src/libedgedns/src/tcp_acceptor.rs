@@ -83,9 +83,9 @@ impl TcpClientQuery {
             .map(|(resolver_response, _)| resolver_response)
             .and_then(move |resolver_response| match resolver_response {
                           None => {
-                warn!("No resolver response - TX part of the channel closed");
-                future::err(())
-            }
+                              warn!("No resolver response - TX part of the channel closed");
+                              future::err(())
+                          }
                           Some(resolver_response) => future::ok(resolver_response),         
                       })
             .and_then(|resolver_response| {
@@ -169,13 +169,12 @@ impl TcpAcceptor {
         let fut_timeout = self.timer
             .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
-        let fut_with_timeout =
-            fut_timeout.then(move |_| {
-                                 debug!("Closing TCP connection with session index {}",
-                                        session_idx);
-                                 tcp_arbitrator.delete_session(session_idx);
-                                 future::ok(())
-                             });
+        let fut_with_timeout = fut_timeout
+            .then(move |_| {
+                      debug!("Closing TCP connection with session index {}", session_idx);
+                      tcp_arbitrator.delete_session(session_idx);
+                      future::ok(())
+                  });
         let fut_session_rx = session_rx.map(|_| {});
         let fut = fut_session_rx
             .select(fut_with_timeout)
