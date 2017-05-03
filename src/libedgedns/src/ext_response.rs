@@ -113,6 +113,10 @@ impl ExtResponse {
                                    upstream_servers[pending_query.upstream_server_idx].socket_addr,
                                    client_addr));
             }
+        } else {
+            let mut upstream_server = &mut upstream_servers[pending_query.upstream_server_idx];
+            upstream_server.pending_queries_count =
+                upstream_server.pending_queries_count.overflowing_sub(1).0;
         }
         Ok(())
     }

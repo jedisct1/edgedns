@@ -15,7 +15,7 @@ use upstream_probe::UpstreamProbe;
 pub struct UpstreamServer {
     pub remote_addr: String,
     pub socket_addr: SocketAddr,
-    pub pending_queries: u64,
+    pub pending_queries_count: u64,
     pub failures: u32,
     pub offline: bool,
     pub last_probe_ts: Option<Instant>,
@@ -30,7 +30,7 @@ impl UpstreamServer {
         let upstream_server = UpstreamServer {
             remote_addr: remote_addr.to_owned(),
             socket_addr: socket_addr,
-            pending_queries: 0,
+            pending_queries_count: 0,
             failures: 0,
             offline: false,
             last_probe_ts: None,
@@ -61,6 +61,7 @@ impl UpstreamServer {
         }
         self.offline = false;
         self.failures = 0;
+        self.pending_queries_count = 0;
         warn!("Marking {} as live again", self.socket_addr);
     }
 

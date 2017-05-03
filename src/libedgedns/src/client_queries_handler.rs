@@ -256,7 +256,8 @@ impl ClientQueriesHandler {
         map.insert(key, pending_query);
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
-        upstream_server.pending_queries = upstream_server.pending_queries.wrapping_add(1);
+        upstream_server.pending_queries_count =
+            upstream_server.pending_queries_count.overflowing_add(1).0;
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(1));
         let retry_query = self.clone();
@@ -272,9 +273,11 @@ impl ClientQueriesHandler {
             .or_else(move |_| {
                 {
                     let mut upstream_servers = upstream_servers_arc.write();
-                    upstream_servers[upstream_server_idx].record_failure(&config,
-                                                                         &handle,
-                                                                         &net_ext_udp_sockets_rc);
+                    {
+                        let mut upstream_server = &mut upstream_servers[upstream_server_idx];
+                        upstream_server.record_failure(&config, &handle, &net_ext_udp_sockets_rc);
+                        upstream_server.pending_queries_count = upstream_server.pending_queries_count.overflowing_add(1).0;
+                    }
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }
@@ -318,7 +321,8 @@ impl ClientQueriesHandler {
         pending_query.upstream_server_idx = upstream_server_idx;
         pending_query.done_tx = done_tx;
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
-        upstream_server.pending_queries = upstream_server.pending_queries.wrapping_add(1);
+        upstream_server.pending_queries_count =
+            upstream_server.pending_queries_count.overflowing_add(1).0;
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(2));
         let map_arc = self.pending_queries.map_arc.clone();
@@ -385,7 +389,7 @@ impl NormalizedQuestion {
             LoadBalancingMode::P2 => {
                 let mut busy_map = upstream_servers_live
                     .iter()
-                    .map(|&i| (i, upstream_servers[i].pending_queries))
+                    .map(|&i| (i, upstream_servers[i].pending_queries_count))
                     .collect::<Vec<(usize, u64)>>();
                 busy_map.sort_by_key(|x| x.1);
                 let i = if busy_map.len() == 1 {
