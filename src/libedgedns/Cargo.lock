@@ -2,7 +2,7 @@
 name = "libedgedns"
 version = "0.3.0"
 dependencies = [
- "base64 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bpf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -750,7 +750,7 @@ dependencies = [
 
 [metadata]
 "checksum aho-corasick 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "500909c4f87a9e52355b26626d890833e9e1d53ac566db76c36faa984b889699"
-"checksum base64 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "124e5332dfc4e387b4ca058909aa175c0c3eccf03846b7c1a969b9ad067b8df2"
+"checksum base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30e93c03064e7590d0466209155251b90c22e37fab1daf2771582598b5827557"
 "checksum bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8dead7461c1127cf637931a1e50934eb6eee8bff2f74433ac7909e9afcee04a3"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum bpf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "62c1235c3b211e35be175066c671b8aa400ef79753be87e3dedbbd1e0a7948d2"
