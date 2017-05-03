@@ -195,11 +195,11 @@ impl ExtResponse {
         Ok(())
     }
 
-    fn dispatch_pending_query(&mut self,
-                              mut packet: &mut [u8],
-                              normalized_question_key: &NormalizedQuestionKey,
-                              client_addr: SocketAddr)
-                              -> Result<(), &'static str> {
+    fn verify_and_maybe_dispatch_pending_query(&mut self,
+                                               mut packet: &mut [u8],
+                                               normalized_question_key: &NormalizedQuestionKey,
+                                               client_addr: SocketAddr)
+                                               -> Result<(), &'static str> {
         let map = self.pending_queries.map_arc.read();
         let pending_query = match map.get(normalized_question_key) {
             None => return Err("No clients waiting for this query"),                
@@ -209,10 +209,10 @@ impl ExtResponse {
                .is_err() {
             return Err("Received response is not valid for the query originally sent");
         }
+        let client_queries = &pending_query.client_queries;
         if let Some(ref dnstap_sender) = self.dnstap_sender {
             dnstap_sender.send_forwarder_response(packet, client_addr, self.local_port);
         }
-        let client_queries = &pending_query.client_queries;
         self.dispatch_client_queries(&mut packet, client_queries)
     }
 
@@ -246,8 +246,15 @@ impl ExtResponse {
             Ok(ttl) => ttl,
         };
         let normalized_question_key = normalized_question.key();
-        self.dispatch_pending_query(&mut packet, &normalized_question_key, client_addr)
-            .unwrap_or_else(|e| debug!("Couldn't dispatch response: {}", e));
+        match self.verify_and_maybe_dispatch_pending_query(&mut packet,
+                                                           &normalized_question_key,
+                                                           client_addr) {
+            Err(e) => {
+                debug!("Couldn't dispatch response: {}", e);
+                return Box::new(future::ok(()));
+            }
+            Ok(_) => {}
+        };
         if let Some(pending_query) =
             self.pending_queries
                 .map_arc

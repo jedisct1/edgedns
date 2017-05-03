@@ -40,7 +40,6 @@ impl ClientQuery {
                normalized_question: NormalizedQuestion,
                varz: Arc<Varz>)
                -> Self {
-        varz.inflight_queries.inc();
         ClientQuery {
             proto: ClientQueryProtocol::UDP,
             client_addr: Some(client_addr),
@@ -55,7 +54,6 @@ impl ClientQuery {
                normalized_question: NormalizedQuestion,
                varz: Arc<Varz>)
                -> Self {
-        varz.inflight_queries.inc();
         ClientQuery {
             proto: ClientQueryProtocol::TCP,
             client_addr: None,
@@ -114,11 +112,5 @@ impl ClientQuery {
             }
         }
         Box::new(future::ok(()))
-    }
-}
-
-impl Drop for ClientQuery {
-    fn drop(&mut self) {
-        self.varz.inflight_queries.dec();
     }
 }

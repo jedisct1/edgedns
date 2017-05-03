@@ -50,6 +50,7 @@ pub struct PendingQuery {
     pub upstream_server_idx: usize,
     pub probed_upstream_server_idx: Option<usize>,
     pub done_tx: oneshot::Sender<()>,
+    pub varz: Arc<Varz>,
 }
 
 impl PendingQuery {
@@ -60,6 +61,8 @@ impl PendingQuery {
                client_query: &ClientQuery,
                done_tx: oneshot::Sender<()>)
                -> Self {
+        let varz = client_query.varz.clone();
+        varz.inflight_queries.inc();
         PendingQuery {
             normalized_question_minimal: normalized_question_minimal,
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),
@@ -69,6 +72,7 @@ impl PendingQuery {
             upstream_server_idx: upstream_server_idx,
             probed_upstream_server_idx: None,
             done_tx: done_tx,
+            varz: varz,
         }
     }
 }
