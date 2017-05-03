@@ -116,7 +116,7 @@ impl ExtResponse {
         } else {
             let mut upstream_server = &mut upstream_servers[pending_query.upstream_server_idx];
             upstream_server.pending_queries_count =
-                upstream_server.pending_queries_count.overflowing_sub(1).0;
+                upstream_server.pending_queries_count.saturating_sub(1);
         }
         Ok(())
     }
