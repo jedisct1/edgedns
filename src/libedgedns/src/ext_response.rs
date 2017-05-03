@@ -260,6 +260,7 @@ impl ExtResponse {
                 .map_arc
                 .write()
                 .remove(&normalized_question_key) {
+            self.varz.inflight_queries.dec();
             let _ = pending_query.done_tx.send(());
             let clients_count = pending_query.client_queries.len();
             let prev_count = self.waiting_clients_count

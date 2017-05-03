@@ -117,6 +117,7 @@ impl ClientQueriesHandler {
             Some(key) => key.clone(),
         };
         if let Some(pending_query) = map.remove(&key) {
+            self.varz.inflight_queries.dec();
             let clients_count = pending_query.client_queries.len();
             let prev_count = self.waiting_clients_count
                 .fetch_sub(clients_count, Relaxed);
