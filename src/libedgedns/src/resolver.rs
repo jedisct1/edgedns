@@ -62,7 +62,6 @@ impl PendingQuery {
                done_tx: oneshot::Sender<()>)
                -> Self {
         let varz = client_query.varz.clone();
-        varz.inflight_queries.inc();
         PendingQuery {
             normalized_question_minimal: normalized_question_minimal,
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),

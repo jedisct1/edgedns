@@ -253,6 +253,7 @@ impl ClientQueriesHandler {
         debug!("Sending {:#?} to {:?}",
                pending_query.normalized_question_minimal,
                upstream_server.socket_addr);
+        self.varz.inflight_queries.inc();
         map.insert(key, pending_query);
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
@@ -353,6 +354,7 @@ impl ClientQueriesHandler {
                 }
                 let mut map = map_arc.write();
                 if let Some(pending_query) = map.remove(&key) {
+                    varz.inflight_queries.dec();
                     let fut = retry_query
                         .maybe_respond_to_all_clients_with_stale_entry(&pending_query);
                     let _ = pending_query.done_tx.send(());
