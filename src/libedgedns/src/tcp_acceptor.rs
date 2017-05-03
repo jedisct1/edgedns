@@ -75,7 +75,7 @@ impl TcpClientQuery {
                          -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
         let cache_entry = self.cache.get2(&normalized_question);
-        let client_query = ClientQuery::tcp(tcpclient_tx, normalized_question);
+        let client_query = ClientQuery::tcp(tcpclient_tx, normalized_question, self.varz.clone());
         let wh_cell = RefCell::new(self.wh);
         let fut = tcpclient_rx
             .into_future()

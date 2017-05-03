@@ -78,7 +78,7 @@ impl UdpAcceptor {
             }
         };
         let cache_entry = self.cache.get2(&normalized_question);
-        let client_query = ClientQuery::udp(client_addr, normalized_question);
+        let client_query = ClientQuery::udp(client_addr, normalized_question, self.varz.clone());
         if let Some(mut cache_entry) = cache_entry {
             if !cache_entry.is_expired() {
                 self.varz.client_queries_cached.inc();

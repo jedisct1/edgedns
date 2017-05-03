@@ -9,7 +9,9 @@ use futures::{future, Future};
 use futures::Sink;
 use std::io;
 use std::net::{self, SocketAddr};
+use std::sync::Arc;
 use super::{DNS_QUERY_MIN_SIZE, DNS_MAX_UDP_SIZE, DNS_MAX_TCP_SIZE};
+use varz::Varz;
 
 #[derive(Clone, Debug)]
 pub struct ResolverResponse {
@@ -23,35 +25,44 @@ pub enum ClientQueryProtocol {
     TCP,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ClientQuery {
     pub proto: ClientQueryProtocol,
     pub client_addr: Option<SocketAddr>,
     pub tcpclient_tx: Option<Sender<ResolverResponse>>,
     pub normalized_question: NormalizedQuestion,
     pub ts: Instant,
+    pub varz: Arc<Varz>,
 }
 
 impl ClientQuery {
-    pub fn udp(client_addr: SocketAddr, normalized_question: NormalizedQuestion) -> Self {
+    pub fn udp(client_addr: SocketAddr,
+               normalized_question: NormalizedQuestion,
+               varz: Arc<Varz>)
+               -> Self {
+        varz.inflight_queries.inc();
         ClientQuery {
             proto: ClientQueryProtocol::UDP,
             client_addr: Some(client_addr),
             tcpclient_tx: None,
             normalized_question: normalized_question,
             ts: Instant::recent(),
+            varz: varz,
         }
     }
 
     pub fn tcp(tcpclient_tx: Sender<ResolverResponse>,
-               normalized_question: NormalizedQuestion)
+               normalized_question: NormalizedQuestion,
+               varz: Arc<Varz>)
                -> Self {
+        varz.inflight_queries.inc();
         ClientQuery {
             proto: ClientQueryProtocol::TCP,
             client_addr: None,
             tcpclient_tx: Some(tcpclient_tx),
             normalized_question: normalized_question,
             ts: Instant::recent(),
+            varz: varz.clone(),
         }
     }
 
@@ -103,5 +114,11 @@ impl ClientQuery {
             }
         }
         Box::new(future::ok(()))
+    }
+}
+
+impl Drop for ClientQuery {
+    fn drop(&mut self) {
+        self.varz.inflight_queries.dec();
     }
 }

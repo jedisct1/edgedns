@@ -23,6 +23,7 @@ pub struct Varz {
     pub client_queries_expired: Counter,
     pub client_queries_offline: Counter,
     pub client_queries_errors: Counter,
+    pub inflight_queries: Gauge,
     pub upstream_errors: Counter,
     pub upstream_sent: Counter,
     pub upstream_received: Counter,
@@ -93,6 +94,11 @@ impl Varz {
                                                            "Number of bogus client queries",
                                                            labels!{"handler" => "all",}))
                     .unwrap(),
+            inflight_queries:
+                register_gauge!(opts!("edgedns_inflight_queries",
+                                      "Number of queries currently waiting for a response",
+                                      labels!{"handler" => "all",}))
+                        .unwrap(),
             upstream_errors: register_counter!(opts!("edgedns_upstream_errors",
                                                      "Number of bogus upstream servers responses",
                                                      labels!{"handler" => "all",}))
