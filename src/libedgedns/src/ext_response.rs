@@ -247,14 +247,11 @@ impl ExtResponse {
             Ok(ttl) => ttl,
         };
         let normalized_question_key = normalized_question.key();
-        match self.verify_and_maybe_dispatch_pending_query(&mut packet,
-                                                           &normalized_question_key,
-                                                           client_addr) {
-            Err(e) => {
-                debug!("Couldn't dispatch response: {}", e);
-                return Box::new(future::ok(()));
-            }
-            Ok(_) => {}
+        if let Err(e) = self.verify_and_maybe_dispatch_pending_query(&mut packet,
+                                                                     &normalized_question_key,
+                                                                     client_addr) {
+            debug!("Couldn't dispatch response: {}", e);
+            return Box::new(future::ok(()));
         };
         if let Some(pending_query) =
             self.pending_queries
