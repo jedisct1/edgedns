@@ -254,14 +254,14 @@ impl ClientQueriesHandler {
                pending_query.normalized_question_minimal,
                upstream_server.socket_addr);
         self.varz.inflight_queries.inc();
-        map.insert(key, pending_query);
-        let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
-        self.varz.upstream_sent.inc();
         upstream_server.pending_queries_count =
             upstream_server.pending_queries_count.saturating_add(1);
         debug!("queries_count for server {}: {}",
                upstream_server_idx,
                upstream_server.pending_queries_count);
+        map.insert(key, pending_query);
+        let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
+        self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(1));
         let retry_query = self.clone();
@@ -302,6 +302,15 @@ impl ClientQueriesHandler {
             Some(pending_query) => pending_query,
         };
         let mut upstream_servers = self.upstream_servers_arc.write();
+        let upstream_server_idx = pending_query.upstream_server_idx;
+        upstream_servers[upstream_server_idx].pending_queries_count = upstream_servers
+            [upstream_server_idx]
+                .pending_queries_count
+                .saturating_sub(1);
+        debug!("Decrementing the number of pending queries for upstream {}: {}",
+               upstream_server_idx,
+               upstream_servers[upstream_server_idx].pending_queries_count);
+
         let nq = normalized_question.new_pending_query(&upstream_servers,
                                                        &self.upstream_servers_live_arc.read(),
                                                        &self.net_ext_udp_sockets_rc,
@@ -328,6 +337,9 @@ impl ClientQueriesHandler {
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         upstream_server.pending_queries_count =
             upstream_server.pending_queries_count.saturating_add(1);
+        debug!("New attempt: upstream server {} queries count: {}",
+               upstream_server_idx,
+               upstream_server.pending_queries_count);
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(2));
         let map_arc = self.pending_queries.map_arc.clone();
@@ -347,6 +359,13 @@ impl ClientQueriesHandler {
                 varz.upstream_timeout.inc();
                 {
                     let mut upstream_servers = upstream_servers_arc.write();
+                    upstream_servers[upstream_server_idx].pending_queries_count =
+                        upstream_servers[upstream_server_idx]
+                            .pending_queries_count
+                            .saturating_sub(1);
+                    debug!("Failed new attempt: upstream server {} queries count: {}",
+                           upstream_server_idx,
+                           upstream_servers[upstream_server_idx].pending_queries_count);
                     upstream_servers[upstream_server_idx]
                         .record_failure(&config, &handle, &net_ext_udp_sockets_rc);
                     *upstream_servers_live_arc.write() =
