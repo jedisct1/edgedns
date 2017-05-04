@@ -97,12 +97,12 @@ impl ClientQueriesHandler {
         let handle = handle.clone();
         let mut self_inner = self.clone();
         let fut_client_query = resolver_rx.for_each(move |client_query| {
-                                                        let fut = self_inner
-                                         .fut_process_client_query(client_query)
-                                         .map_err(|_| {});
-                                                        handle.spawn(fut);
-                                                        future::ok(())
-                                                    });
+            let fut = self_inner
+                .fut_process_client_query(client_query)
+                .map_err(|_| {});
+            handle.spawn(fut);
+            future::ok(())
+        });
         fut_client_query.map_err(|_| io::Error::last_os_error())
     }
 
@@ -119,8 +119,7 @@ impl ClientQueriesHandler {
         if let Some(pending_query) = map.remove(&key) {
             self.varz.inflight_queries.dec();
             let clients_count = pending_query.client_queries.len();
-            let prev_count = self.waiting_clients_count
-                .fetch_sub(clients_count, Relaxed);
+            let prev_count = self.waiting_clients_count.fetch_sub(clients_count, Relaxed);
             assert!(prev_count >= clients_count);
         }
         true
@@ -280,7 +279,8 @@ impl ClientQueriesHandler {
                     let mut upstream_servers = upstream_servers_arc.write();
                     {
                         let mut upstream_server = &mut upstream_servers[upstream_server_idx];
-                        upstream_server.pending_queries_count = upstream_server.pending_queries_count.saturating_sub(1);
+                        upstream_server.pending_queries_count =
+                            upstream_server.pending_queries_count.saturating_sub(1);
                         upstream_server.record_failure(&config, &handle, &net_ext_udp_sockets_rc);
                     }
                     *upstream_servers_live_arc.write() =
@@ -347,9 +347,8 @@ impl ClientQueriesHandler {
                 varz.upstream_timeout.inc();
                 {
                     let mut upstream_servers = upstream_servers_arc.write();
-                    upstream_servers[upstream_server_idx].record_failure(&config,
-                                                                         &handle,
-                                                                         &net_ext_udp_sockets_rc);
+                    upstream_servers[upstream_server_idx]
+                        .record_failure(&config, &handle, &net_ext_udp_sockets_rc);
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }

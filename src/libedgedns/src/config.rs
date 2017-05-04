@@ -155,21 +155,15 @@ impl Config {
 
         let webservice_listen_addr = config_webservice
             .and_then(|x| x.get("listen"))
-            .map_or("0.0.0.0:9090", |x| {
-                x.as_str()
-                    .expect("webservice.listen_addr must be a string")
-            })
+            .map_or("0.0.0.0:9090",
+                    |x| x.as_str().expect("webservice.listen_addr must be a string"))
             .to_owned();
 
         let config_global = toml_config.get("global");
 
         let user = config_global
             .and_then(|x| x.get("user"))
-            .map(|x| {
-                     x.as_str()
-                         .expect("global.user must be a string")
-                         .to_owned()
-                 });
+            .map(|x| x.as_str().expect("global.user must be a string").to_owned());
 
         let group = config_global
             .and_then(|x| x.get("group"))

@@ -169,12 +169,11 @@ impl TcpAcceptor {
         let fut_timeout = self.timer
             .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
-        let fut_with_timeout = fut_timeout
-            .then(move |_| {
-                      debug!("Closing TCP connection with session index {}", session_idx);
-                      tcp_arbitrator.delete_session(session_idx);
-                      future::ok(())
-                  });
+        let fut_with_timeout = fut_timeout.then(move |_| {
+            debug!("Closing TCP connection with session index {}", session_idx);
+            tcp_arbitrator.delete_session(session_idx);
+            future::ok(())
+        });
         let fut_session_rx = session_rx.map(|_| {});
         let fut = fut_session_rx
             .select(fut_with_timeout)

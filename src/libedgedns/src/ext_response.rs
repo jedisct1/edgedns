@@ -110,7 +110,8 @@ impl ExtResponse {
                 }
             } else {
                 return Err(format!("Sent a query to {:?} but got a response from {:?}",
-                                   upstream_servers[pending_query.upstream_server_idx].socket_addr,
+                                   upstream_servers[pending_query.upstream_server_idx]
+                                       .socket_addr,
                                    client_addr));
             }
         } else {
@@ -263,8 +264,7 @@ impl ExtResponse {
             self.varz.inflight_queries.dec();
             let _ = pending_query.done_tx.send(());
             let clients_count = pending_query.client_queries.len();
-            let prev_count = self.waiting_clients_count
-                .fetch_sub(clients_count, Relaxed);
+            let prev_count = self.waiting_clients_count.fetch_sub(clients_count, Relaxed);
             assert!(prev_count >= clients_count);
         }
         self.store_to_cache(packet, normalized_question_key, ttl);

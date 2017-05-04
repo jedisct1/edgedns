@@ -55,8 +55,8 @@ impl WebService {
         let webservice_th = thread::Builder::new()
             .name("webservice".to_string())
             .spawn(move || {
-                let mut server =
-                    Server::http(&*listen_addr).expect("Unable to spawn the webservice");
+                let mut server = Server::http(&*listen_addr)
+                    .expect("Unable to spawn the webservice");
                 server.keep_alive(None);
                 service_ready_tx.send(2).unwrap();
                 info!("Webservice started on {}", listen_addr);
