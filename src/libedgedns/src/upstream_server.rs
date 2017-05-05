@@ -47,6 +47,15 @@ impl UpstreamServer {
         self.last_successful_response_instant = Instant::recent();
     }
 
+    pub fn prepare_send(&mut self, config: &Config) {
+        if self.offline ||
+           self.last_successful_response_instant.elapsed_since_recent() <
+           config.upstream_max_failure_duration {
+            return;
+        }
+        self.last_successful_response_instant = Instant::now();
+    }
+
     pub fn record_failure(&mut self,
                           config: &Config,
                           handle: &Handle,

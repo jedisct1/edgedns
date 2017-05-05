@@ -254,6 +254,7 @@ impl ClientQueriesHandler {
                pending_query.normalized_question_minimal,
                upstream_server.socket_addr);
         self.varz.inflight_queries.inc();
+        upstream_server.prepare_send(&self.config);
         upstream_server.pending_queries_count =
             upstream_server.pending_queries_count.saturating_add(1);
         debug!("queries_count for server {}: {}",
