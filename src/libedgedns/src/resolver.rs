@@ -7,7 +7,7 @@
 use cache::Cache;
 use client_queries_handler::ClientQueriesHandler;
 use client_query::ClientQuery;
-use coarsetime::Instant;
+use coarsetime::{Duration, Instant};
 use config::Config;
 use dns::{NormalizedQuestionKey, NormalizedQuestionMinimal};
 use ext_response::ExtResponse;
@@ -102,7 +102,7 @@ pub struct ResolverCore {
     pub varz: Arc<Varz>,
     pub decrement_ttl: bool,
     pub lbmode: LoadBalancingMode,
-    pub upstream_max_failures: u32,
+    pub upstream_max_failure_duration: Duration,
     pub jumphasher: JumpHasher,
 }
 
@@ -150,7 +150,7 @@ impl ResolverCore {
         let varz = edgedns_context.varz.clone();
         let decrement_ttl = config.decrement_ttl;
         let lbmode = config.lbmode;
-        let upstream_max_failures = config.upstream_max_failures;
+        let upstream_max_failure_duration = config.upstream_max_failure_duration;
         thread::Builder::new()
             .name("resolver".to_string())
             .spawn(move || {
@@ -170,7 +170,7 @@ impl ResolverCore {
                     varz: varz,
                     decrement_ttl: decrement_ttl,
                     lbmode: lbmode,
-                    upstream_max_failures: upstream_max_failures,
+                    upstream_max_failure_duration: upstream_max_failure_duration,
                     jumphasher: JumpHasher::default(),
                 };
                 info!("Registering UDP ports...");

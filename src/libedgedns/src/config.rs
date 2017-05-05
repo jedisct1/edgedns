@@ -3,6 +3,7 @@
 //! This configuration cannot currently be updated without restarting the
 //! server.
 
+use coarsetime::Duration;
 use resolver::LoadBalancingMode;
 use std::io::prelude::*;
 use std::fs::File;
@@ -15,7 +16,7 @@ pub struct Config {
     pub decrement_ttl: bool,
     pub upstream_servers: Vec<String>,
     pub lbmode: LoadBalancingMode,
-    pub upstream_max_failures: u32,
+    pub upstream_max_failure_duration: Duration,
     pub cache_size: usize,
     pub udp_ports: u16,
     pub listen_addr: String,
@@ -102,12 +103,13 @@ impl Config {
             }
         };
 
-        let upstream_max_failures = config_upstream
-            .and_then(|x| x.get("max_failures"))
-            .map_or(3, |x| {
+        let upstream_max_failure_duration =
+            Duration::from_millis(config_upstream
+                                      .and_then(|x| x.get("max_failure_duration"))
+                                      .map_or(2500, |x| {
                 x.as_integer()
-                    .expect("upstream.max_failures must be an integer")
-            }) as u32;
+                    .expect("upstream.max_failure_duration must be an integer")
+            }) as u64);
 
         let config_cache = toml_config.get("cache");
 
@@ -263,31 +265,31 @@ impl Config {
                  });
 
         Ok(Config {
-               decrement_ttl: decrement_ttl,
-               upstream_servers: upstream_servers,
-               lbmode: lbmode,
-               upstream_max_failures: upstream_max_failures,
-               cache_size: cache_size,
-               udp_ports: udp_ports,
-               listen_addr: listen_addr,
-               webservice_enabled: webservice_enabled,
-               webservice_listen_addr: webservice_listen_addr,
-               min_ttl: min_ttl,
-               max_ttl: max_ttl,
-               user: user,
-               group: group,
-               chroot_dir: chroot_dir,
-               udp_acceptor_threads: udp_acceptor_threads,
-               tcp_acceptor_threads: tcp_acceptor_threads,
-               dnstap_enabled: dnstap_enabled,
-               dnstap_backlog: dnstap_backlog,
-               dnstap_socket_path: dnstap_socket_path,
-               dnstap_identity: dnstap_identity,
-               dnstap_version: dnstap_version,
-               max_tcp_clients: max_tcp_clients,
-               max_waiting_clients: max_waiting_clients,
-               max_active_queries: max_active_queries,
-               max_clients_waiting_for_query: max_clients_waiting_for_query,
+               decrement_ttl,
+               upstream_servers,
+               lbmode,
+               upstream_max_failure_duration,
+               cache_size,
+               udp_ports,
+               listen_addr,
+               webservice_enabled,
+               webservice_listen_addr,
+               min_ttl,
+               max_ttl,
+               user,
+               group,
+               chroot_dir,
+               udp_acceptor_threads,
+               tcp_acceptor_threads,
+               dnstap_enabled,
+               dnstap_backlog,
+               dnstap_socket_path,
+               dnstap_identity,
+               dnstap_version,
+               max_tcp_clients,
+               max_waiting_clients,
+               max_active_queries,
+               max_clients_waiting_for_query,
            })
     }
 }

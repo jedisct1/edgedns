@@ -250,7 +250,7 @@ impl ClientQueriesHandler {
             pending_query.probed_upstream_server_idx = Some(probe_idx);
         }
         let mut map = self.pending_queries.map_arc.write();
-        debug!("Sending {:#?} to {:?}",
+        debug!("Sending {:?} to {:?}",
                pending_query.normalized_question_minimal,
                upstream_server.socket_addr);
         self.varz.inflight_queries.inc();

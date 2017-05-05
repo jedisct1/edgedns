@@ -5,7 +5,7 @@
 //! The number of in-flight queries for individual servers is also present,
 //! so that we can use this information for balancing the load.
 
-use coarsetime::Instant;
+use coarsetime::{Duration, Instant};
 use config::Config;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
@@ -17,6 +17,7 @@ pub struct UpstreamServer {
     pub socket_addr: SocketAddr,
     pub pending_queries_count: u64,
     pub failures: u32,
+    pub last_successful_response_instant: Instant,
     pub offline: bool,
     pub last_probe_ts: Option<Instant>,
 }
@@ -32,10 +33,18 @@ impl UpstreamServer {
             socket_addr: socket_addr,
             pending_queries_count: 0,
             failures: 0,
+            last_successful_response_instant: Instant::now(),
             offline: false,
             last_probe_ts: None,
         };
         Ok(upstream_server)
+    }
+
+    fn reset_state(&mut self) {
+        self.offline = false;
+        self.failures = 0;
+        self.pending_queries_count = 0;
+        self.last_successful_response_instant = Instant::recent();
     }
 
     pub fn record_failure(&mut self,
@@ -45,8 +54,9 @@ impl UpstreamServer {
         if self.offline {
             return;
         }
-        self.failures += 1;
-        if self.failures < config.upstream_max_failures {
+        self.failures = self.failures.saturating_add(1);
+        if self.last_successful_response_instant.elapsed_since_recent() <
+           config.upstream_max_failure_duration {
             return;
         }
         self.offline = true;
@@ -57,11 +67,13 @@ impl UpstreamServer {
 
     pub fn record_success(&mut self) {
         if !self.offline {
+            self.failures = self.failures.saturating_sub(1);
+            if self.failures == 0 {
+                self.last_successful_response_instant = Instant::recent();
+            }
             return;
         }
-        self.offline = false;
-        self.failures = 0;
-        self.pending_queries_count = 0;
+        self.reset_state();
         warn!("Marking {} as live again", self.socket_addr);
     }
 
