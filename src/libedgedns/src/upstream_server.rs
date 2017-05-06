@@ -9,8 +9,13 @@ use coarsetime::{Duration, Instant};
 use config::Config;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
+use std::sync::Arc;
 use tokio_core::reactor::Handle;
 use upstream_probe::UpstreamProbe;
+use varz::Varz;
+
+const RTT_DECAY: f64 = 0.125;
+const RTT_DEV_DECAY: f64 = 0.25;
 
 pub struct UpstreamServer {
     pub remote_addr: String,
@@ -20,6 +25,8 @@ pub struct UpstreamServer {
     pub last_successful_response_instant: Instant,
     pub offline: bool,
     pub last_probe_ts: Option<Instant>,
+    pub rtt_est: f64,
+    pub rtt_dev_est: f64,
 }
 
 impl UpstreamServer {
@@ -36,6 +43,8 @@ impl UpstreamServer {
             last_successful_response_instant: Instant::now(),
             offline: false,
             last_probe_ts: None,
+            rtt_est: 0.0,
+            rtt_dev_est: 0.0,
         };
         Ok(upstream_server)
     }
@@ -74,7 +83,7 @@ impl UpstreamServer {
         let _upstream_probe = UpstreamProbe::new(handle, ext_net_udp_sockets_rc, self);
     }
 
-    pub fn record_success(&mut self) {
+    pub fn record_success_after_failure(&mut self) {
         if !self.offline {
             self.failures = self.failures.saturating_sub(1);
             if self.failures == 0 {
@@ -84,6 +93,19 @@ impl UpstreamServer {
         }
         self.reset_state();
         warn!("Marking {} as live again", self.socket_addr);
+    }
+
+    #[inline]
+    fn ewma(cur: f64, v: f64, decay: f64) -> f64 {
+        (1.0 - decay) * cur + decay * v
+    }
+
+    pub fn record_rtt(&mut self, rtt: Duration, varz: &Arc<Varz>) {
+        let rtt = rtt.as_f64();
+        self.rtt_est = Self::ewma(self.rtt_est, rtt, RTT_DECAY);
+        self.rtt_dev_est = Self::ewma(self.rtt_dev_est, (rtt - self.rtt_est).abs(), RTT_DEV_DECAY);
+        varz.upstream_avg_rtt
+            .set(Self::ewma(varz.upstream_avg_rtt.get(), self.rtt_est, RTT_DECAY));
     }
 
     pub fn live_servers(upstream_servers: &mut Vec<UpstreamServer>) -> Vec<usize> {

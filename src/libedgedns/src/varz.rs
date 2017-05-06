@@ -28,6 +28,7 @@ pub struct Varz {
     pub upstream_sent: Counter,
     pub upstream_received: Counter,
     pub upstream_timeout: Counter,
+    pub upstream_avg_rtt: Gauge,
 }
 
 impl Varz {
@@ -116,6 +117,10 @@ impl Varz {
                                                       "Number of upstream servers responses \
                                                        having timed out",
                                                       labels!{"handler" => "all",}))
+                    .unwrap(),
+            upstream_avg_rtt: register_gauge!(opts!("edgedns_upstream_avg_rtt",
+                                                    "Average RTT to upstream servers",
+                                                    labels!{"handler" => "all",}))
                     .unwrap(),
         }
     }

@@ -103,7 +103,7 @@ impl ExtResponse {
             if let Some(probed_upstream_server_idx) = pending_query.probed_upstream_server_idx {
                 let mut probed_upstream_server = &mut upstream_servers[probed_upstream_server_idx];
                 if client_addr == probed_upstream_server.socket_addr {
-                    probed_upstream_server.record_success();
+                    probed_upstream_server.record_success_after_failure();
                 } else {
                     return Err(format!("Sent a probe query to {:?} but got a response from {:?}",
                                        probed_upstream_server.socket_addr,
@@ -119,6 +119,7 @@ impl ExtResponse {
             let mut upstream_server = &mut upstream_servers[pending_query.upstream_server_idx];
             upstream_server.pending_queries_count =
                 upstream_server.pending_queries_count.saturating_sub(1);
+            upstream_server.record_rtt(pending_query.ts.elapsed_since_recent(), &self.varz);
         }
         Ok(())
     }
