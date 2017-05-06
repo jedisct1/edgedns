@@ -2,7 +2,7 @@
 name = "edgedns"
 version = "0.3.0"
 dependencies = [
- "clap 2.23.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libedgedns 0.3.0",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -93,7 +93,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.23.3"
+version = "2.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -836,7 +836,7 @@ dependencies = [
 "checksum bytes 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "f9edb851115d67d1f18680f9326901768a91d37875b87015518357c6ce22b553"
 "checksum cargo_metadata 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "34fdab49a2904acb112c83b62f0118de3de3ce28e52a9188dec2858e43878f25"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
-"checksum clap 2.23.3 (registry+https://github.com/rust-lang/crates.io-index)" = "f57e9b63057a545ad2ecd773ea61e49422ed1b1d63d74d5da5ecaee55b3396cd"
+"checksum clap 2.24.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f31c42d0cecb245c1a0bee00ef433eb1bf253897fe472b6a3f4202e9dbbc4b25"
 "checksum clippy 0.0.131 (registry+https://github.com/rust-lang/crates.io-index)" = "5e985b3f2930c5d9431d6d4264caf4ec0e19a655e0a537e87fc5f8b1de94ae91"
 "checksum clippy_lints 0.0.131 (registry+https://github.com/rust-lang/crates.io-index)" = "2c6c8e8957ba5d2d7565355a3541cfdaed866f62c8c4a69e01fc6f2630c3f336"
 "checksum clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "83779adb8130382bbc0f602356a3fa832988cfc59440bb6501f8ee8aece72d7f"
