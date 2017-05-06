@@ -52,6 +52,7 @@ pub mod dns;
 mod ext_response;
 mod log_dnstap;
 mod net_helpers;
+mod pending_query;
 mod resolver;
 use std::io;
 mod tcp_acceptor;
