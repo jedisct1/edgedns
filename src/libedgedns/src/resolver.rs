@@ -30,7 +30,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::thread;
-use super::{EdgeDNSContext, UPSTREAM_INITIAL_TIMEOUT_MS};
+use super::EdgeDNSContext;
 use tokio_core::reactor::{Core, Handle};
 use upstream_server::UpstreamServer;
 use varz::Varz;

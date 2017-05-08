@@ -10,6 +10,8 @@ use config::Config;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::Arc;
+use super::{UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MIN_TIMEOUT_MS,
+            UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use upstream_probe::UpstreamProbe;
 use varz::Varz;
@@ -25,7 +27,7 @@ pub struct UpstreamServer {
     pub last_successful_response_instant: Instant,
     pub offline: bool,
     pub last_probe_ts: Option<Instant>,
-    pub rtt_est: f64,
+    pub rtt_est: Option<f64>,
     pub rtt_dev_est: f64,
 }
 
@@ -43,7 +45,7 @@ impl UpstreamServer {
             last_successful_response_instant: Instant::now(),
             offline: false,
             last_probe_ts: None,
-            rtt_est: 0.0,
+            rtt_est: None,
             rtt_dev_est: 0.0,
         };
         Ok(upstream_server)
@@ -80,7 +82,6 @@ impl UpstreamServer {
         self.offline = true;
         warn!("Too many failures from resolver {}, putting offline",
               self.remote_addr);
-        let _upstream_probe = UpstreamProbe::new(handle, ext_net_udp_sockets_rc, self);
     }
 
     pub fn record_success_after_failure(&mut self) {
@@ -96,16 +97,44 @@ impl UpstreamServer {
     }
 
     #[inline]
-    fn ewma(cur: f64, v: f64, decay: f64) -> f64 {
-        (1.0 - decay) * cur + decay * v
+    fn ewma(cur: Option<f64>, v: f64, decay: f64) -> f64 {
+        match cur {
+            None => v,
+            Some(cur) => (1.0 - decay) * cur + decay * v,
+        }
     }
 
     pub fn record_rtt(&mut self, rtt: Duration, varz: &Arc<Varz>) {
         let rtt = rtt.as_f64();
-        self.rtt_est = Self::ewma(self.rtt_est, rtt, RTT_DECAY);
-        self.rtt_dev_est = Self::ewma(self.rtt_dev_est, (rtt - self.rtt_est).abs(), RTT_DEV_DECAY);
+        let rtt_est = Self::ewma(self.rtt_est, rtt, RTT_DECAY);
+        self.rtt_est = Some(rtt_est);
+        self.rtt_dev_est = Self::ewma(Some(self.rtt_dev_est), (rtt - rtt_est).abs(), RTT_DEV_DECAY);
         varz.upstream_avg_rtt
-            .set(Self::ewma(varz.upstream_avg_rtt.get(), self.rtt_est, RTT_DECAY));
+            .set(Self::ewma(Some(varz.upstream_avg_rtt.get()), rtt_est, RTT_DECAY));
+    }
+
+    pub fn timeout_ms_est(&self) -> u64 {
+        let timeout = match self.rtt_est {
+            None => UPSTREAM_QUERY_MAX_TIMEOUT_MS,
+            Some(rtt_est) => {
+                let timeout = ((rtt_est +
+                                self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
+                               1000.0) as u64;
+                if timeout < UPSTREAM_QUERY_MIN_TIMEOUT_MS {
+                    UPSTREAM_QUERY_MIN_TIMEOUT_MS
+                } else if timeout > UPSTREAM_QUERY_MAX_TIMEOUT_MS {
+                    UPSTREAM_QUERY_MAX_TIMEOUT_MS
+                } else {
+                    timeout
+                }
+            }
+        };
+        debug!("Upstream {} timeout_ms_est={} (rtt_est: {} rtt_dev_est: {})",
+               self.remote_addr,
+               timeout,
+               self.rtt_est.unwrap_or(-1.0),
+               self.rtt_dev_est);
+        timeout
     }
 
     pub fn live_servers(upstream_servers: &mut Vec<UpstreamServer>) -> Vec<usize> {

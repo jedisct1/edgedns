@@ -30,7 +30,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::time;
-use super::UPSTREAM_PROBES_DELAY_MS;
+use super::{UPSTREAM_QUERY_MAX_TIMEOUT_MS, UPSTREAM_PROBES_DELAY_MS};
 use tokio_core::reactor::Handle;
 use tokio_timer::{wheel, Timer};
 use upstream_server::UpstreamServer;
@@ -202,6 +202,7 @@ impl ClientQueriesHandler {
                 return Ok(None);
             }
         }
+        info!("Sending probe to {}", random_offline_server.remote_addr);
         random_offline_server.last_probe_ts = Some(Instant::recent());
         net_ext_udp_socket
             .send_to(query_packet, &random_offline_server.socket_addr)
@@ -265,7 +266,9 @@ impl ClientQueriesHandler {
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());
-        let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(1));
+        let timeout = self.timer
+            .timeout(done_rx,
+                     time::Duration::from_millis(upstream_server.timeout_ms_est()));
         let retry_query = self.clone();
         let upstream_servers_arc = self.upstream_servers_arc.clone();
         let upstream_servers_live_arc = self.upstream_servers_live_arc.clone();
@@ -343,7 +346,9 @@ impl ClientQueriesHandler {
                upstream_server_idx,
                upstream_server.pending_queries_count);
         let done_rx = done_rx.map_err(|_| ());
-        let timeout = self.timer.timeout(done_rx, time::Duration::from_secs(2));
+        let timeout = self.timer
+            .timeout(done_rx,
+                     time::Duration::from_millis(UPSTREAM_QUERY_MAX_TIMEOUT_MS));
         let map_arc = self.pending_queries.map_arc.clone();
         let waiting_clients_count = self.waiting_clients_count.clone();
         let upstream_servers_arc = self.upstream_servers_arc.clone();

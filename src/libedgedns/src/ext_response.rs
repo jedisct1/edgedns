@@ -208,8 +208,8 @@ impl ExtResponse {
             None => return Err("No clients waiting for this query"),                
             Some(pending_query) => pending_query,
         };
-        if self.verify_ext_response(pending_query, packet, client_addr)
-               .is_err() {
+        if let Err(e) = self.verify_ext_response(pending_query, packet, client_addr) {
+            warn!("{}", e);
             return Err("Received response is not valid for the query originally sent");
         }
         let client_queries = &pending_query.client_queries;

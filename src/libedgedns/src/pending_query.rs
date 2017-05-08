@@ -11,7 +11,6 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::net;
 use std::sync::Arc;
-use super::UPSTREAM_INITIAL_TIMEOUT_MS;
 use upstream_server::UpstreamServer;
 use varz::Varz;
 
@@ -20,7 +19,6 @@ pub struct PendingQuery {
     pub local_port: u16,
     pub client_queries: Vec<ClientQuery>,
     pub ts: Instant,
-    pub delay: u64,
     pub upstream_server_idx: usize,
     pub probed_upstream_server_idx: Option<usize>,
     pub done_tx: oneshot::Sender<()>,
@@ -41,7 +39,6 @@ impl PendingQuery {
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),
             client_queries: vec![client_query.clone()],
             ts: Instant::recent(),
-            delay: UPSTREAM_INITIAL_TIMEOUT_MS,
             upstream_server_idx: upstream_server_idx,
             probed_upstream_server_idx: None,
             done_tx: done_tx,
