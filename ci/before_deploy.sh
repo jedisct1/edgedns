@@ -4,6 +4,12 @@ set -ex
 
 . $(dirname $0)/utils.sh
 
+# Security audit
+mk_audit() {
+    cargo install cargo-audit
+    cargo audit
+}
+
 # Generate artifacts for release
 mk_artifacts() {
     cargo build --target $TARGET --release
@@ -40,6 +46,7 @@ mk_deb() {
 }
 
 main() {
+    mk_audit
     mk_artifacts
     mk_tarball
 
