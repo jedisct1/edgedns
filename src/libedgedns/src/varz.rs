@@ -123,7 +123,7 @@ impl Varz {
                                                     "Average RTT to upstream servers",
                                                     labels!{"handler" => "all",}))
                     .unwrap(),
-            upstream_response_sizes: register_histogram!("Size of responses received from upstream servers",
+            upstream_response_sizes: register_histogram!("edgedns_upstream_response_sizes",
                                                          "Response size in bytes.")
                     .unwrap(),
         }
