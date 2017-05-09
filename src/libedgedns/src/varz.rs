@@ -4,7 +4,7 @@
 //! operations: set() and inc().
 
 use coarsetime::Instant;
-use prometheus::{Counter, Gauge};
+use prometheus::{Counter, Gauge, Histogram};
 
 pub struct StartInstant(pub Instant);
 
@@ -29,6 +29,7 @@ pub struct Varz {
     pub upstream_received: Counter,
     pub upstream_timeout: Counter,
     pub upstream_avg_rtt: Gauge,
+    pub upstream_response_sizes: Histogram,
 }
 
 impl Varz {
@@ -121,6 +122,9 @@ impl Varz {
             upstream_avg_rtt: register_gauge!(opts!("edgedns_upstream_avg_rtt",
                                                     "Average RTT to upstream servers",
                                                     labels!{"handler" => "all",}))
+                    .unwrap(),
+            upstream_response_sizes: register_histogram!("Size of responses received from upstream servers",
+                                                         "Response size in bytes.")
                     .unwrap(),
         }
     }

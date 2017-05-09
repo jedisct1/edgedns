@@ -255,6 +255,9 @@ impl ExtResponse {
             debug!("Couldn't dispatch response: {}", e);
             return Box::new(future::ok(()));
         };
+        self.varz
+            .upstream_response_sizes
+            .observe(packet.len() as f64);
         if let Some(pending_query) =
             self.pending_queries
                 .map_arc
