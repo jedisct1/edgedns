@@ -1,6 +1,6 @@
 //! Accept connections from clients over TCP.
 //!
-//! This is a (still incomplete) rewrite of the original mio-based code.
+//! This is a rewrite of the original mio-based code.
 
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use bytes::BufMut;
