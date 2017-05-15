@@ -271,6 +271,7 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
                 offset += 2;
                 break;
             }
+            len if len > 0x3f => return Err("Label too long"),
             len => len,
         } as usize;
         if label_len >= packet_len - offset - 1 {
