@@ -83,7 +83,7 @@ impl UdpAcceptor {
             if !cache_entry.is_expired() {
                 self.varz.client_queries_cached.inc();
                 return client_query
-                           .response_send(&mut cache_entry.packet, Some(&self.net_udp_socket));
+                    .response_send(&mut cache_entry.packet, Some(&self.net_udp_socket));
             }
             debug!("expired");
             self.varz.client_queries_expired.inc();

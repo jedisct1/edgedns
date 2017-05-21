@@ -266,9 +266,9 @@ impl ClientQueriesHandler {
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());
-        let timeout = self.timer
-            .timeout(done_rx,
-                     time::Duration::from_millis(upstream_server.timeout_ms_est()));
+        let timeout =
+            self.timer.timeout(done_rx,
+                               time::Duration::from_millis(upstream_server.timeout_ms_est()));
         let retry_query = self.clone();
         let upstream_servers_arc = self.upstream_servers_arc.clone();
         let upstream_servers_live_arc = self.upstream_servers_live_arc.clone();

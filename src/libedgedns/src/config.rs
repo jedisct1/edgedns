@@ -120,17 +120,13 @@ impl Config {
                         |x| x.as_integer().expect("cache.max_items must be an integer")) as
             usize;
 
-        let min_ttl = config_cache
-            .and_then(|x| x.get("min_ttl"))
-            .map_or(60,
-                    |x| x.as_integer().expect("cache.min_ttl must be an integer")) as
-                      u32;
+        let min_ttl = config_cache.and_then(|x| x.get("min_ttl")).map_or(60, |x| {
+            x.as_integer().expect("cache.min_ttl must be an integer")
+        }) as u32;
 
-        let max_ttl = config_cache
-            .and_then(|x| x.get("max_ttl"))
-            .map_or(86_400,
-                    |x| x.as_integer().expect("cache.max_ttl must be an integer")) as
-                      u32;
+        let max_ttl = config_cache.and_then(|x| x.get("max_ttl")).map_or(86_400, |x| {
+            x.as_integer().expect("cache.max_ttl must be an integer")
+        }) as u32;
 
         let config_network = toml_config.get("network");
 
@@ -167,21 +163,17 @@ impl Config {
             .and_then(|x| x.get("user"))
             .map(|x| x.as_str().expect("global.user must be a string").to_owned());
 
-        let group = config_global
-            .and_then(|x| x.get("group"))
-            .map(|x| {
-                     x.as_str()
-                         .expect("global.group must be a string")
-                         .to_owned()
-                 });
+        let group = config_global.and_then(|x| x.get("group")).map(|x| {
+            x.as_str()
+                .expect("global.group must be a string")
+                .to_owned()
+        });
 
-        let chroot_dir = config_global
-            .and_then(|x| x.get("chroot_dir"))
-            .map(|x| {
-                     x.as_str()
-                         .expect("global.chroot must be a string")
-                         .to_owned()
-                 });
+        let chroot_dir = config_global.and_then(|x| x.get("chroot_dir")).map(|x| {
+            x.as_str()
+                .expect("global.chroot must be a string")
+                .to_owned()
+        });
 
         let udp_acceptor_threads = config_global
             .and_then(|x| x.get("threads_udp"))
@@ -227,42 +219,31 @@ impl Config {
 
         let config_dnstap = toml_config.get("dnstap");
 
-        let dnstap_enabled =
-            config_dnstap
-                .and_then(|x| x.get("enabled"))
-                .map_or(false,
-                        |x| x.as_bool().expect("dnstap.enabled must be a boolean"));
+        let dnstap_enabled = config_dnstap.and_then(|x| x.get("enabled")).map_or(false, |x| {
+            x.as_bool().expect("dnstap.enabled must be a boolean")
+        });
 
-        let dnstap_backlog =
-            config_dnstap
-                .and_then(|x| x.get("backlog"))
-                .map_or(4096,
-                        |x| x.as_integer().expect("dnstap.backlog must be an integer")) as
-            usize;
+        let dnstap_backlog = config_dnstap.and_then(|x| x.get("backlog")).map_or(4096, |x| {
+            x.as_integer().expect("dnstap.backlog must be an integer")
+        }) as usize;
 
-        let dnstap_socket_path = config_dnstap
-            .and_then(|x| x.get("socket_path"))
-            .map(|x| {
-                     x.as_str()
-                         .expect("dnstap.socket_path must be a string")
-                         .to_owned()
-                 });
+        let dnstap_socket_path = config_dnstap.and_then(|x| x.get("socket_path")).map(|x| {
+            x.as_str()
+                .expect("dnstap.socket_path must be a string")
+                .to_owned()
+        });
 
-        let dnstap_identity = config_dnstap
-            .and_then(|x| x.get("identity"))
-            .map(|x| {
-                     x.as_str()
-                         .expect("dnstap.identity must be a string")
-                         .to_owned()
-                 });
+        let dnstap_identity = config_dnstap.and_then(|x| x.get("identity")).map(|x| {
+            x.as_str()
+                .expect("dnstap.identity must be a string")
+                .to_owned()
+        });
 
-        let dnstap_version = config_dnstap
-            .and_then(|x| x.get("version"))
-            .map(|x| {
-                     x.as_str()
-                         .expect("dnstap.version must be a string")
-                         .to_owned()
-                 });
+        let dnstap_version = config_dnstap.and_then(|x| x.get("version")).map(|x| {
+            x.as_str()
+                .expect("dnstap.version must be a string")
+                .to_owned()
+        });
 
         Ok(Config {
                decrement_ttl,
