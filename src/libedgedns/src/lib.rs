@@ -187,7 +187,7 @@ impl EdgeDNS {
             let udp_acceptor = UdpAcceptorCore::spawn(&edgedns_context,
                                                       resolver_tx.clone(),
                                                       service_ready_tx.clone())
-                    .expect("Unable to spawn a UDP listener");
+                .expect("Unable to spawn a UDP listener");
             tasks.push(udp_acceptor);
             service_ready_rx.recv().unwrap();
         }
@@ -195,7 +195,7 @@ impl EdgeDNS {
             let tcp_listener = TcpAcceptorCore::spawn(&edgedns_context,
                                                       resolver_tx.clone(),
                                                       service_ready_tx.clone())
-                    .expect("Unable to spawn a TCP listener");
+                .expect("Unable to spawn a TCP listener");
             tasks.push(tcp_listener);
             service_ready_rx.recv().unwrap();
         }

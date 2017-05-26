@@ -98,12 +98,12 @@ impl ClientQueriesHandler {
         let handle = handle.clone();
         let mut self_inner = self.clone();
         let fut_client_query = resolver_rx.for_each(move |client_query| {
-            let fut = self_inner
-                .fut_process_client_query(client_query)
-                .map_err(|_| {});
-            handle.spawn(fut);
-            future::ok(())
-        });
+                                                        let fut = self_inner
+                                                            .fut_process_client_query(client_query)
+                                                            .map_err(|_| {});
+                                                        handle.spawn(fut);
+                                                        future::ok(())
+                                                    });
         fut_client_query.map_err(|_| io::Error::last_os_error())
     }
 
@@ -194,7 +194,7 @@ impl ClientQueriesHandler {
         let mut rng = rand::thread_rng();
         let random_offline_server_range = Range::new(0usize, offline_servers.len());
         let random_offline_server_idx = offline_servers[random_offline_server_range
-            .ind_sample(&mut rng)];
+                                                            .ind_sample(&mut rng)];
         let mut random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
             if last_probe_ts.elapsed_since_recent() <
@@ -310,8 +310,8 @@ impl ClientQueriesHandler {
         let upstream_server_idx = pending_query.upstream_server_idx;
         upstream_servers[upstream_server_idx].pending_queries_count = upstream_servers
             [upstream_server_idx]
-                .pending_queries_count
-                .saturating_sub(1);
+            .pending_queries_count
+            .saturating_sub(1);
         debug!("Decrementing the number of pending queries for upstream {}: {}",
                upstream_server_idx,
                upstream_servers[upstream_server_idx].pending_queries_count);

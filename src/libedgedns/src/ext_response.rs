@@ -74,11 +74,11 @@ impl ExtResponse {
                                                .try_clone()
                                                .expect("Cannot clone a UDP socket"),
                                            handle)
-                    .expect("Cannot create a UDP stream")
-                    .for_each(move |(packet, client_addr)| {
-                                  self.fut_process_ext_socket(packet, client_addr)
-                              })
-                    .map_err(|_| io::Error::last_os_error());
+                .expect("Cannot create a UDP stream")
+                .for_each(move |(packet, client_addr)| {
+                              self.fut_process_ext_socket(packet, client_addr)
+                          })
+                .map_err(|_| io::Error::last_os_error());
         fut_ext_socket
     }
 

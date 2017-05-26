@@ -190,7 +190,7 @@ impl TcpAcceptor {
                                                           .expect("Unable to clone a TCP socket"),
                                                       &self.net_tcp_listener.local_addr().unwrap(),
                                                       handle)
-                .expect("Unable to create a tokio TCP listener");
+            .expect("Unable to create a tokio TCP listener");
         let handle = handle.clone();
         tcp_listener
             .incoming()

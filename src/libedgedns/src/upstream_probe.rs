@@ -104,7 +104,7 @@ impl UpstreamProbe {
             return Err("Probe prefix doesn't match");
         }
         let probe_key_b64 = &probe_name[1 + probe_prefix_len..
-        (probe_name.len() - probe_suffix_len_with_terminator - 1)];
+                                        (probe_name.len() - probe_suffix_len_with_terminator - 1)];
         let probe_key = match base64::decode_config(probe_key_b64, base64::URL_SAFE_NO_PAD) {
             Ok(probe_key) => probe_key,
             _ => return Err("Unable to decode the key"),
