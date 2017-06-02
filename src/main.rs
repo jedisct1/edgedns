@@ -20,13 +20,15 @@ fn main() {
         .version("0.2.1")
         .author("Frank Denis")
         .about("A caching DNS reverse proxy")
-        .arg(Arg::with_name("config_file")
-                 .short("c")
-                 .long("config")
-                 .value_name("FILE")
-                 .help("Path to the edgedns.toml config file")
-                 .takes_value(true)
-                 .required(true))
+        .arg(
+            Arg::with_name("config_file")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Path to the edgedns.toml config file")
+                .takes_value(true)
+                .required(true),
+        )
         .get_matches();
 
     let config_file = match matches.value_of("config_file") {
@@ -38,9 +40,11 @@ fn main() {
     };
     let config = match Config::from_path(config_file) {
         Err(err) => {
-            error!("The configuration couldn't be loaded -- [{}]: [{}]",
-                   config_file,
-                   err);
+            error!(
+                "The configuration couldn't be loaded -- [{}]: [{}]",
+                config_file,
+                err
+            );
             return;
         }
         Ok(config) => config,

@@ -48,10 +48,9 @@ pub struct UdpAcceptorCore {
 impl UdpAcceptor {
     fn new(udp_acceptor_core: &UdpAcceptorCore) -> Self {
         UdpAcceptor {
-            net_udp_socket: udp_acceptor_core
-                .net_udp_socket
-                .try_clone()
-                .expect("Couldn't clone a UDP socket"),
+            net_udp_socket: udp_acceptor_core.net_udp_socket.try_clone().expect(
+                "Couldn't clone a UDP socket",
+            ),
             resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             cache: udp_acceptor_core.cache.clone(),
             varz: udp_acceptor_core.varz.clone(),
@@ -82,8 +81,10 @@ impl UdpAcceptor {
         if let Some(mut cache_entry) = cache_entry {
             if !cache_entry.is_expired() {
                 self.varz.client_queries_cached.inc();
-                return client_query
-                    .response_send(&mut cache_entry.packet, Some(&self.net_udp_socket));
+                return client_query.response_send(
+                    &mut cache_entry.packet,
+                    Some(&self.net_udp_socket),
+                );
             }
             debug!("expired");
             self.varz.client_queries_expired.inc();
@@ -100,12 +101,15 @@ impl UdpAcceptor {
     fn fut_process_stream<'a>(mut self,
                               handle: &Handle)
                               -> impl Future<Item = (), Error = io::Error> + 'a {
-        UdpStream::from_net_udp_socket(self.net_udp_socket
-                                           .try_clone()
-                                           .expect("Unable to clone UDP socket"),
-                                       handle)
-            .expect("Cannot create a UDP stream")
-            .for_each(move |(packet, client_addr)| self.fut_process_query(packet, client_addr))
+        UdpStream::from_net_udp_socket(
+            self.net_udp_socket.try_clone().expect(
+                "Unable to clone UDP socket",
+            ),
+            handle,
+        ).expect("Cannot create a UDP stream")
+            .for_each(move |(packet, client_addr)| {
+                self.fut_process_query(packet, client_addr)
+            })
             .map_err(|_| io::Error::last_os_error())
     }
 }
@@ -116,9 +120,9 @@ impl UdpAcceptorCore {
         let handle = event_loop.handle();
         let stream = udp_acceptor.fut_process_stream(&handle);
         handle.spawn(stream.map_err(|_| {}).map(|_| {}));
-        service_ready_tx
-            .send(0)
-            .map_err(|_| io::Error::last_os_error())?;
+        service_ready_tx.send(0).map_err(
+            |_| io::Error::last_os_error(),
+        )?;
         loop {
             event_loop.turn(None)
         }
@@ -144,9 +148,9 @@ impl UdpAcceptorCore {
                     varz: varz,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
-                udp_acceptor_core
-                    .run(event_loop, udp_acceptor)
-                    .expect("Unable to spawn a UDP listener");
+                udp_acceptor_core.run(event_loop, udp_acceptor).expect(
+                    "Unable to spawn a UDP listener",
+                );
             })
             .unwrap();
         info!("UDP listener is ready");

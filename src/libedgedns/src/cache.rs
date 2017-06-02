@@ -94,9 +94,9 @@ impl Cache {
 
     pub fn get(&mut self, normalized_question_key: &NormalizedQuestionKey) -> Option<CacheEntry> {
         let mut cache = self.arc_mx.lock();
-        cache
-            .get_mut(normalized_question_key)
-            .and_then(|res| Some(res.clone()))
+        cache.get_mut(normalized_question_key).and_then(|res| {
+                Some(res.clone())
+            })
     }
 
     /// get2() does a couple things before checking that a key is present in the cache.
@@ -116,16 +116,14 @@ impl Cache {
     pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {
-                     expiration: Instant::recent() +
-                                 Duration::from_secs(self.config.max_ttl as u64),
-                     packet: special_packet,
-                 })
+                expiration: Instant::recent() + Duration::from_secs(self.config.max_ttl as u64),
+                packet: special_packet,
+            })
         } else if normalized_question.qclass != DNS_CLASS_IN {
             Some(CacheEntry {
-                     expiration: Instant::recent() +
-                                 Duration::from_secs(self.config.max_ttl as u64),
-                     packet: dns::build_refused_packet(normalized_question).unwrap(),
-                 })
+                expiration: Instant::recent() + Duration::from_secs(self.config.max_ttl as u64),
+                packet: dns::build_refused_packet(normalized_question).unwrap(),
+            })
         } else {
             let normalized_question_key = normalized_question.key();
             let cache_entry = self.get(&normalized_question_key);
@@ -149,13 +147,13 @@ impl Cache {
                         debug!("Shifted query cached");
                         let shifted_packet = shifted_cache_entry.packet;
                         if shifted_packet.len() >= dns::DNS_HEADER_SIZE &&
-                           dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN {
+                            dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN
+                        {
                             debug!("Shifted query returned NXDOMAIN");
                             return Some(CacheEntry {
-                                            expiration: shifted_cache_entry.expiration,
-                                            packet: dns::build_nxdomain_packet(normalized_question)
-                                                .unwrap(),
-                                        });
+                                expiration: shifted_cache_entry.expiration,
+                                packet: dns::build_nxdomain_packet(normalized_question).unwrap(),
+                            });
                         }
                     }
                 }
@@ -166,13 +164,15 @@ impl Cache {
 
     fn handle_special_queries(&self, normalized_question: &NormalizedQuestion) -> Option<Vec<u8>> {
         if normalized_question.qclass == dns::DNS_CLASS_IN &&
-           normalized_question.qtype == dns::DNS_TYPE_ANY {
+            normalized_question.qtype == dns::DNS_TYPE_ANY
+        {
             debug!("ANY query");
             let packet = dns::build_any_packet(normalized_question, self.config.max_ttl).unwrap();
             return Some(packet);
         }
         if normalized_question.qclass == dns::DNS_CLASS_CH &&
-           normalized_question.qtype == dns::DNS_TYPE_TXT {
+            normalized_question.qtype == dns::DNS_TYPE_TXT
+        {
             debug!("CHAOS TXT");
             let packet = dns::build_version_packet(normalized_question, self.config.max_ttl)
                 .unwrap();

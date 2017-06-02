@@ -82,18 +82,18 @@ impl TcpClientQuery {
             .map_err(|_| {})
             .map(|(resolver_response, _)| resolver_response)
             .and_then(move |resolver_response| match resolver_response {
-                          None => {
-                              warn!("No resolver response - TX part of the channel closed");
-                              future::err(())
-                          }
-                          Some(resolver_response) => future::ok(resolver_response),         
-                      })
+                None => {
+                    warn!("No resolver response - TX part of the channel closed");
+                    future::err(())
+                }
+                Some(resolver_response) => future::ok(resolver_response),         
+            })
             .and_then(|resolver_response| {
-                          let wh = wh_cell.into_inner();
-                          write_all(wh, resolver_response.packet)
-                              .map(|_| {})
-                              .map_err(|_| {})
-                      });
+                let wh = wh_cell.into_inner();
+                write_all(wh, resolver_response.packet)
+                    .map(|_| {})
+                    .map_err(|_| {})
+            });
         if let Some(mut cache_entry) = cache_entry {
             if !cache_entry.is_expired() {
                 self.varz.client_queries_cached.inc();
@@ -114,10 +114,9 @@ impl TcpAcceptor {
         TcpAcceptor {
             timer: tcp_acceptor_core.timer.clone(),
             handle: tcp_acceptor_core.handle.clone(),
-            net_tcp_listener: tcp_acceptor_core
-                .net_tcp_listener
-                .try_clone()
-                .expect("Couldn't clone a TCP socket"),
+            net_tcp_listener: tcp_acceptor_core.net_tcp_listener.try_clone().expect(
+                "Couldn't clone a TCP socket",
+            ),
             resolver_tx: tcp_acceptor_core.resolver_tx.clone(),
             cache: tcp_acceptor_core.cache.clone(),
             varz: tcp_acceptor_core.varz.clone(),
@@ -133,8 +132,10 @@ impl TcpAcceptor {
             Ok(r) => r,
             Err(_) => return Box::new(future::err(io::Error::last_os_error())),
         };
-        debug!("Incoming connection using TCP, session index {}",
-               session_idx);
+        debug!(
+            "Incoming connection using TCP, session index {}",
+            session_idx
+        );
         let varz = self.varz.clone();
         varz.client_queries_tcp.inc();
         let (rh, wh) = client.split();
@@ -143,8 +144,10 @@ impl TcpAcceptor {
             if expected_len < DNS_QUERY_MIN_SIZE || expected_len > DNS_QUERY_MAX_SIZE {
                 info!("Suspicious query length: {}", expected_len);
                 varz.client_queries_errors.inc();
-                return future::err(io::Error::new(io::ErrorKind::InvalidInput,
-                                                  "Suspicious query length"));
+                return future::err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Suspicious query length",
+                ));
             }
             debug!("Expected length: {}", expected_len);
             future::ok((rh, expected_len))
@@ -159,15 +162,18 @@ impl TcpAcceptor {
                 Err(e) => {
                     debug!("Error while parsing the question: {}", e);
                     varz.client_queries_errors.inc();
-                    return Box::new(future::err(io::Error::new(io::ErrorKind::InvalidInput,
-                                                               "Suspicious query"))) as
-                           Box<Future<Item = _, Error = _>>;
+                    return Box::new(future::err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "Suspicious query",
+                    ))) as Box<Future<Item = _, Error = _>>;
                 }
             };
             tcp_client_query.fut_process_query(normalized_question)
         });
-        let fut_timeout = self.timer
-            .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
+        let fut_timeout = self.timer.timeout(
+            fut_packet,
+            time::Duration::from_millis(MAX_TCP_IDLE_MS),
+        );
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
         let fut_with_timeout = fut_timeout.then(move |_| {
             debug!("Closing TCP connection with session index {}", session_idx);
@@ -185,20 +191,21 @@ impl TcpAcceptor {
     fn fut_process_stream<'a>(mut self,
                               handle: &Handle)
                               -> impl Future<Item = (), Error = io::Error> + 'a {
-        let tcp_listener = TcpListener::from_listener(self.net_tcp_listener
-                                                          .try_clone()
-                                                          .expect("Unable to clone a TCP socket"),
-                                                      &self.net_tcp_listener.local_addr().unwrap(),
-                                                      handle)
-            .expect("Unable to create a tokio TCP listener");
+        let tcp_listener = TcpListener::from_listener(
+            self.net_tcp_listener.try_clone().expect(
+                "Unable to clone a TCP socket",
+            ),
+            &self.net_tcp_listener.local_addr().unwrap(),
+            handle,
+        ).expect("Unable to create a tokio TCP listener");
         let handle = handle.clone();
         tcp_listener
             .incoming()
             .for_each(move |(client, client_addr)| {
-                          let fut_client = self.fut_process_client(client, client_addr);
-                          handle.spawn(fut_client.map_err(|_| {}));
-                          Ok(())
-                      })
+                let fut_client = self.fut_process_client(client, client_addr);
+                handle.spawn(fut_client.map_err(|_| {}));
+                Ok(())
+            })
             .map_err(|_| io::Error::last_os_error())
     }
 }
@@ -209,9 +216,9 @@ impl TcpAcceptorCore {
         let handle = event_loop.handle();
         let stream = tcp_acceptor.fut_process_stream(&handle);
         handle.spawn(stream.map_err(|_| {}).map(|_| {}));
-        service_ready_tx
-            .send(0)
-            .map_err(|_| io::Error::last_os_error())?;
+        service_ready_tx.send(0).map_err(
+            |_| io::Error::last_os_error(),
+        )?;
         loop {
             event_loop.turn(None)
         }
@@ -244,9 +251,9 @@ impl TcpAcceptorCore {
                     tcp_arbitrator: tcp_arbitrator,
                 };
                 let tcp_acceptor = TcpAcceptor::new(&tcp_acceptor_core);
-                tcp_acceptor_core
-                    .run(event_loop, tcp_acceptor)
-                    .expect("Unable to spawn a tcp listener");
+                tcp_acceptor_core.run(event_loop, tcp_acceptor).expect(
+                    "Unable to spawn a tcp listener",
+                );
             })
             .unwrap();
         info!("TCP listener is ready");

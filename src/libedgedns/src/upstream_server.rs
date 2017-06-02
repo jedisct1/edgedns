@@ -60,8 +60,9 @@ impl UpstreamServer {
 
     pub fn prepare_send(&mut self, config: &Config) {
         if self.offline ||
-           self.last_successful_response_instant.elapsed_since_recent() <
-           config.upstream_max_failure_duration {
+            self.last_successful_response_instant.elapsed_since_recent() <
+                config.upstream_max_failure_duration
+        {
             return;
         }
         self.last_successful_response_instant = Instant::now();
@@ -76,12 +77,15 @@ impl UpstreamServer {
         }
         self.failures = self.failures.saturating_add(1);
         if self.last_successful_response_instant.elapsed_since_recent() <
-           config.upstream_max_failure_duration {
+            config.upstream_max_failure_duration
+        {
             return;
         }
         self.offline = true;
-        warn!("Too many failures from resolver {}, putting offline",
-              self.remote_addr);
+        warn!(
+            "Too many failures from resolver {}, putting offline",
+            self.remote_addr
+        );
     }
 
     pub fn record_success_after_failure(&mut self) {
@@ -109,8 +113,11 @@ impl UpstreamServer {
         let rtt_est = Self::ewma(self.rtt_est, rtt, RTT_DECAY);
         self.rtt_est = Some(rtt_est);
         self.rtt_dev_est = Self::ewma(Some(self.rtt_dev_est), (rtt - rtt_est).abs(), RTT_DEV_DECAY);
-        varz.upstream_avg_rtt
-            .set(Self::ewma(Some(varz.upstream_avg_rtt.get()), rtt_est, RTT_DECAY));
+        varz.upstream_avg_rtt.set(Self::ewma(
+            Some(varz.upstream_avg_rtt.get()),
+            rtt_est,
+            RTT_DECAY,
+        ));
     }
 
     pub fn timeout_ms_est(&self) -> u64 {
@@ -118,8 +125,8 @@ impl UpstreamServer {
             None => UPSTREAM_QUERY_MAX_TIMEOUT_MS,
             Some(rtt_est) => {
                 let timeout = ((rtt_est +
-                                self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
-                               1000.0) as u64;
+                                    self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
+                                   1000.0) as u64;
                 if timeout < UPSTREAM_QUERY_MIN_TIMEOUT_MS {
                     UPSTREAM_QUERY_MIN_TIMEOUT_MS
                 } else if timeout > UPSTREAM_QUERY_MAX_TIMEOUT_MS {
@@ -129,11 +136,13 @@ impl UpstreamServer {
                 }
             }
         };
-        debug!("Upstream {} timeout_ms_est={} (rtt_est: {} rtt_dev_est: {})",
-               self.remote_addr,
-               timeout,
-               self.rtt_est.unwrap_or(-1.0),
-               self.rtt_dev_est);
+        debug!(
+            "Upstream {} timeout_ms_est={} (rtt_est: {} rtt_dev_est: {})",
+            self.remote_addr,
+            timeout,
+            self.rtt_est.unwrap_or(-1.0),
+            self.rtt_dev_est
+        );
         timeout
     }
 

@@ -77,7 +77,7 @@ impl TcpArbitrator {
         let mut new_slot = None;
         for i in 0..MAX_TCP_HASH_DISTANCE {
             let probed_slot = (base_slot + (random_distance + i) % MAX_TCP_HASH_DISTANCE) %
-                              capacity;
+                capacity;
             match slab.get(probed_slot) {
                 None => {
                     new_slot = Some(probed_slot);

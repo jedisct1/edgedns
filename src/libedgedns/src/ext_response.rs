@@ -69,16 +69,16 @@ impl ExtResponse {
                                   handle: &Handle,
                                   net_ext_udp_socket: &net::UdpSocket)
                                   -> impl Future<Item = (), Error = io::Error> + 'a {
-        let fut_ext_socket =
-            UdpStream::from_net_udp_socket(net_ext_udp_socket
-                                               .try_clone()
-                                               .expect("Cannot clone a UDP socket"),
-                                           handle)
-                .expect("Cannot create a UDP stream")
-                .for_each(move |(packet, client_addr)| {
-                              self.fut_process_ext_socket(packet, client_addr)
-                          })
-                .map_err(|_| io::Error::last_os_error());
+        let fut_ext_socket = UdpStream::from_net_udp_socket(
+            net_ext_udp_socket.try_clone().expect(
+                "Cannot clone a UDP socket",
+            ),
+            handle,
+        ).expect("Cannot create a UDP stream")
+            .for_each(move |(packet, client_addr)| {
+                self.fut_process_ext_socket(packet, client_addr)
+            })
+            .map_err(|_| io::Error::last_os_error());
         fut_ext_socket
     }
 
@@ -89,14 +89,18 @@ impl ExtResponse {
                            -> Result<(), String> {
         debug_assert!(packet.len() >= DNS_QUERY_MIN_SIZE);
         if self.local_port != pending_query.local_port {
-            return Err(format!("Got a reponse on port {} for a query sent on port {}",
-                               self.local_port,
-                               pending_query.local_port));
+            return Err(format!(
+                "Got a reponse on port {} for a query sent on port {}",
+                self.local_port,
+                pending_query.local_port
+            ));
         }
         if pending_query.normalized_question_minimal.tid != tid(packet) {
-            return Err(format!("Sent a query with tid {} but got a response for tid {:?}",
-                               pending_query.normalized_question_minimal.tid,
-                               tid(packet)));
+            return Err(format!(
+                "Sent a query with tid {} but got a response for tid {:?}",
+                pending_query.normalized_question_minimal.tid,
+                tid(packet)
+            ));
         }
         let mut upstream_servers = self.upstream_servers_arc.write();
         if client_addr != upstream_servers[pending_query.upstream_server_idx].socket_addr {
@@ -105,15 +109,19 @@ impl ExtResponse {
                 if client_addr == probed_upstream_server.socket_addr {
                     probed_upstream_server.record_success_after_failure();
                 } else {
-                    return Err(format!("Sent a probe query to {:?} but got a response from {:?}",
-                                       probed_upstream_server.socket_addr,
-                                       client_addr));
+                    return Err(format!(
+                        "Sent a probe query to {:?} but got a response from {:?}",
+                        probed_upstream_server.socket_addr,
+                        client_addr
+                    ));
                 }
             } else {
-                return Err(format!("Sent a query to {:?} but got a response from {:?}",
-                                   upstream_servers[pending_query.upstream_server_idx]
-                                       .socket_addr,
-                                   client_addr));
+                return Err(format!(
+                    "Sent a query to {:?} but got a response from {:?}",
+                    upstream_servers[pending_query.upstream_server_idx]
+                        .socket_addr,
+                    client_addr
+                ));
             }
         } else {
             let mut upstream_server = &mut upstream_servers[pending_query.upstream_server_idx];
@@ -125,17 +133,20 @@ impl ExtResponse {
     }
 
     fn upstream_idx_from_client_addr(&self, client_addr: SocketAddr) -> Option<usize> {
-        self.upstream_servers_arc
-            .read()
-            .iter()
-            .position(|upstream_server| upstream_server.socket_addr == client_addr)
+        self.upstream_servers_arc.read().iter().position(
+            |upstream_server| {
+                upstream_server.socket_addr == client_addr
+            },
+        )
     }
 
     fn clamped_ttl(&self, mut packet: &mut [u8]) -> Result<u32, &'static str> {
-        match min_ttl(packet,
-                      self.config.min_ttl,
-                      self.config.max_ttl,
-                      FAILURE_TTL) {
+        match min_ttl(
+            packet,
+            self.config.min_ttl,
+            self.config.max_ttl,
+            FAILURE_TTL,
+        ) {
             Err(_) => {
                 self.varz.upstream_errors.inc();
                 Err("Unexpected RRs in a response")
@@ -163,13 +174,19 @@ impl ExtResponse {
         if rcode(&packet) == DNS_RCODE_SERVFAIL {
             match self.cache.get(&normalized_question_key) {
                 None => {
-                    self.cache
-                        .insert(normalized_question_key, packet, FAILURE_TTL);
+                    self.cache.insert(
+                        normalized_question_key,
+                        packet,
+                        FAILURE_TTL,
+                    );
                 }                
                 Some(cache_entry) => {
                     self.varz.client_queries_offline.inc();
-                    self.cache
-                        .insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
+                    self.cache.insert(
+                        normalized_question_key,
+                        cache_entry.packet,
+                        FAILURE_TTL,
+                    );
                 }
             }
         } else {
@@ -210,7 +227,9 @@ impl ExtResponse {
         };
         if let Err(e) = self.verify_ext_response(pending_query, packet, client_addr) {
             warn!("{}", e);
-            return Err("Received response is not valid for the query originally sent");
+            return Err(
+                "Received response is not valid for the query originally sent",
+            );
         }
         let client_queries = &pending_query.client_queries;
         if let Some(ref dnstap_sender) = self.dnstap_sender {
@@ -249,20 +268,23 @@ impl ExtResponse {
             Ok(ttl) => ttl,
         };
         let normalized_question_key = normalized_question.key();
-        if let Err(e) = self.verify_and_maybe_dispatch_pending_query(&mut packet,
-                                                                     &normalized_question_key,
-                                                                     client_addr) {
+        if let Err(e) = self.verify_and_maybe_dispatch_pending_query(
+            &mut packet,
+            &normalized_question_key,
+            client_addr,
+        )
+        {
             debug!("Couldn't dispatch response: {}", e);
             return Box::new(future::ok(()));
         };
-        self.varz
-            .upstream_response_sizes
-            .observe(packet.len() as f64);
+        self.varz.upstream_response_sizes.observe(
+            packet.len() as f64,
+        );
         if let Some(pending_query) =
-            self.pending_queries
-                .map_arc
-                .write()
-                .remove(&normalized_question_key) {
+            self.pending_queries.map_arc.write().remove(
+                &normalized_question_key,
+            )
+        {
             self.varz.inflight_queries.dec();
             let _ = pending_query.done_tx.send(());
             let clients_count = pending_query.client_queries.len();
@@ -275,12 +297,12 @@ impl ExtResponse {
 
     fn update_cache_stats(&mut self) {
         let cache_stats = self.cache.stats();
-        self.varz
-            .cache_frequent_len
-            .set(cache_stats.frequent_len as f64);
-        self.varz
-            .cache_recent_len
-            .set(cache_stats.recent_len as f64);
+        self.varz.cache_frequent_len.set(
+            cache_stats.frequent_len as f64,
+        );
+        self.varz.cache_recent_len.set(
+            cache_stats.recent_len as f64,
+        );
         self.varz.cache_test_len.set(cache_stats.test_len as f64);
         self.varz.cache_inserted.set(cache_stats.inserted as f64);
         self.varz.cache_evicted.set(cache_stats.evicted as f64);

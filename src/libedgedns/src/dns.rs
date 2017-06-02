@@ -279,9 +279,11 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
         }
         name_len += label_len + 1;
         if name_len > DNS_MAX_HOSTNAME_LEN {
-            info!("Name too long: {} bytes > {}",
-                  name_len,
-                  DNS_MAX_HOSTNAME_LEN);
+            info!(
+                "Name too long: {} bytes > {}",
+                name_len,
+                DNS_MAX_HOSTNAME_LEN
+            );
             return Err("Name too long");
         }
         offset += label_len + 1;
@@ -324,11 +326,12 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
     }
     debug_assert!(DNS_OFFSET_EDNS_PAYLOAD_SIZE > DNS_OFFSET_EDNS_TYPE);
     if packet[offset + DNS_OFFSET_EDNS_TYPE] != (DNS_TYPE_OPT >> 8) as u8 ||
-       packet[offset + DNS_OFFSET_EDNS_TYPE + 1] != DNS_TYPE_OPT as u8 {
+        packet[offset + DNS_OFFSET_EDNS_TYPE + 1] != DNS_TYPE_OPT as u8
+    {
         return None;
     }
     let mut payload_size = ((packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE] as u16) << 8) |
-                           packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE + 1] as u16;
+        packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE + 1] as u16;
     if offset >= packet_len - DNS_OFFSET_EDNS_DO {
         return None;
     }
@@ -337,9 +340,9 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
         payload_size = DNS_UDP_NOEDNS0_MAX_SIZE as u16;
     }
     Some(EDNS0 {
-             payload_size: payload_size,
-             dnssec: dnssec,
-         })
+        payload_size: payload_size,
+        dnssec: dnssec,
+    })
 }
 
 impl fmt::Display for NormalizedQuestion {
@@ -512,7 +515,7 @@ pub fn min_ttl(packet: &[u8],
         let qtype = (packet[offset] as u16) << 8 | packet[offset + 1] as u16;
         let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
         let ttl = (packet[offset + 4] as u32) << 24 | (packet[offset + 5] as u32) << 16 |
-                  (packet[offset + 6] as u32) << 8 | packet[offset + 7] as u32;
+            (packet[offset + 6] as u32) << 8 | packet[offset + 7] as u32;
         let rdlen = ((packet[offset + 8] as u16) << 8 | packet[offset + 9] as u16) as usize;
         offset += 10;
         if qtype != DNS_TYPE_OPT {

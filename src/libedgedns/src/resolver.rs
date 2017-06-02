@@ -63,10 +63,9 @@ pub struct ResolverCore {
 impl ResolverCore {
     pub fn spawn(edgedns_context: &EdgeDNSContext) -> io::Result<Sender<ClientQuery>> {
         let config = &edgedns_context.config;
-        let net_udp_socket = edgedns_context
-            .udp_socket
-            .try_clone()
-            .expect("Unable to clone the UDP listening socket");
+        let net_udp_socket = edgedns_context.udp_socket.try_clone().expect(
+            "Unable to clone the UDP listening socket",
+        );
         let (resolver_tx, resolver_rx): (Sender<ClientQuery>, Receiver<ClientQuery>) =
             channel(edgedns_context.config.max_active_queries);
         let pending_queries = PendingQueries::new();
@@ -90,7 +89,9 @@ impl ResolverCore {
         let upstream_servers: Vec<UpstreamServer> = config
             .upstream_servers
             .iter()
-            .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
+            .map(|s| {
+                UpstreamServer::new(s).expect("Invalid upstream server address")
+            })
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
         let upstream_servers_live_arc = Arc::new(RwLock::new(upstream_servers_live));
@@ -129,18 +130,19 @@ impl ResolverCore {
                 };
                 info!("Registering UDP ports...");
                 for net_ext_udp_socket in &*resolver_core.net_ext_udp_sockets_rc {
-                    let ext_response_listener =
-                        ExtResponse::new(&resolver_core,
-                                         net_ext_udp_socket.local_addr().unwrap().port());
-                    let stream = ext_response_listener
-                        .fut_process_stream(&handle, net_ext_udp_socket);
+                    let ext_response_listener = ExtResponse::new(
+                        &resolver_core,
+                        net_ext_udp_socket.local_addr().unwrap().port(),
+                    );
+                    let stream =
+                        ext_response_listener.fut_process_stream(&handle, net_ext_udp_socket);
                     handle.spawn(stream.map_err(|_| {}).map(|_| {}));
                 }
                 let client_queries_handler = ClientQueriesHandler::new(&resolver_core);
                 let stream = client_queries_handler.fut_process_stream(&handle, resolver_rx);
-                event_loop
-                    .handle()
-                    .spawn(stream.map_err(|_| {}).map(|_| {}));
+                event_loop.handle().spawn(
+                    stream.map_err(|_| {}).map(|_| {}),
+                );
                 info!("UDP ports registered");
                 loop {
                     event_loop.turn(None)

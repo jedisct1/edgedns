@@ -14,19 +14,23 @@ use super::{TCP_BACKLOG, UDP_BUFFER_SIZE};
 
 #[inline]
 pub fn socket_tcp_v4() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet,
-                           SockType::Stream,
-                           SockFlag::empty(),
-                           SockLevel::Tcp as i32)?;
+    let socket_fd = socket(
+        AddressFamily::Inet,
+        SockType::Stream,
+        SockFlag::empty(),
+        SockLevel::Tcp as i32,
+    )?;
     Ok(socket_fd)
 }
 
 #[inline]
 pub fn socket_tcp_v6() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet6,
-                           SockType::Stream,
-                           SockFlag::empty(),
-                           SockLevel::Tcp as i32)?;
+    let socket_fd = socket(
+        AddressFamily::Inet6,
+        SockType::Stream,
+        SockFlag::empty(),
+        SockLevel::Tcp as i32,
+    )?;
     Ok(socket_fd)
 }
 
@@ -61,19 +65,23 @@ pub fn socket_udp_set_buffer_size(socket_fd: RawFd) {
 
 #[inline]
 pub fn socket_udp_v4() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet,
-                           SockType::Datagram,
-                           SockFlag::empty(),
-                           SockLevel::Udp as i32)?;
+    let socket_fd = socket(
+        AddressFamily::Inet,
+        SockType::Datagram,
+        SockFlag::empty(),
+        SockLevel::Udp as i32,
+    )?;
     Ok(socket_fd)
 }
 
 #[inline]
 pub fn socket_udp_v6() -> io::Result<RawFd> {
-    let socket_fd = socket(AddressFamily::Inet6,
-                           SockType::Datagram,
-                           SockFlag::empty(),
-                           SockLevel::Udp as i32)?;
+    let socket_fd = socket(
+        AddressFamily::Inet6,
+        SockType::Datagram,
+        SockFlag::empty(),
+        SockLevel::Udp as i32,
+    )?;
     Ok(socket_fd)
 }
 

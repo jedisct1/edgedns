@@ -71,18 +71,19 @@ impl ClientQuery {
         let normalized_question = &self.normalized_question;
         let packet_len = packet.len();
         let mut refused_packet;
-        let mut packet =
-            if packet_len < DNS_QUERY_MIN_SIZE ||
-               (self.proto == ClientQueryProtocol::UDP && packet_len > DNS_MAX_UDP_SIZE) ||
-               (self.proto == ClientQueryProtocol::TCP && packet_len > DNS_MAX_TCP_SIZE) {
-                refused_packet = dns::build_refused_packet(normalized_question).unwrap();
-                refused_packet.as_mut()
-            } else {
-                packet
-            };
+        let mut packet = if packet_len < DNS_QUERY_MIN_SIZE ||
+            (self.proto == ClientQueryProtocol::UDP && packet_len > DNS_MAX_UDP_SIZE) ||
+            (self.proto == ClientQueryProtocol::TCP && packet_len > DNS_MAX_TCP_SIZE)
+        {
+            refused_packet = dns::build_refused_packet(normalized_question).unwrap();
+            refused_packet.as_mut()
+        } else {
+            packet
+        };
         let tc_packet;
         let packet = if self.proto == ClientQueryProtocol::UDP &&
-                        packet.len() > normalized_question.payload_size as usize {
+            packet.len() > normalized_question.payload_size as usize
+        {
             tc_packet = dns::build_tc_packet(normalized_question).unwrap();
             tc_packet.as_ref()
         } else {
@@ -105,10 +106,16 @@ impl ClientQuery {
                     packet: tcp_packet,
                     dnssec: normalized_question.dnssec,
                 };
-                return Box::new(self.tcpclient_tx.clone().
-                expect("Response sent using TCP but no associated TCP client channel").
-                send(resolver_response).
-                map(|_| {}).map_err(|_| io::Error::last_os_error()));
+                return Box::new(
+                    self.tcpclient_tx
+                        .clone()
+                        .expect(
+                            "Response sent using TCP but no associated TCP client channel",
+                        )
+                        .send(resolver_response)
+                        .map(|_| {})
+                        .map_err(|_| io::Error::last_os_error()),
+                );
             }
         }
         Box::new(future::ok(()))

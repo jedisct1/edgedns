@@ -98,12 +98,12 @@ impl ClientQueriesHandler {
         let handle = handle.clone();
         let mut self_inner = self.clone();
         let fut_client_query = resolver_rx.for_each(move |client_query| {
-                                                        let fut = self_inner
-                                                            .fut_process_client_query(client_query)
-                                                            .map_err(|_| {});
-                                                        handle.spawn(fut);
-                                                        future::ok(())
-                                                    });
+            let fut = self_inner.fut_process_client_query(client_query).map_err(
+                |_| {},
+            );
+            handle.spawn(fut);
+            future::ok(())
+        });
         fut_client_query.map_err(|_| io::Error::last_os_error())
     }
 
@@ -182,10 +182,10 @@ impl ClientQueriesHandler {
             .iter()
             .enumerate()
             .filter_map(|(idx, upstream_server)| if upstream_server.offline {
-                            Some(idx)
-                        } else {
-                            None
-                        })
+                Some(idx)
+            } else {
+                None
+            })
             .collect();
         if offline_servers.is_empty() {
             warn!("Inconsistency between the live servers map and offline status");
@@ -193,12 +193,13 @@ impl ClientQueriesHandler {
         }
         let mut rng = rand::thread_rng();
         let random_offline_server_range = Range::new(0usize, offline_servers.len());
-        let random_offline_server_idx = offline_servers[random_offline_server_range
-                                                            .ind_sample(&mut rng)];
+        let random_offline_server_idx =
+            offline_servers[random_offline_server_range.ind_sample(&mut rng)];
         let mut random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
             if last_probe_ts.elapsed_since_recent() <
-               Duration::from_millis(UPSTREAM_PROBES_DELAY_MS) {
+                Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
+            {
                 return Ok(None);
             }
         }
@@ -224,51 +225,61 @@ impl ClientQueriesHandler {
         }
         let mut upstream_servers = self.upstream_servers_arc.write();
         let (query_packet, normalized_question_minimal, upstream_server_idx, net_ext_udp_socket) =
-            match normalized_question.new_pending_query(&upstream_servers,
-                                                        &self.upstream_servers_live_arc.read(),
-                                                        &self.net_ext_udp_sockets_rc,
-                                                        &self.jumphasher,
-                                                        false,
-                                                        self.config.lbmode) {
+            match normalized_question.new_pending_query(
+                &upstream_servers,
+                &self.upstream_servers_live_arc.read(),
+                &self.net_ext_udp_sockets_rc,
+                &self.jumphasher,
+                false,
+                self.config.lbmode,
+            ) {
                 Err(_) => return Box::new(future::ok(())),
                 Ok(res) => res,
             };
-        let probe_idx =
-            self.maybe_send_probe_to_offline_servers(&query_packet,
-                                                     &mut upstream_servers,
-                                                     &self.upstream_servers_live_arc.read(),
-                                                     net_ext_udp_socket);
+        let probe_idx = self.maybe_send_probe_to_offline_servers(
+            &query_packet,
+            &mut upstream_servers,
+            &self.upstream_servers_live_arc.read(),
+            net_ext_udp_socket,
+        );
         let mut upstream_server = &mut upstream_servers[upstream_server_idx];
         let (done_tx, done_rx) = oneshot::channel();
-        let mut pending_query = PendingQuery::new(normalized_question_minimal,
-                                                  upstream_server,
-                                                  upstream_server_idx,
-                                                  net_ext_udp_socket,
-                                                  &client_query,
-                                                  done_tx);
+        let mut pending_query = PendingQuery::new(
+            normalized_question_minimal,
+            upstream_server,
+            upstream_server_idx,
+            net_ext_udp_socket,
+            &client_query,
+            done_tx,
+        );
         debug_assert_eq!(pending_query.client_queries.len(), 1);
         self.waiting_clients_count.fetch_add(1, Relaxed);
         if let Ok(Some(probe_idx)) = probe_idx {
             pending_query.probed_upstream_server_idx = Some(probe_idx);
         }
         let mut map = self.pending_queries.map_arc.write();
-        debug!("Sending {:?} to {:?}",
-               pending_query.normalized_question_minimal,
-               upstream_server.socket_addr);
+        debug!(
+            "Sending {:?} to {:?}",
+            pending_query.normalized_question_minimal,
+            upstream_server.socket_addr
+        );
         self.varz.inflight_queries.inc();
         upstream_server.prepare_send(&self.config);
         upstream_server.pending_queries_count =
             upstream_server.pending_queries_count.saturating_add(1);
-        debug!("queries_count for server {}: {}",
-               upstream_server_idx,
-               upstream_server.pending_queries_count);
+        debug!(
+            "queries_count for server {}: {}",
+            upstream_server_idx,
+            upstream_server.pending_queries_count
+        );
         map.insert(key, pending_query);
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());
-        let timeout =
-            self.timer.timeout(done_rx,
-                               time::Duration::from_millis(upstream_server.timeout_ms_est()));
+        let timeout = self.timer.timeout(
+            done_rx,
+            time::Duration::from_millis(upstream_server.timeout_ms_est()),
+        );
         let retry_query = self.clone();
         let upstream_servers_arc = self.upstream_servers_arc.clone();
         let upstream_servers_live_arc = self.upstream_servers_live_arc.clone();
@@ -312,16 +323,20 @@ impl ClientQueriesHandler {
             [upstream_server_idx]
             .pending_queries_count
             .saturating_sub(1);
-        debug!("Decrementing the number of pending queries for upstream {}: {}",
-               upstream_server_idx,
-               upstream_servers[upstream_server_idx].pending_queries_count);
+        debug!(
+            "Decrementing the number of pending queries for upstream {}: {}",
+            upstream_server_idx,
+            upstream_servers[upstream_server_idx].pending_queries_count
+        );
 
-        let nq = normalized_question.new_pending_query(&upstream_servers,
-                                                       &self.upstream_servers_live_arc.read(),
-                                                       &self.net_ext_udp_sockets_rc,
-                                                       &self.jumphasher,
-                                                       true,
-                                                       self.config.lbmode);
+        let nq = normalized_question.new_pending_query(
+            &upstream_servers,
+            &self.upstream_servers_live_arc.read(),
+            &self.net_ext_udp_sockets_rc,
+            &self.jumphasher,
+            true,
+            self.config.lbmode,
+        );
         let (query_packet, normalized_question_minimal, upstream_server_idx, net_ext_udp_socket) =
             match nq {
                 Ok(x) => x,
@@ -331,8 +346,10 @@ impl ClientQueriesHandler {
             };
         let upstream_server = &mut upstream_servers[upstream_server_idx];
 
-        debug!("new attempt with upstream server: {:?}",
-               upstream_server.socket_addr);
+        debug!(
+            "new attempt with upstream server: {:?}",
+            upstream_server.socket_addr
+        );
         let (done_tx, done_rx) = oneshot::channel();
         pending_query.normalized_question_minimal = normalized_question_minimal;
         pending_query.local_port = net_ext_udp_socket.local_addr().unwrap().port();
@@ -342,13 +359,16 @@ impl ClientQueriesHandler {
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         upstream_server.pending_queries_count =
             upstream_server.pending_queries_count.saturating_add(1);
-        debug!("New attempt: upstream server {} queries count: {}",
-               upstream_server_idx,
-               upstream_server.pending_queries_count);
+        debug!(
+            "New attempt: upstream server {} queries count: {}",
+            upstream_server_idx,
+            upstream_server.pending_queries_count
+        );
         let done_rx = done_rx.map_err(|_| ());
-        let timeout = self.timer
-            .timeout(done_rx,
-                     time::Duration::from_millis(UPSTREAM_QUERY_MAX_TIMEOUT_MS));
+        let timeout = self.timer.timeout(
+            done_rx,
+            time::Duration::from_millis(UPSTREAM_QUERY_MAX_TIMEOUT_MS),
+        );
         let map_arc = self.pending_queries.map_arc.clone();
         let waiting_clients_count = self.waiting_clients_count.clone();
         let upstream_servers_arc = self.upstream_servers_arc.clone();
@@ -370,19 +390,24 @@ impl ClientQueriesHandler {
                         upstream_servers[upstream_server_idx]
                             .pending_queries_count
                             .saturating_sub(1);
-                    debug!("Failed new attempt: upstream server {} queries count: {}",
-                           upstream_server_idx,
-                           upstream_servers[upstream_server_idx].pending_queries_count);
-                    upstream_servers[upstream_server_idx]
-                        .record_failure(&config, &handle, &net_ext_udp_sockets_rc);
+                    debug!(
+                        "Failed new attempt: upstream server {} queries count: {}",
+                        upstream_server_idx,
+                        upstream_servers[upstream_server_idx].pending_queries_count
+                    );
+                    upstream_servers[upstream_server_idx].record_failure(
+                        &config,
+                        &handle,
+                        &net_ext_udp_sockets_rc,
+                    );
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }
                 let mut map = map_arc.write();
                 if let Some(pending_query) = map.remove(&key) {
                     varz.inflight_queries.dec();
-                    let fut = retry_query
-                        .maybe_respond_to_all_clients_with_stale_entry(&pending_query);
+                    let fut =
+                        retry_query.maybe_respond_to_all_clients_with_stale_entry(&pending_query);
                     let _ = pending_query.done_tx.send(());
                     waiting_clients_count.fetch_sub(pending_query.client_queries.len(), Relaxed);
                     return fut;
@@ -444,11 +469,13 @@ impl NormalizedQuestion {
          -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t net::UdpSocket), &'static str> {
         let (query_packet, normalized_question_minimal) =
             dns::build_query_packet(self, false).expect("Unable to build a new query packet");
-        let upstream_server_idx = match self.pick_upstream(upstream_servers,
-                                                           upstream_servers_live,
-                                                           jumphasher,
-                                                           is_retry,
-                                                           lbmode) {
+        let upstream_server_idx = match self.pick_upstream(
+            upstream_servers,
+            upstream_servers_live,
+            jumphasher,
+            is_retry,
+            lbmode,
+        ) {
             Err(e) => return Err(e),
             Ok(upstream_server_idx) => upstream_server_idx,
         };
@@ -456,6 +483,11 @@ impl NormalizedQuestion {
         let random_token_range = Range::new(0usize, net_ext_udp_sockets.len());
         let random_token = random_token_range.ind_sample(&mut rng);
         let net_ext_udp_socket = &net_ext_udp_sockets[random_token];
-        Ok((query_packet, normalized_question_minimal, upstream_server_idx, net_ext_udp_socket))
+        Ok((
+            query_packet,
+            normalized_question_minimal,
+            upstream_server_idx,
+            net_ext_udp_socket,
+        ))
     }
 }

@@ -16,25 +16,24 @@ pub struct LogDNSTap {
 impl LogDNSTap {
     pub fn new(config: &Config) -> LogDNSTap {
         assert!(config.dnstap_enabled);
-        let socket_path = config
-            .dnstap_socket_path
-            .clone()
-            .expect("dnstap requires a UNIX socket path");
+        let socket_path = config.dnstap_socket_path.clone().expect(
+            "dnstap requires a UNIX socket path",
+        );
         let dnstap_pending_writer = DNSTapBuilder::default()
             .backlog(config.dnstap_backlog)
             .unix_socket_path(socket_path.clone())
             .listen()
             .unwrap();
-        info!("dnstap writer started -- UNIX socket path is [{}]",
-              socket_path);
-        let dnstap_identity = config
-            .dnstap_identity
-            .as_ref()
-            .map(|x| x.as_bytes().to_owned());
-        let dnstap_version = config
-            .dnstap_version
-            .as_ref()
-            .map(|x| x.as_bytes().to_owned());
+        info!(
+            "dnstap writer started -- UNIX socket path is [{}]",
+            socket_path
+        );
+        let dnstap_identity = config.dnstap_identity.as_ref().map(
+            |x| x.as_bytes().to_owned(),
+        );
+        let dnstap_version = config.dnstap_version.as_ref().map(
+            |x| x.as_bytes().to_owned(),
+        );
         LogDNSTap {
             dnstap_pending_writer: Some(dnstap_pending_writer),
             dnstap_writer: None,
@@ -50,9 +49,11 @@ impl LogDNSTap {
     }
 
     pub fn sender(&self) -> Sender {
-        Sender::new(self.dnstap_pending_writer.as_ref().unwrap().sender(),
-                    self.dnstap_identity.clone(),
-                    self.dnstap_version.clone())
+        Sender::new(
+            self.dnstap_pending_writer.as_ref().unwrap().sender(),
+            self.dnstap_identity.clone(),
+            self.dnstap_version.clone(),
+        )
     }
 }
 
@@ -68,9 +69,11 @@ impl Sender {
                dnstap_version: Option<Vec<u8>>)
                -> Sender {
         Sender {
-            template_forwarder_response: DNSMessage::new(dnstap_identity,
-                                                         dnstap_version,
-                                                         MessageType::FORWARDER_RESPONSE),
+            template_forwarder_response: DNSMessage::new(
+                dnstap_identity,
+                dnstap_version,
+                MessageType::FORWARDER_RESPONSE,
+            ),
             dnstap_sender: dnstap_sender,
         }
     }

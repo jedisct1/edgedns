@@ -133,8 +133,10 @@ impl EdgeDNS {
     fn webservice_start(_edgedns_context: &EdgeDNSContext,
                         _service_ready_tx: mpsc::SyncSender<u8>)
                         -> io::Result<thread::JoinHandle<()>> {
-        Err(io::Error::new(io::ErrorKind::NotFound,
-                           "Support for metrics was not compiled in"))
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Support for metrics was not compiled in",
+        ))
     }
 
     fn privileges_drop(config: &Config) {
@@ -152,15 +154,15 @@ impl EdgeDNS {
     }
 
     pub fn new(config: Config) -> EdgeDNS {
-        let ct = coarsetime::Updater::new(CLOCK_RESOLUTION)
-            .start()
-            .expect("Unable to spawn the internal timer");
+        let ct = coarsetime::Updater::new(CLOCK_RESOLUTION).start().expect(
+            "Unable to spawn the internal timer",
+        );
         let varz = Arc::new(Varz::new());
         let cache = Cache::new(config.clone());
-        let udp_socket = socket_udp_bound(&config.listen_addr)
-            .expect("Unable to create a UDP client socket");
-        let tcp_listener = socket_tcp_bound(&config.listen_addr)
-            .expect("Unable to create a TCP client socket");
+        let udp_socket =
+            socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");
+        let tcp_listener =
+            socket_tcp_bound(&config.listen_addr).expect("Unable to create a TCP client socket");
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
             let log_dnstap = LogDNSTap::new(&config);
             let dnstap_sender = log_dnstap.sender();
@@ -179,23 +181,25 @@ impl EdgeDNS {
             tcp_arbitrator: tcp_arbitrator,
             dnstap_sender: dnstap_sender,
         };
-        let resolver_tx = ResolverCore::spawn(&edgedns_context)
-            .expect("Unable to spawn the resolver");
+        let resolver_tx =
+            ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");
         let (service_ready_tx, service_ready_rx) = mpsc::sync_channel::<u8>(1);
         let mut tasks: Vec<thread::JoinHandle<()>> = Vec::new();
         for _ in 0..config.udp_acceptor_threads {
-            let udp_acceptor = UdpAcceptorCore::spawn(&edgedns_context,
-                                                      resolver_tx.clone(),
-                                                      service_ready_tx.clone())
-                .expect("Unable to spawn a UDP listener");
+            let udp_acceptor = UdpAcceptorCore::spawn(
+                &edgedns_context,
+                resolver_tx.clone(),
+                service_ready_tx.clone(),
+            ).expect("Unable to spawn a UDP listener");
             tasks.push(udp_acceptor);
             service_ready_rx.recv().unwrap();
         }
         for _ in 0..config.tcp_acceptor_threads {
-            let tcp_listener = TcpAcceptorCore::spawn(&edgedns_context,
-                                                      resolver_tx.clone(),
-                                                      service_ready_tx.clone())
-                .expect("Unable to spawn a TCP listener");
+            let tcp_listener = TcpAcceptorCore::spawn(
+                &edgedns_context,
+                resolver_tx.clone(),
+                service_ready_tx.clone(),
+            ).expect("Unable to spawn a TCP listener");
             tasks.push(tcp_listener);
             service_ready_rx.recv().unwrap();
         }
