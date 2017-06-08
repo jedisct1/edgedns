@@ -43,11 +43,11 @@ impl WebService {
         let encoder = TextEncoder::new();
         encoder.encode(&metric_families, &mut buffer).unwrap();
         res.headers_mut().set(ContentType(
-                encoder
-                    .format_type()
-                    .parse::<Mime>()
-                    .unwrap(),
-            ));
+            encoder
+                .format_type()
+                .parse::<Mime>()
+                .unwrap(),
+        ));
         res.send(&buffer).unwrap();
     }
 

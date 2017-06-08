@@ -95,8 +95,8 @@ impl Cache {
     pub fn get(&mut self, normalized_question_key: &NormalizedQuestionKey) -> Option<CacheEntry> {
         let mut cache = self.arc_mx.lock();
         cache.get_mut(normalized_question_key).and_then(|res| {
-                Some(res.clone())
-            })
+            Some(res.clone())
+        })
     }
 
     /// get2() does a couple things before checking that a key is present in the cache.

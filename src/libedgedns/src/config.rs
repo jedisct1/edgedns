@@ -112,15 +112,13 @@ impl Config {
             }
         };
 
-        let upstream_max_failure_duration = Duration::from_millis(
-            config_upstream
-                .and_then(|x| x.get("max_failure_duration"))
-                .map_or(2500, |x| {
-                    x.as_integer().expect(
-                        "upstream.max_failure_duration must be an integer",
-                    )
-                }) as u64,
-        );
+        let upstream_max_failure_duration = Duration::from_millis(config_upstream
+            .and_then(|x| x.get("max_failure_duration"))
+            .map_or(2500, |x| {
+                x.as_integer().expect(
+                    "upstream.max_failure_duration must be an integer",
+                )
+            }) as u64);
 
         let config_cache = toml_config.get("cache");
 
