@@ -34,10 +34,11 @@ pub struct UpstreamProbe {
 }
 
 impl UpstreamProbe {
-    pub fn new(handle: &Handle,
-               net_ext_udp_sockets: &Rc<Vec<net::UdpSocket>>,
-               upstream_server: &UpstreamServer)
-               -> Self {
+    pub fn new(
+        handle: &Handle,
+        net_ext_udp_sockets: &Rc<Vec<net::UdpSocket>>,
+        upstream_server: &UpstreamServer,
+    ) -> Self {
         let probe = UpstreamProbe { hasher: *HASHER };
         let probe_qname = probe
             .compute_probe_qname(PROBE_SUFFIX, &upstream_server.socket_addr)
@@ -52,10 +53,11 @@ impl UpstreamProbe {
         probe
     }
 
-    fn compute_probe_qname(&self,
-                           probe_suffix: &[u8],
-                           socket_addr: &SocketAddr)
-                           -> Result<Vec<u8>, &'static str> {
+    fn compute_probe_qname(
+        &self,
+        probe_suffix: &[u8],
+        socket_addr: &SocketAddr,
+    ) -> Result<Vec<u8>, &'static str> {
         let mut hasher = self.hasher;
         let mut probe_key = Vec::with_capacity(PROBE_KEY_LEN);
         let now_secs = Clock::recent_since_epoch().as_secs();
@@ -84,11 +86,12 @@ impl UpstreamProbe {
         Ok(probe_name)
     }
 
-    fn verify_probe_qname(&self,
-                          probe_name: &[u8],
-                          probe_suffix: &[u8],
-                          socket_addr: &SocketAddr)
-                          -> Result<(), &'static str> {
+    fn verify_probe_qname(
+        &self,
+        probe_name: &[u8],
+        probe_suffix: &[u8],
+        socket_addr: &SocketAddr,
+    ) -> Result<(), &'static str> {
         let probe_prefix_len = PROBE_PREFIX.len();
         let probe_suffix_len_with_terminator = if probe_suffix.is_empty() {
             0

@@ -26,13 +26,14 @@ pub struct PendingQuery {
 }
 
 impl PendingQuery {
-    pub fn new(normalized_question_minimal: NormalizedQuestionMinimal,
-               upstream_server: &UpstreamServer,
-               upstream_server_idx: usize,
-               net_ext_udp_socket: &net::UdpSocket,
-               client_query: &ClientQuery,
-               done_tx: oneshot::Sender<()>)
-               -> Self {
+    pub fn new(
+        normalized_question_minimal: NormalizedQuestionMinimal,
+        upstream_server: &UpstreamServer,
+        upstream_server_idx: usize,
+        net_ext_udp_socket: &net::UdpSocket,
+        client_query: &ClientQuery,
+        done_tx: oneshot::Sender<()>,
+    ) -> Self {
         let varz = client_query.varz.clone();
         PendingQuery {
             normalized_question_minimal: normalized_question_minimal,

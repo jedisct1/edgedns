@@ -123,16 +123,18 @@ pub struct EdgeDNS;
 
 impl EdgeDNS {
     #[cfg(feature = "webservice")]
-    fn webservice_start(edgedns_context: &EdgeDNSContext,
-                        service_ready_tx: mpsc::SyncSender<u8>)
-                        -> io::Result<thread::JoinHandle<()>> {
+    fn webservice_start(
+        edgedns_context: &EdgeDNSContext,
+        service_ready_tx: mpsc::SyncSender<u8>,
+    ) -> io::Result<thread::JoinHandle<()>> {
         WebService::spawn(edgedns_context, service_ready_tx)
     }
 
     #[cfg(not(feature = "webservice"))]
-    fn webservice_start(_edgedns_context: &EdgeDNSContext,
-                        _service_ready_tx: mpsc::SyncSender<u8>)
-                        -> io::Result<thread::JoinHandle<()>> {
+    fn webservice_start(
+        _edgedns_context: &EdgeDNSContext,
+        _service_ready_tx: mpsc::SyncSender<u8>,
+    ) -> io::Result<thread::JoinHandle<()>> {
         Err(io::Error::new(
             io::ErrorKind::NotFound,
             "Support for metrics was not compiled in",

@@ -70,9 +70,10 @@ impl TcpClientQuery {
         }
     }
 
-    fn fut_process_query(mut self,
-                         normalized_question: NormalizedQuestion)
-                         -> Box<Future<Item = (), Error = io::Error>> {
+    fn fut_process_query(
+        mut self,
+        normalized_question: NormalizedQuestion,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
         let cache_entry = self.cache.get2(&normalized_question);
         let client_query = ClientQuery::tcp(tcpclient_tx, normalized_question, self.varz.clone());
@@ -124,10 +125,11 @@ impl TcpAcceptor {
         }
     }
 
-    fn fut_process_client(&mut self,
-                          client: TcpStream,
-                          client_addr: SocketAddr)
-                          -> Box<Future<Item = (), Error = io::Error>> {
+    fn fut_process_client(
+        &mut self,
+        client: TcpStream,
+        client_addr: SocketAddr,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         let (session_rx, session_idx) = match self.tcp_arbitrator.new_session(&client_addr) {
             Ok(r) => r,
             Err(_) => return Box::new(future::err(io::Error::last_os_error())),
@@ -188,9 +190,10 @@ impl TcpAcceptor {
         Box::new(fut) as Box<Future<Item = _, Error = _>>
     }
 
-    fn fut_process_stream<'a>(mut self,
-                              handle: &Handle)
-                              -> impl Future<Item = (), Error = io::Error> + 'a {
+    fn fut_process_stream<'a>(
+        mut self,
+        handle: &Handle,
+    ) -> impl Future<Item = (), Error = io::Error> + 'a {
         let tcp_listener = TcpListener::from_listener(
             self.net_tcp_listener.try_clone().expect(
                 "Unable to clone a TCP socket",
@@ -224,10 +227,11 @@ impl TcpAcceptorCore {
         }
     }
 
-    pub fn spawn(edgedns_context: &EdgeDNSContext,
-                 resolver_tx: Sender<ClientQuery>,
-                 service_ready_tx: mpsc::SyncSender<u8>)
-                 -> io::Result<(thread::JoinHandle<()>)> {
+    pub fn spawn(
+        edgedns_context: &EdgeDNSContext,
+        resolver_tx: Sender<ClientQuery>,
+        service_ready_tx: mpsc::SyncSender<u8>,
+    ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_tcp_listener = edgedns_context.tcp_listener.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();

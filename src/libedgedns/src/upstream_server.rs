@@ -68,10 +68,12 @@ impl UpstreamServer {
         self.last_successful_response_instant = Instant::now();
     }
 
-    pub fn record_failure(&mut self,
-                          config: &Config,
-                          handle: &Handle,
-                          ext_net_udp_sockets_rc: &Rc<Vec<net::UdpSocket>>) {
+    pub fn record_failure(
+        &mut self,
+        config: &Config,
+        handle: &Handle,
+        ext_net_udp_sockets_rc: &Rc<Vec<net::UdpSocket>>,
+    ) {
         if self.offline {
             return;
         }

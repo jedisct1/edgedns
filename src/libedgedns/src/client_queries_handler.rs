@@ -91,10 +91,11 @@ impl ClientQueriesHandler {
         }
     }
 
-    pub fn fut_process_stream(&self,
-                              handle: &Handle,
-                              resolver_rx: Receiver<ClientQuery>)
-                              -> impl Future<Item = (), Error = io::Error> {
+    pub fn fut_process_stream(
+        &self,
+        handle: &Handle,
+        resolver_rx: Receiver<ClientQuery>,
+    ) -> impl Future<Item = (), Error = io::Error> {
         let handle = handle.clone();
         let mut self_inner = self.clone();
         let fut_client_query = resolver_rx.for_each(move |client_query| {
@@ -126,10 +127,11 @@ impl ClientQueriesHandler {
         true
     }
 
-    fn maybe_add_to_existing_pending_query(&mut self,
-                                           normalized_question_key: &NormalizedQuestionKey,
-                                           client_query: &ClientQuery)
-                                           -> bool {
+    fn maybe_add_to_existing_pending_query(
+        &mut self,
+        normalized_question_key: &NormalizedQuestionKey,
+        client_query: &ClientQuery,
+    ) -> bool {
         let mut pending_queries = self.pending_queries.map_arc.write();
         match pending_queries.get_mut(normalized_question_key) {
             None => false,
@@ -141,9 +143,10 @@ impl ClientQueriesHandler {
         }
     }
 
-    fn maybe_respond_with_stale_entry(&mut self,
-                                      client_query: &ClientQuery)
-                                      -> Box<Future<Item = (), Error = io::Error>> {
+    fn maybe_respond_with_stale_entry(
+        &mut self,
+        client_query: &ClientQuery,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         let normalized_question = &client_query.normalized_question;
         let cache_entry = self.cache.get2(normalized_question);
         if let Some(mut cache_entry) = cache_entry {
@@ -158,10 +161,10 @@ impl ClientQueriesHandler {
         Box::new(future::ok(()))
     }
 
-    fn maybe_respond_to_all_clients_with_stale_entry
-        (&mut self,
-         pending_query: &PendingQuery)
-         -> Box<Future<Item = (), Error = io::Error>> {
+    fn maybe_respond_to_all_clients_with_stale_entry(
+        &mut self,
+        pending_query: &PendingQuery,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         let mut fut = Vec::with_capacity(pending_query.client_queries.len());
         for client_query in &pending_query.client_queries {
             fut.push(self.maybe_respond_with_stale_entry(client_query));
@@ -169,12 +172,13 @@ impl ClientQueriesHandler {
         Box::new(future::join_all(fut).map(|_| {}))
     }
 
-    fn maybe_send_probe_to_offline_servers(&self,
-                                           query_packet: &[u8],
-                                           upstream_servers: &mut Vec<UpstreamServer>,
-                                           upstream_servers_live: &Vec<usize>,
-                                           net_ext_udp_socket: &net::UdpSocket)
-                                           -> Result<Option<usize>, io::Error> {
+    fn maybe_send_probe_to_offline_servers(
+        &self,
+        query_packet: &[u8],
+        upstream_servers: &mut Vec<UpstreamServer>,
+        upstream_servers_live: &Vec<usize>,
+        net_ext_udp_socket: &net::UdpSocket,
+    ) -> Result<Option<usize>, io::Error> {
         if upstream_servers_live.len() == upstream_servers.len() {
             return Ok(None);
         }
@@ -210,9 +214,10 @@ impl ClientQueriesHandler {
             .map(|_| Some(random_offline_server_idx))
     }
 
-    fn fut_process_client_query(&mut self,
-                                client_query: ClientQuery)
-                                -> Box<Future<Item = (), Error = io::Error>> {
+    fn fut_process_client_query(
+        &mut self,
+        client_query: ClientQuery,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("Incoming client query");
         if self.upstream_servers_live_arc.read().is_empty() {
             return self.maybe_respond_with_stale_entry(&client_query);
@@ -307,9 +312,10 @@ impl ClientQueriesHandler {
         Box::new(fut)
     }
 
-    fn fut_retry_query(&self,
-                       normalized_question: NormalizedQuestion)
-                       -> Box<Future<Item = (), Error = io::Error>> {
+    fn fut_retry_query(
+        &self,
+        normalized_question: NormalizedQuestion,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("timeout");
         let mut map = self.pending_queries.map_arc.write();
         let key = normalized_question.key();
@@ -421,13 +427,14 @@ impl ClientQueriesHandler {
 
 /// Local additions to the `NormalizedQuestion` struct, for convenience
 impl NormalizedQuestion {
-    fn pick_upstream(&self,
-                     upstream_servers: &Vec<UpstreamServer>,
-                     upstream_servers_live: &Vec<usize>,
-                     jumphasher: &JumpHasher,
-                     is_retry: bool,
-                     lbmode: LoadBalancingMode)
-                     -> Result<usize, &'static str> {
+    fn pick_upstream(
+        &self,
+        upstream_servers: &Vec<UpstreamServer>,
+        upstream_servers_live: &Vec<usize>,
+        jumphasher: &JumpHasher,
+        is_retry: bool,
+        lbmode: LoadBalancingMode,
+    ) -> Result<usize, &'static str> {
         let live_count = upstream_servers_live.len();
         if live_count == 0 {
             debug!("All upstream servers are down");
@@ -458,15 +465,15 @@ impl NormalizedQuestion {
         }
     }
 
-    fn new_pending_query<'t>
-        (&self,
-         upstream_servers: &Vec<UpstreamServer>,
-         upstream_servers_live: &Vec<usize>,
-         net_ext_udp_sockets: &'t Vec<net::UdpSocket>,
-         jumphasher: &JumpHasher,
-         is_retry: bool,
-         lbmode: LoadBalancingMode)
-         -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t net::UdpSocket), &'static str> {
+    fn new_pending_query<'t>(
+        &self,
+        upstream_servers: &Vec<UpstreamServer>,
+        upstream_servers_live: &Vec<usize>,
+        net_ext_udp_sockets: &'t Vec<net::UdpSocket>,
+        jumphasher: &JumpHasher,
+        is_retry: bool,
+        lbmode: LoadBalancingMode,
+    ) -> Result<(Vec<u8>, NormalizedQuestionMinimal, usize, &'t net::UdpSocket), &'static str> {
         let (query_packet, normalized_question_minimal) =
             dns::build_query_packet(self, false).expect("Unable to build a new query packet");
         let upstream_server_idx = match self.pick_upstream(

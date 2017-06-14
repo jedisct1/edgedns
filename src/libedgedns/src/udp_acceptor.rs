@@ -57,10 +57,11 @@ impl UdpAcceptor {
         }
     }
 
-    fn fut_process_query(&mut self,
-                         packet: Rc<Vec<u8>>,
-                         client_addr: SocketAddr)
-                         -> Box<Future<Item = (), Error = io::Error>> {
+    fn fut_process_query(
+        &mut self,
+        packet: Rc<Vec<u8>>,
+        client_addr: SocketAddr,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         self.varz.client_queries_udp.inc();
         let count = packet.len();
         if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
@@ -98,9 +99,10 @@ impl UdpAcceptor {
         Box::new(fut_resolver_query) as Box<Future<Item = _, Error = _>>
     }
 
-    fn fut_process_stream<'a>(mut self,
-                              handle: &Handle)
-                              -> impl Future<Item = (), Error = io::Error> + 'a {
+    fn fut_process_stream<'a>(
+        mut self,
+        handle: &Handle,
+    ) -> impl Future<Item = (), Error = io::Error> + 'a {
         UdpStream::from_net_udp_socket(
             self.net_udp_socket.try_clone().expect(
                 "Unable to clone UDP socket",
@@ -128,10 +130,11 @@ impl UdpAcceptorCore {
         }
     }
 
-    pub fn spawn(edgedns_context: &EdgeDNSContext,
-                 resolver_tx: Sender<ClientQuery>,
-                 service_ready_tx: mpsc::SyncSender<u8>)
-                 -> io::Result<(thread::JoinHandle<()>)> {
+    pub fn spawn(
+        edgedns_context: &EdgeDNSContext,
+        resolver_tx: Sender<ClientQuery>,
+        service_ready_tx: mpsc::SyncSender<u8>,
+    ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();

@@ -65,10 +65,11 @@ impl ExtResponse {
         }
     }
 
-    pub fn fut_process_stream<'a>(mut self,
-                                  handle: &Handle,
-                                  net_ext_udp_socket: &net::UdpSocket)
-                                  -> impl Future<Item = (), Error = io::Error> + 'a {
+    pub fn fut_process_stream<'a>(
+        mut self,
+        handle: &Handle,
+        net_ext_udp_socket: &net::UdpSocket,
+    ) -> impl Future<Item = (), Error = io::Error> + 'a {
         let fut_ext_socket = UdpStream::from_net_udp_socket(
             net_ext_udp_socket.try_clone().expect(
                 "Cannot clone a UDP socket",
@@ -82,11 +83,12 @@ impl ExtResponse {
         fut_ext_socket
     }
 
-    fn verify_ext_response(&self,
-                           pending_query: &PendingQuery,
-                           packet: &[u8],
-                           client_addr: SocketAddr)
-                           -> Result<(), String> {
+    fn verify_ext_response(
+        &self,
+        pending_query: &PendingQuery,
+        packet: &[u8],
+        client_addr: SocketAddr,
+    ) -> Result<(), String> {
         debug_assert!(packet.len() >= DNS_QUERY_MIN_SIZE);
         if self.local_port != pending_query.local_port {
             return Err(format!(
@@ -167,10 +169,12 @@ impl ExtResponse {
         }
     }
 
-    fn store_to_cache(&mut self,
-                      packet: Vec<u8>,
-                      normalized_question_key: NormalizedQuestionKey,
-                      ttl: u32) {
+    fn store_to_cache(
+        &mut self,
+        packet: Vec<u8>,
+        normalized_question_key: NormalizedQuestionKey,
+        ttl: u32,
+    ) {
         if rcode(&packet) == DNS_RCODE_SERVFAIL {
             match self.cache.get(&normalized_question_key) {
                 None => {
@@ -195,19 +199,21 @@ impl ExtResponse {
         self.update_cache_stats();
     }
 
-    fn dispatch_client_query(&self,
-                             mut packet: &mut [u8],
-                             client_query: &ClientQuery)
-                             -> Result<(), io::Error> {
+    fn dispatch_client_query(
+        &self,
+        mut packet: &mut [u8],
+        client_query: &ClientQuery,
+    ) -> Result<(), io::Error> {
         client_query
             .response_send(&mut packet, Some(&self.net_udp_socket))
             .wait()
     }
 
-    fn dispatch_client_queries(&self,
-                               mut packet: &mut [u8],
-                               client_queries: &Vec<ClientQuery>)
-                               -> Result<(), &'static str> {
+    fn dispatch_client_queries(
+        &self,
+        mut packet: &mut [u8],
+        client_queries: &Vec<ClientQuery>,
+    ) -> Result<(), &'static str> {
         self.varz.upstream_received.inc();
         for client_query in client_queries {
             let _ = self.dispatch_client_query(packet, client_query);
@@ -215,11 +221,12 @@ impl ExtResponse {
         Ok(())
     }
 
-    fn verify_and_maybe_dispatch_pending_query(&mut self,
-                                               mut packet: &mut [u8],
-                                               normalized_question_key: &NormalizedQuestionKey,
-                                               client_addr: SocketAddr)
-                                               -> Result<(), &'static str> {
+    fn verify_and_maybe_dispatch_pending_query(
+        &mut self,
+        mut packet: &mut [u8],
+        normalized_question_key: &NormalizedQuestionKey,
+        client_addr: SocketAddr,
+    ) -> Result<(), &'static str> {
         let map = self.pending_queries.map_arc.read();
         let pending_query = match map.get(normalized_question_key) {
             None => return Err("No clients waiting for this query"),                
@@ -238,10 +245,11 @@ impl ExtResponse {
         self.dispatch_client_queries(&mut packet, client_queries)
     }
 
-    fn fut_process_ext_socket(&mut self,
-                              packet: Rc<Vec<u8>>,
-                              client_addr: SocketAddr)
-                              -> Box<Future<Item = (), Error = io::Error>> {
+    fn fut_process_ext_socket(
+        &mut self,
+        packet: Rc<Vec<u8>>,
+        client_addr: SocketAddr,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("received on an external socket {:?}", packet);
         if packet.len() < DNS_QUERY_MIN_SIZE {
             info!("Short response received over UDP");

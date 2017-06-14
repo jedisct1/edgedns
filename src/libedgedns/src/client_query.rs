@@ -36,10 +36,11 @@ pub struct ClientQuery {
 }
 
 impl ClientQuery {
-    pub fn udp(client_addr: SocketAddr,
-               normalized_question: NormalizedQuestion,
-               varz: Arc<Varz>)
-               -> Self {
+    pub fn udp(
+        client_addr: SocketAddr,
+        normalized_question: NormalizedQuestion,
+        varz: Arc<Varz>,
+    ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::UDP,
             client_addr: Some(client_addr),
@@ -50,10 +51,11 @@ impl ClientQuery {
         }
     }
 
-    pub fn tcp(tcpclient_tx: Sender<ResolverResponse>,
-               normalized_question: NormalizedQuestion,
-               varz: Arc<Varz>)
-               -> Self {
+    pub fn tcp(
+        tcpclient_tx: Sender<ResolverResponse>,
+        normalized_question: NormalizedQuestion,
+        varz: Arc<Varz>,
+    ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::TCP,
             client_addr: None,
@@ -64,10 +66,11 @@ impl ClientQuery {
         }
     }
 
-    pub fn response_send(&self,
-                         packet: &mut [u8],
-                         net_udp_socket: Option<&net::UdpSocket>)
-                         -> Box<Future<Item = (), Error = io::Error>> {
+    pub fn response_send(
+        &self,
+        packet: &mut [u8],
+        net_udp_socket: Option<&net::UdpSocket>,
+    ) -> Box<Future<Item = (), Error = io::Error>> {
         let normalized_question = &self.normalized_question;
         let packet_len = packet.len();
         let mut refused_packet;

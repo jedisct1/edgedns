@@ -22,9 +22,10 @@ impl UdpStream {
         Ok(UdpStream { udp_socket, buf })
     }
 
-    pub fn from_net_udp_socket(net_udp_socket: net::UdpSocket,
-                               handle: &Handle)
-                               -> Result<Self, io::Error> {
+    pub fn from_net_udp_socket(
+        net_udp_socket: net::UdpSocket,
+        handle: &Handle,
+    ) -> Result<Self, io::Error> {
         let udp_socket = UdpSocket::from_socket(net_udp_socket, handle)?;
         Self::from_socket(udp_socket)
     }
