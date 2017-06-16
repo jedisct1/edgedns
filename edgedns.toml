@@ -8,7 +8,7 @@ type = "resolver"
 servers = ["8.8.8.8:53", "8.8.4.4:53"]
 
 # Load balancing/failover strategy: "uniform", "fallback" or "minload"
-strategy = "uniform"
+strategy = "minload"
 
 # Max duration with a majority of failures before marking a server as temporarily
 # unresponsive. That value should be specificied in ms.
@@ -82,7 +82,7 @@ threads_udp = 1
 threads_tcp = 1
 
 # Max number of clients using TCP
-max_tcp_clients = 2
+max_tcp_clients = 100
 
 # Max number of clients waiting for a response
 max_waiting_clients = 1000000
