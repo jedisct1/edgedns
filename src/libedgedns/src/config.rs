@@ -115,9 +115,8 @@ impl Config {
         let upstream_max_failure_duration = Duration::from_millis(config_upstream
             .and_then(|x| x.get("max_failure_duration"))
             .map_or(2500, |x| {
-                x.as_integer().expect(
-                    "upstream.max_failure_duration must be an integer",
-                )
+                x.as_integer()
+                    .expect("upstream.max_failure_duration must be an integer")
             }) as u64);
 
         let config_cache = toml_config.get("cache");
@@ -145,9 +144,8 @@ impl Config {
         let udp_ports = config_network.and_then(|x| x.get("udp_ports")).map_or(
             8,
             |x| {
-                x.as_integer().expect(
-                    "network.udp_ports must be an integer",
-                )
+                x.as_integer()
+                    .expect("network.udp_ports must be an integer")
             },
         ) as u16;
 
@@ -195,51 +193,45 @@ impl Config {
         let udp_acceptor_threads = config_global.and_then(|x| x.get("threads_udp")).map_or(
             1,
             |x| {
-                x.as_integer().expect(
-                    "global.threads_udp must be an integer",
-                )
+                x.as_integer()
+                    .expect("global.threads_udp must be an integer")
             },
         ) as usize;
 
         let tcp_acceptor_threads = config_global.and_then(|x| x.get("threads_tcp")).map_or(
             1,
             |x| {
-                x.as_integer().expect(
-                    "global.threads_tcp must be an integer",
-                )
+                x.as_integer()
+                    .expect("global.threads_tcp must be an integer")
             },
         ) as usize;
 
         let max_tcp_clients = config_global
             .and_then(|x| x.get("max_tcp_clients"))
             .map_or(250, |x| {
-                x.as_integer().expect(
-                    "global.max_tcp_clients must be an integer",
-                )
+                x.as_integer()
+                    .expect("global.max_tcp_clients must be an integer")
             }) as usize;
 
         let max_waiting_clients = config_global
             .and_then(|x| x.get("max_waiting_clients"))
             .map_or(1_000_000, |x| {
-                x.as_integer().expect(
-                    "global.max_waiting_clients must be an integer",
-                )
+                x.as_integer()
+                    .expect("global.max_waiting_clients must be an integer")
             }) as usize;
 
         let max_active_queries = config_global
             .and_then(|x| x.get("max_active_queries"))
             .map_or(100_000, |x| {
-                x.as_integer().expect(
-                    "global.max_active_queries must be an integer",
-                )
+                x.as_integer()
+                    .expect("global.max_active_queries must be an integer")
             }) as usize;
 
         let max_clients_waiting_for_query = config_global
             .and_then(|x| x.get("max_clients_waiting_for_query"))
             .map_or(1_000, |x| {
-                x.as_integer().expect(
-                    "global.max_clients_waiting_for_query must be an integer",
-                )
+                x.as_integer()
+                    .expect("global.max_clients_waiting_for_query must be an integer")
             }) as usize;
 
         let config_dnstap = toml_config.get("dnstap");

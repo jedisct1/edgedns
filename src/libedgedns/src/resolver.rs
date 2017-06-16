@@ -63,9 +63,10 @@ pub struct ResolverCore {
 impl ResolverCore {
     pub fn spawn(edgedns_context: &EdgeDNSContext) -> io::Result<Sender<ClientQuery>> {
         let config = &edgedns_context.config;
-        let net_udp_socket = edgedns_context.udp_socket.try_clone().expect(
-            "Unable to clone the UDP listening socket",
-        );
+        let net_udp_socket = edgedns_context
+            .udp_socket
+            .try_clone()
+            .expect("Unable to clone the UDP listening socket");
         let (resolver_tx, resolver_rx): (Sender<ClientQuery>, Receiver<ClientQuery>) =
             channel(edgedns_context.config.max_active_queries);
         let pending_queries = PendingQueries::new();
@@ -140,9 +141,9 @@ impl ResolverCore {
                 }
                 let client_queries_handler = ClientQueriesHandler::new(&resolver_core);
                 let stream = client_queries_handler.fut_process_stream(&handle, resolver_rx);
-                event_loop.handle().spawn(
-                    stream.map_err(|_| {}).map(|_| {}),
-                );
+                event_loop
+                    .handle()
+                    .spawn(stream.map_err(|_| {}).map(|_| {}));
                 info!("UDP ports registered");
                 loop {
                     event_loop.turn(None)

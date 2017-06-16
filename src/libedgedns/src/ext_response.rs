@@ -71,9 +71,9 @@ impl ExtResponse {
         net_ext_udp_socket: &net::UdpSocket,
     ) -> impl Future<Item = (), Error = io::Error> + 'a {
         let fut_ext_socket = UdpStream::from_net_udp_socket(
-            net_ext_udp_socket.try_clone().expect(
-                "Cannot clone a UDP socket",
-            ),
+            net_ext_udp_socket
+                .try_clone()
+                .expect("Cannot clone a UDP socket"),
             handle,
         ).expect("Cannot create a UDP stream")
             .for_each(move |(packet, client_addr)| {
@@ -285,13 +285,14 @@ impl ExtResponse {
             debug!("Couldn't dispatch response: {}", e);
             return Box::new(future::ok(()));
         };
-        self.varz.upstream_response_sizes.observe(
-            packet.len() as f64,
-        );
+        self.varz
+            .upstream_response_sizes
+            .observe(packet.len() as f64);
         if let Some(pending_query) =
-            self.pending_queries.map_arc.write().remove(
-                &normalized_question_key,
-            )
+            self.pending_queries
+                .map_arc
+                .write()
+                .remove(&normalized_question_key)
         {
             self.varz.inflight_queries.dec();
             let _ = pending_query.done_tx.send(());
@@ -305,12 +306,12 @@ impl ExtResponse {
 
     fn update_cache_stats(&mut self) {
         let cache_stats = self.cache.stats();
-        self.varz.cache_frequent_len.set(
-            cache_stats.frequent_len as f64,
-        );
-        self.varz.cache_recent_len.set(
-            cache_stats.recent_len as f64,
-        );
+        self.varz
+            .cache_frequent_len
+            .set(cache_stats.frequent_len as f64);
+        self.varz
+            .cache_recent_len
+            .set(cache_stats.recent_len as f64);
         self.varz.cache_test_len.set(cache_stats.test_len as f64);
         self.varz.cache_inserted.set(cache_stats.inserted as f64);
         self.varz.cache_evicted.set(cache_stats.evicted as f64);

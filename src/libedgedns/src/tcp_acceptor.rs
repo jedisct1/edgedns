@@ -115,9 +115,10 @@ impl TcpAcceptor {
         TcpAcceptor {
             timer: tcp_acceptor_core.timer.clone(),
             handle: tcp_acceptor_core.handle.clone(),
-            net_tcp_listener: tcp_acceptor_core.net_tcp_listener.try_clone().expect(
-                "Couldn't clone a TCP socket",
-            ),
+            net_tcp_listener: tcp_acceptor_core
+                .net_tcp_listener
+                .try_clone()
+                .expect("Couldn't clone a TCP socket"),
             resolver_tx: tcp_acceptor_core.resolver_tx.clone(),
             cache: tcp_acceptor_core.cache.clone(),
             varz: tcp_acceptor_core.varz.clone(),
@@ -195,9 +196,9 @@ impl TcpAcceptor {
         handle: &Handle,
     ) -> impl Future<Item = (), Error = io::Error> + 'a {
         let tcp_listener = TcpListener::from_listener(
-            self.net_tcp_listener.try_clone().expect(
-                "Unable to clone a TCP socket",
-            ),
+            self.net_tcp_listener
+                .try_clone()
+                .expect("Unable to clone a TCP socket"),
             &self.net_tcp_listener.local_addr().unwrap(),
             handle,
         ).expect("Unable to create a tokio TCP listener");
@@ -219,9 +220,9 @@ impl TcpAcceptorCore {
         let handle = event_loop.handle();
         let stream = tcp_acceptor.fut_process_stream(&handle);
         handle.spawn(stream.map_err(|_| {}).map(|_| {}));
-        service_ready_tx.send(0).map_err(
-            |_| io::Error::last_os_error(),
-        )?;
+        service_ready_tx
+            .send(0)
+            .map_err(|_| io::Error::last_os_error())?;
         loop {
             event_loop.turn(None)
         }
@@ -255,9 +256,9 @@ impl TcpAcceptorCore {
                     tcp_arbitrator: tcp_arbitrator,
                 };
                 let tcp_acceptor = TcpAcceptor::new(&tcp_acceptor_core);
-                tcp_acceptor_core.run(event_loop, tcp_acceptor).expect(
-                    "Unable to spawn a tcp listener",
-                );
+                tcp_acceptor_core
+                    .run(event_loop, tcp_acceptor)
+                    .expect("Unable to spawn a tcp listener");
             })
             .unwrap();
         info!("TCP listener is ready");
