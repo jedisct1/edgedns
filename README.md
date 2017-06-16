@@ -269,19 +269,6 @@ and frequently used entries.
 A significant amount of new entries does not have a perceptible
 impact on frequently asked DNS questions.
 
-### Response rate limiting
-
-If the global RTT becomes too high, either the infrastructure is
-suffering a major incident, or the authoritative servers are under
-attack.
-
-In this situation, EdgeDNS tries answering legitimate questions, and
-block malicious traffic, which is likely to be coming from spoofed
-source IP addresses.
-
-In order to do so, it responds to uncached records with truncated
-responses, forcing retries using TCP.
-
 ### TCP slots reuse
 
 The number of simultaneous connections coming from the same client IP
