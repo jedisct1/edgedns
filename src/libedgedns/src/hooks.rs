@@ -17,8 +17,12 @@ impl Hooks {
     pub fn new() -> Self {
         let path = "c_hook.dylib";
         let dlh = match Library::new(path) {
-            Err(dlh) => {
-                warn!("Cannot load the sample hooks C library [{}]", path);
+            Err(err) => {
+                error!(
+                    "Cannot load the sample hooks C library [{}] [{}]",
+                    path,
+                    err
+                );
                 None
             }
             Ok(dlh) => Some(dlh),
