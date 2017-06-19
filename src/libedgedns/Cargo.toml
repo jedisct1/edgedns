@@ -23,6 +23,7 @@ futures = "*"
 hyper = {version = "*", optional = true, default-features = false}
 jumphash = "*"
 lazy_static = "*"
+libloading = "*"
 log = "*"
 net2 = "*"
 nix = "~0.8 "

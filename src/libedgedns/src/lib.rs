@@ -23,6 +23,7 @@ extern crate futures;
 extern crate jumphash;
 #[macro_use]
 extern crate lazy_static;
+extern crate libloading;
 #[macro_use]
 extern crate log;
 extern crate net2;
