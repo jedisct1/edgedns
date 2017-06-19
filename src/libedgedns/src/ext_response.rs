@@ -120,8 +120,7 @@ impl ExtResponse {
             } else {
                 return Err(format!(
                     "Sent a query to {:?} but got a response from {:?}",
-                    upstream_servers[pending_query.upstream_server_idx]
-                        .socket_addr,
+                    upstream_servers[pending_query.upstream_server_idx].socket_addr,
                     client_addr
                 ));
             }
@@ -135,11 +134,10 @@ impl ExtResponse {
     }
 
     fn upstream_idx_from_client_addr(&self, client_addr: SocketAddr) -> Option<usize> {
-        self.upstream_servers_arc.read().iter().position(
-            |upstream_server| {
-                upstream_server.socket_addr == client_addr
-            },
-        )
+        self.upstream_servers_arc
+            .read()
+            .iter()
+            .position(|upstream_server| upstream_server.socket_addr == client_addr)
     }
 
     fn clamped_ttl(&self, mut packet: &mut [u8]) -> Result<u32, &'static str> {
@@ -178,19 +176,13 @@ impl ExtResponse {
         if rcode(&packet) == DNS_RCODE_SERVFAIL {
             match self.cache.get(&normalized_question_key) {
                 None => {
-                    self.cache.insert(
-                        normalized_question_key,
-                        packet,
-                        FAILURE_TTL,
-                    );
+                    self.cache
+                        .insert(normalized_question_key, packet, FAILURE_TTL);
                 }                
                 Some(cache_entry) => {
                     self.varz.client_queries_offline.inc();
-                    self.cache.insert(
-                        normalized_question_key,
-                        cache_entry.packet,
-                        FAILURE_TTL,
-                    );
+                    self.cache
+                        .insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
                 }
             }
         } else {
@@ -280,8 +272,7 @@ impl ExtResponse {
             &mut packet,
             &normalized_question_key,
             client_addr,
-        )
-        {
+        ) {
             debug!("Couldn't dispatch response: {}", e);
             return Box::new(future::ok(()));
         };

@@ -44,19 +44,19 @@ impl Varz {
             cache_frequent_len: register_gauge!(opts!(
                 "edgedns_cache_frequent_len",
                 "Number of entries in the cached set of \
-                                                       frequent items",
+                 frequent items",
                 labels!{"handler" => "all",}
             )).unwrap(),
             cache_recent_len: register_gauge!(opts!(
                 "edgedns_cache_recent_len",
                 "Number of entries in the cached set of \
-                                                     recent items",
+                 recent items",
                 labels!{"handler" => "all",}
             )).unwrap(),
             cache_test_len: register_gauge!(opts!(
                 "edgedns_cache_test_len",
                 "Number of entries in the cached set of \
-                                                   staged items",
+                 staged items",
                 labels!{"handler" => "all",}
             )).unwrap(),
             cache_inserted: register_gauge!(opts!(
@@ -77,19 +77,19 @@ impl Varz {
             client_queries_udp: register_counter!(opts!(
                 "edgedns_client_queries_udp",
                 "Number of client queries received \
-                                                         using UDP",
+                 using UDP",
                 labels!{"handler" => "all",}
             )).unwrap(),
             client_queries_tcp: register_counter!(opts!(
                 "edgedns_client_queries_tcp",
                 "Number of client queries received \
-                                                         using TCP",
+                 using TCP",
                 labels!{"handler" => "all",}
             )).unwrap(),
             client_queries_cached: register_counter!(opts!(
                 "edgedns_client_queries_cached",
                 "Number of client queries sent from \
-                                                            the cache",
+                 the cache",
                 labels!{"handler" => "all",}
             )).unwrap(),
             client_queries_expired: register_counter!(opts!(
@@ -100,8 +100,8 @@ impl Varz {
             client_queries_offline: register_counter!(opts!(
                 "edgedns_client_queries_offline",
                 "Number of client queries answered \
-                                                             while upstream resolvers are \
-                                                             unresponsive",
+                 while upstream resolvers are \
+                 unresponsive",
                 labels!{"handler" => "all",}
             )).unwrap(),
             client_queries_errors: register_counter!(opts!(
@@ -132,7 +132,7 @@ impl Varz {
             upstream_timeout: register_counter!(opts!(
                 "edgedns_upstream_timeout",
                 "Number of upstream servers responses \
-                                                       having timed out",
+                 having timed out",
                 labels!{"handler" => "all",}
             )).unwrap(),
             upstream_avg_rtt: register_gauge!(opts!(

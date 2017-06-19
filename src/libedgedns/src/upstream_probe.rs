@@ -72,8 +72,7 @@ impl UpstreamProbe {
         let probe_key_b64 = base64::encode_config(&probe_key, base64::URL_SAFE_NO_PAD);
         let probe_key_b64 = probe_key_b64.as_bytes();
         let mut probe_name = Vec::with_capacity(
-            1 + PROBE_PREFIX.len() + probe_key_b64.len() + 1 +
-                probe_suffix.len() + 1,
+            1 + PROBE_PREFIX.len() + probe_key_b64.len() + 1 + probe_suffix.len() + 1,
         );
         probe_name.push((PROBE_PREFIX.len() + probe_key_b64.len()) as u8);
         probe_name.extend(PROBE_PREFIX);

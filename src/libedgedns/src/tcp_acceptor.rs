@@ -155,8 +155,8 @@ impl TcpAcceptor {
             debug!("Expected length: {}", expected_len);
             future::ok((rh, expected_len))
         });
-        let fut_packet_read =
-            fut_expected_len.and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
+        let fut_packet_read = fut_expected_len
+            .and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
         let varz = self.varz.clone();
         let tcp_client_query = TcpClientQuery::new(self, wh);
         let fut_packet = fut_packet_read.and_then(move |(rh, packet)| {
@@ -173,10 +173,8 @@ impl TcpAcceptor {
             };
             tcp_client_query.fut_process_query(normalized_question)
         });
-        let fut_timeout = self.timer.timeout(
-            fut_packet,
-            time::Duration::from_millis(MAX_TCP_IDLE_MS),
-        );
+        let fut_timeout = self.timer
+            .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
         let fut_with_timeout = fut_timeout.then(move |_| {
             debug!("Closing TCP connection with session index {}", session_idx);

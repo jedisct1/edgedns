@@ -392,20 +392,17 @@ impl ClientQueriesHandler {
                 varz.upstream_timeout.inc();
                 {
                     let mut upstream_servers = upstream_servers_arc.write();
-                    upstream_servers[upstream_server_idx].pending_queries_count =
-                        upstream_servers[upstream_server_idx]
-                            .pending_queries_count
-                            .saturating_sub(1);
+                    upstream_servers[upstream_server_idx].pending_queries_count = upstream_servers
+                        [upstream_server_idx]
+                        .pending_queries_count
+                        .saturating_sub(1);
                     debug!(
                         "Failed new attempt: upstream server {} queries count: {}",
                         upstream_server_idx,
                         upstream_servers[upstream_server_idx].pending_queries_count
                     );
-                    upstream_servers[upstream_server_idx].record_failure(
-                        &config,
-                        &handle,
-                        &net_ext_udp_sockets_rc,
-                    );
+                    upstream_servers[upstream_server_idx]
+                        .record_failure(&config, &handle, &net_ext_udp_sockets_rc);
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }
@@ -482,8 +479,8 @@ impl NormalizedQuestion {
         ),
         &'static str,
     > {
-        let (query_packet, normalized_question_minimal) =
-            dns::build_query_packet(self, false).expect("Unable to build a new query packet");
+        let (query_packet, normalized_question_minimal) = dns::build_query_packet(self, false)
+            .expect("Unable to build a new query packet");
         let upstream_server_idx = match self.pick_upstream(
             upstream_servers,
             upstream_servers_live,

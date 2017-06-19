@@ -7,28 +7,28 @@ built-in security mechanisms to protect origins, clients and itself.
 
 # Precompiled binaries (recommended)
 
-* [Linux ARM64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-aarch64-unknown-linux-gnu.deb)
-* [Linux ARM64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-aarch64-unknown-linux-gnu.tar.gz)
-* [Linux ARMv7 (Debian package, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-armv7-unknown-linux-gnueabihf.deb)
-* [Linux ARMv7 (Universal, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-armv7-unknown-linux-gnueabihf.tar.gz)
-* [Linux x86 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-i686-unknown-linux-gnu.deb)
-* [Linux x86 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-i686-unknown-linux-gnu.tar.gz)
-* [Linux x86_64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-x86_64-unknown-linux-gnu.deb)
-* [Linux x86_64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-x86_64-unknown-linux-gnu.tar.gz)
-* [MacOS x86_64](https://github.com/jedisct1/edgedns/releases/download/0.2.2/edgedns-0.2.2-x86_64-apple-darwin.tar.gz)
+* [Linux ARM64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-aarch64-unknown-linux-gnu.deb)
+* [Linux ARM64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-aarch64-unknown-linux-gnu.tar.gz)
+* [Linux ARMv7 (Debian package, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-armv7-unknown-linux-gnueabihf.deb)
+* [Linux ARMv7 (Universal, gnueabihf)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-armv7-unknown-linux-gnueabihf.tar.gz)
+* [Linux x86 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-i686-unknown-linux-gnu.deb)
+* [Linux x86 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-i686-unknown-linux-gnu.tar.gz)
+* [Linux x86_64 (Debian package)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-x86_64-unknown-linux-gnu.deb)
+* [Linux x86_64 (Universal, glibc)](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-x86_64-unknown-linux-gnu.tar.gz)
+* [MacOS x86_64](https://github.com/jedisct1/edgedns/releases/download/0.3.0/edgedns-0.3.0-x86_64-apple-darwin.tar.gz)
 
 # Installation from source
 
 EdgeDNS requires rust-nightly. Compile and install the server with:
 ```sh
-git clone -b 0.2.2 https://github.com/jedisct1/edgedns
+git clone -b 0.3.0 https://github.com/jedisct1/edgedns
 cd edgedns
 cargo install
 ```
 
 # Quickstart
 
-1. Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/0.2.2/edgedns.toml) configuration file
+1. Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/0.3.0/edgedns.toml) configuration file
 2. Run `edgedns -c /path/to/edgedns.toml`
 
 On Linux, you may use that
