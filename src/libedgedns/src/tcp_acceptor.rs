@@ -11,6 +11,7 @@ use futures::future::{self, Future};
 use futures::Sink;
 use futures::stream::Stream;
 use futures::sync::mpsc::{channel, Sender};
+use hooks::Hooks;
 use std::cell::RefCell;
 use std::io::{self, Read, Write};
 use std::net::{self, SocketAddr};
@@ -35,6 +36,7 @@ struct TcpAcceptor {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
+    hooks: Arc<Hooks>,
     tcp_arbitrator: TcpArbitrator,
 }
 
@@ -45,6 +47,7 @@ pub struct TcpAcceptorCore {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
+    hooks: Arc<Hooks>,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
     tcp_arbitrator: TcpArbitrator,
 }
@@ -56,6 +59,7 @@ struct TcpClientQuery {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
+    hooks: Arc<Hooks>,
 }
 
 impl TcpClientQuery {
@@ -67,6 +71,7 @@ impl TcpClientQuery {
             resolver_tx: tcp_acceptor.resolver_tx.clone(),
             cache: tcp_acceptor.cache.clone(),
             varz: tcp_acceptor.varz.clone(),
+            hooks: tcp_acceptor.hooks.clone(),
         }
     }
 
@@ -76,7 +81,12 @@ impl TcpClientQuery {
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
         let cache_entry = self.cache.get2(&normalized_question);
-        let client_query = ClientQuery::tcp(tcpclient_tx, normalized_question, self.varz.clone());
+        let client_query = ClientQuery::tcp(
+            tcpclient_tx,
+            normalized_question,
+            self.varz.clone(),
+            self.hooks.clone(),
+        );
         let wh_cell = RefCell::new(self.wh);
         let fut = tcpclient_rx
             .into_future()
@@ -122,6 +132,7 @@ impl TcpAcceptor {
             resolver_tx: tcp_acceptor_core.resolver_tx.clone(),
             cache: tcp_acceptor_core.cache.clone(),
             varz: tcp_acceptor_core.varz.clone(),
+            hooks: tcp_acceptor_core.hooks.clone(),
             tcp_arbitrator: tcp_acceptor_core.tcp_arbitrator.clone(),
         }
     }
@@ -234,6 +245,7 @@ impl TcpAcceptorCore {
         let net_tcp_listener = edgedns_context.tcp_listener.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();
+        let hooks = edgedns_context.hooks.clone();
         let tcp_arbitrator = edgedns_context.tcp_arbitrator.clone();
         let timer = wheel()
             .tick_duration(time::Duration::from_millis(MAX_TCP_IDLE_MS / 2))
@@ -251,6 +263,7 @@ impl TcpAcceptorCore {
                     resolver_tx: resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
                     varz: varz,
+                    hooks: hooks,
                     tcp_arbitrator: tcp_arbitrator,
                 };
                 let tcp_acceptor = TcpAcceptor::new(&tcp_acceptor_core);

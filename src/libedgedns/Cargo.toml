@@ -17,6 +17,7 @@ clippy = {version = "*", optional = true}
 clockpro-cache = "*"
 coarsetime = "*"
 dnstap = "*"
+dnssector = {git = "https://github.com/jedisct1/dnssector"}
 env_logger = "*"
 futures = "*"
 hyper = {version = "*", optional = true, default-features = false}

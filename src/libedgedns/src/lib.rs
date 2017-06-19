@@ -15,6 +15,7 @@ extern crate clockpro_cache;
 extern crate bpf;
 extern crate bytes;
 extern crate coarsetime;
+extern crate dnssector;
 extern crate dnstap;
 extern crate env_logger;
 #[macro_use]
@@ -50,6 +51,7 @@ mod client_queries_handler;
 mod config;
 pub mod dns;
 mod ext_response;
+mod hooks;
 mod log_dnstap;
 mod net_helpers;
 mod pending_query;
@@ -68,6 +70,7 @@ mod webservice;
 
 use cache::Cache;
 pub use config::Config;
+use hooks::Hooks;
 use log_dnstap::LogDNSTap;
 use net_helpers::*;
 use privdrop::PrivDrop;
@@ -115,6 +118,7 @@ pub struct EdgeDNSContext {
     pub tcp_listener: net::TcpListener,
     pub cache: Cache,
     pub varz: Arc<Varz>,
+    pub hooks: Arc<Hooks>,
     pub tcp_arbitrator: TcpArbitrator,
     pub dnstap_sender: Option<log_dnstap::Sender>,
 }
@@ -160,6 +164,7 @@ impl EdgeDNS {
             .start()
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
+        let hooks = Arc::new(Hooks::new());
         let cache = Cache::new(config.clone());
         let udp_socket = socket_udp_bound(&config.listen_addr)
             .expect("Unable to create a UDP client socket");
@@ -180,6 +185,7 @@ impl EdgeDNS {
             tcp_listener: tcp_listener,
             cache: cache,
             varz: varz,
+            hooks: hooks,
             tcp_arbitrator: tcp_arbitrator,
             dnstap_sender: dnstap_sender,
         };

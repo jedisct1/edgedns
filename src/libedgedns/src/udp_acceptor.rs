@@ -18,6 +18,7 @@ use futures::future::{self, Future};
 use futures::oneshot;
 use futures::stream::Stream;
 use futures::sync::mpsc::Sender;
+use hooks::Hooks;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
@@ -35,6 +36,7 @@ struct UdpAcceptor {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
+    hooks: Arc<Hooks>,
 }
 
 pub struct UdpAcceptorCore {
@@ -42,6 +44,7 @@ pub struct UdpAcceptorCore {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
+    hooks: Arc<Hooks>,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
 }
 
@@ -55,6 +58,7 @@ impl UdpAcceptor {
             resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             cache: udp_acceptor_core.cache.clone(),
             varz: udp_acceptor_core.varz.clone(),
+            hooks: udp_acceptor_core.hooks.clone(),
         }
     }
 
@@ -79,7 +83,12 @@ impl UdpAcceptor {
             }
         };
         let cache_entry = self.cache.get2(&normalized_question);
-        let client_query = ClientQuery::udp(client_addr, normalized_question, self.varz.clone());
+        let client_query = ClientQuery::udp(
+            client_addr,
+            normalized_question,
+            self.varz.clone(),
+            self.hooks.clone(),
+        );
         if let Some(mut cache_entry) = cache_entry {
             if !cache_entry.is_expired() {
                 self.varz.client_queries_cached.inc();
@@ -137,6 +146,7 @@ impl UdpAcceptorCore {
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();
+        let hooks = edgedns_context.hooks.clone();
 
         let udp_acceptor_th = thread::Builder::new()
             .name("udp_acceptor".to_string())
@@ -148,6 +158,7 @@ impl UdpAcceptorCore {
                     resolver_tx: resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
                     varz: varz,
+                    hooks: hooks,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core

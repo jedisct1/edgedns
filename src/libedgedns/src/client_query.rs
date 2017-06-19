@@ -7,6 +7,7 @@ use dns::{self, NormalizedQuestion};
 use futures::sync::mpsc::Sender;
 use futures::{future, Future};
 use futures::Sink;
+use hooks::Hooks;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
@@ -33,6 +34,7 @@ pub struct ClientQuery {
     pub normalized_question: NormalizedQuestion,
     pub ts: Instant,
     pub varz: Arc<Varz>,
+    pub hooks: Arc<Hooks>,
 }
 
 impl ClientQuery {
@@ -40,6 +42,7 @@ impl ClientQuery {
         client_addr: SocketAddr,
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
+        hooks: Arc<Hooks>,
     ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::UDP,
@@ -48,6 +51,7 @@ impl ClientQuery {
             normalized_question: normalized_question,
             ts: Instant::recent(),
             varz: varz,
+            hooks: hooks,
         }
     }
 
@@ -55,6 +59,7 @@ impl ClientQuery {
         tcpclient_tx: Sender<ResolverResponse>,
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
+        hooks: Arc<Hooks>,
     ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::TCP,
@@ -63,6 +68,7 @@ impl ClientQuery {
             normalized_question: normalized_question,
             ts: Instant::recent(),
             varz: varz.clone(),
+            hooks: hooks.clone(),
         }
     }
 
