@@ -7,7 +7,7 @@ use dns::{self, NormalizedQuestion};
 use futures::sync::mpsc::Sender;
 use futures::{future, Future};
 use futures::Sink;
-use hooks::Hooks;
+use hooks::{Hooks, Stage};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
@@ -77,17 +77,23 @@ impl ClientQuery {
         packet: &mut [u8],
         net_udp_socket: Option<&net::UdpSocket>,
     ) -> Box<Future<Item = (), Error = io::Error>> {
+        let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
+        let mut packet = if self.hooks.enabled(Stage::Deliver) {
+            self.hooks.apply(packet, Stage::Deliver).unwrap()
+        } else {
+            packet
+        };
         let normalized_question = &self.normalized_question;
         let packet_len = packet.len();
         let mut refused_packet;
-        let mut packet = if packet_len < DNS_QUERY_MIN_SIZE ||
+        let mut packet: &mut [u8] = if packet_len < DNS_QUERY_MIN_SIZE ||
             (self.proto == ClientQueryProtocol::UDP && packet_len > DNS_MAX_UDP_SIZE) ||
             (self.proto == ClientQueryProtocol::TCP && packet_len > DNS_MAX_TCP_SIZE)
         {
             refused_packet = dns::build_refused_packet(normalized_question).unwrap();
             refused_packet.as_mut()
         } else {
-            packet
+            packet.as_mut()
         };
         let tc_packet;
         let packet = if self.proto == ClientQueryProtocol::UDP &&
@@ -98,7 +104,7 @@ impl ClientQuery {
         } else {
             dns::set_tid(&mut packet, normalized_question.tid);
             dns::overwrite_qname(&mut packet, &normalized_question.qname);
-            packet
+            packet.as_ref()
         };
         match self.proto {
             ClientQueryProtocol::UDP => {
