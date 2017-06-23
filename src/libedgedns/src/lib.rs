@@ -166,7 +166,7 @@ impl EdgeDNS {
         info!("Created a UDP socket: {:?}", udp_socket.local_addr().unwrap().port());
         let tcp_listener = socket_tcp_bound(&config.listen_addr)
             .expect("Unable to create a TCP client socket");
-        info!("Created a UDP socket: {:?}", tcp_listener.local_addr().unwrap().port());
+        info!("Created a TCP socket: {:?}", tcp_listener.local_addr().unwrap().port());
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
             let log_dnstap = LogDNSTap::new(&config);
             let dnstap_sender = log_dnstap.sender();
