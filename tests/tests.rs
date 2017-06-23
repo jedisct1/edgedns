@@ -71,24 +71,6 @@ mod test {
         }
         ret
     }
-
-
-    #[test]
-    fn empty_config() {
-        let cfg = r#"
-[upstream]
-servers = ["8.8.8.8:53"]
-[network]
-listen = "127.0.0.1:0"
-udp_ports = 1
-[global]
-threads_udp = 1
-threads_tcp = 1
-"#;
-        let server = spawn_edgedns(&cfg);
-        server.done();
-    }
-
     enum Qprotocol {
         UDP,
         TCP,
@@ -121,6 +103,24 @@ threads_tcp = 1
             stderr: stderr,
             status: output.status,
         }
+    }
+
+    /* tests */
+
+    #[test]
+    fn empty_config() {
+        let cfg = r#"
+[upstream]
+servers = ["8.8.8.8:53"]
+[network]
+listen = "127.0.0.1:0"
+udp_ports = 1
+[global]
+threads_udp = 1
+threads_tcp = 1
+"#;
+        let server = spawn_edgedns(&cfg);
+        server.done();
     }
 
     #[test]
