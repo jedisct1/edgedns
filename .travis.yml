@@ -52,6 +52,11 @@ matrix:
     - os: linux
       rust: nightly
       env: TARGET=x86_64-unknown-linux-gnu
+      addons:
+        apt:
+          packages:
+            # For tests
+            - dnsutils
 
   allow_failures:
     # TODO You might need to allow failures for some target on some channel for some reason. Below
