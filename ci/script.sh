@@ -27,6 +27,7 @@ run_test_suite() {
     fi
 
     cargo build --target $TARGET --verbose
+    install_coredns
     cargo test --target $TARGET
 
     # sanity check the file type
