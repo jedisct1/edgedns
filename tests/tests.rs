@@ -18,7 +18,7 @@ mod test {
 
     use std::env;
     use std::io::Write;
-    use std::process::{exit, Output, Command, ExitStatus};
+    use std::process::{exit, Command, ExitStatus};
     use std::os::unix::io::RawFd;
     use std::os::unix::process::CommandExt;
     use std::string::String;
@@ -142,7 +142,7 @@ mod test {
     fn spawn_coredns(domain: &str, zone_str: &str) -> CoreDNS {
         let mut conf_file = NamedTempFile::new().unwrap();
         let mut zone_file = NamedTempFile::new().unwrap();
-        zone_file.write_all(zone_str.as_bytes());
+        zone_file.write_all(zone_str.as_bytes()).expect("write_all failed");
         let zfile_path = zone_file.path().to_str().unwrap();
         let conf_str = format!(r#"
 {}:0 {{
@@ -151,14 +151,14 @@ mod test {
     log stdout
 }}
 "#, domain, zfile_path);
-        conf_file.write_all(conf_str.as_bytes());
+        conf_file.write_all(conf_str.as_bytes()).expect("write_all failed");
         let cfile_path = conf_file.path().to_str().unwrap();
         let mut ret = CoreDNS {
             udp_port : 0,
             server: Server::new(),
         };
         ret.server = spawn_server(|| {
-                let cmd = Command::new("coredns")
+                Command::new("coredns")
                     .args(&["-log", "-dns.port", "0", "-conf", cfile_path])
                     .exec();
                 ::std::process::exit(1);
@@ -191,7 +191,9 @@ mod test {
     }
     struct CmdOutput {
         stdout: String,
+        #[allow(dead_code)]
         stderr: String,
+        #[allow(dead_code)]
         status: ExitStatus,
     }
     fn dig(query: &str, proto: Qprotocol, server: &str, port: u16) -> CmdOutput {
@@ -220,10 +222,7 @@ mod test {
         }
     }
 
-    /* tests */
-    #[test]
-    fn coredns_test() {
-        let coredns = spawn_coredns("example.com", r#"
+    static EXAMPLE_DOT_COM_ZONE : &'static str = r#"
 $ORIGIN example.com.     ; designates the start of this zone file in the namespace
 $TTL 1h                  ; default expiration time of all resource records without their own TTL value
 example.com.  IN  SOA   ns.example.com. username.example.com. ( 2007120710 1d 2h 4w 1h )
@@ -241,16 +240,17 @@ wwwtest       IN  CNAME www                   ; wwwtest.example.com is another a
 mail          IN  A     192.0.2.3             ; IPv4 address for mail.example.com
 mail2         IN  A     192.0.2.4             ; IPv4 address for mail2.example.com
 mail3         IN  A     192.0.2.5             ; IPv4 address for mail3.example.com
-"#);
+"#;
+
+    /* tests */
+    #[test]
+    fn coredns_test() {
+        let coredns = spawn_coredns("example.com", EXAMPLE_DOT_COM_ZONE);
         let cfg = format!(r#"
 [upstream]
 servers = ["127.0.0.1:{}"]
 [network]
 listen = "127.0.0.1:0"
-udp_ports = 1
-[global]
-threads_udp = 1
-threads_tcp = 1
 "#, coredns.udp_port);
         let server = spawn_edgedns(&cfg);
         let re = Regex::new(r"\n;; ANSWER SECTION:\nmail.example.com.\s+\d+\s+IN\s+A\s+192.0.2.3").unwrap();
@@ -259,7 +259,7 @@ threads_tcp = 1
             assert!(re.is_match(&output));
         }
         for port in &server.tcp_ports {
-            let output = dig("127.0.0.1.xip.io", Qprotocol::TCP, "127.0.0.1", *port).stdout;
+            let output = dig("mail.example.com", Qprotocol::TCP, "127.0.0.1", *port).stdout;
             println!("{}", output);
             assert!(re.is_match(&output));
         }
@@ -269,7 +269,7 @@ threads_tcp = 1
     fn empty_config() {
         let cfg = r#"
 [upstream]
-servers = ["8.8.8.8:53"]
+servers = ["127.0.0.1:53"]
 [network]
 listen = "127.0.0.1:0"
 udp_ports = 1
@@ -277,31 +277,6 @@ udp_ports = 1
 threads_udp = 1
 threads_tcp = 1
 "#;
-        let server = spawn_edgedns(&cfg);
-    }
-
-    #[test]
-    fn simple_dig_query() {
-        let cfg = r#"
-[upstream]
-servers = ["8.8.8.8:53"]
-[network]
-listen = "127.0.0.1:0"
-udp_ports = 1
-[global]
-threads_udp = 1
-threads_tcp = 1
-"#;
-        let server = spawn_edgedns(&cfg);
-        let re = Regex::new(r"\n;; ANSWER SECTION:\n127.0.0.1.xip.io.\s+\d+\s+IN\s+A\s+127.0.0.1")
-            .unwrap();
-        for port in &server.udp_ports {
-            let output = dig("127.0.0.1.xip.io", Qprotocol::UDP, "127.0.0.1", *port).stdout;
-            assert!(re.is_match(&output));
-        }
-        for port in &server.tcp_ports {
-            let output = dig("127.0.0.1.xip.io", Qprotocol::TCP, "127.0.0.1", *port).stdout;
-            assert!(re.is_match(&output));
-        }
+        spawn_edgedns(&cfg);
     }
 }
