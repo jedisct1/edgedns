@@ -28,7 +28,7 @@ run_test_suite() {
 
     cargo build --target $TARGET --verbose
     install_coredns
-    cargo test --target $TARGET
+    RUST_BACKTRACE=1 cargo test --target $TARGET
 
     # sanity check the file type
     file target/$TARGET/debug/edgedns
