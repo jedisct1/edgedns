@@ -69,3 +69,14 @@ architecture() {
             ;;
     esac
 }
+
+install_coredns() {
+    eval "$(GIMME_GO_VERSION=1.8 gimme)"
+    local tmpd=$(mktempd)
+    go version
+    cd $tmpd
+    export GOPATH=$(pwd)
+    go get github.com/coredns/coredns
+    export PATH=${tmpd}/bin:$PATH
+    cd -
+}

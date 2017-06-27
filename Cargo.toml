@@ -10,6 +10,11 @@ clippy = ["libedgedns/clippy"]
 
 default = ["nightly", "webservice"]
 
+[dev-dependencies]
+nix = "*"
+regex = "*"
+tempfile = "*"
+
 [dependencies.libedgedns]
 path = "src/libedgedns"
 
