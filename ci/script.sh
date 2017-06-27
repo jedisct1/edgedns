@@ -27,8 +27,12 @@ run_test_suite() {
     fi
 
     cargo build --target $TARGET --verbose
-    install_coredns
-    RUST_BACKTRACE=1 cargo test --target $TARGET
+    case $TARGET in
+	    x86_64-unknown-linux-gnu)
+            install_coredns
+	    RUST_BACKTRACE=1 cargo test --target $TARGET
+            ;;
+    esac
 
     # sanity check the file type
     file target/$TARGET/debug/edgedns
