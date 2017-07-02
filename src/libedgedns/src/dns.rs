@@ -10,7 +10,7 @@ use super::{DNS_QUERY_MIN_SIZE, DNS_UDP_NOEDNS0_MAX_SIZE};
 pub const DNS_CLASS_CH: u16 = 3;
 pub const DNS_CLASS_IN: u16 = 1;
 pub const DNS_HEADER_SIZE: usize = 12;
-pub const DNS_MAX_HOSTNAME_LEN: usize = 256;
+pub const DNS_MAX_HOSTNAME_LEN: usize = 255;
 pub const DNS_MAX_PACKET_SIZE: usize = 65535;
 pub const DNS_OFFSET_EDNS_DO: usize = 6;
 pub const DNS_OFFSET_EDNS_PAYLOAD_SIZE: usize = 2;
