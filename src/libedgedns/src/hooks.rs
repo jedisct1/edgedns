@@ -43,7 +43,13 @@ impl Hooks {
         let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> ()> =
             unsafe { dlh.get(b"hook").unwrap() };
 
-        let ds = DNSSector::new(packet).expect("cannot parse packet");
+        let ds = match DNSSector::new(packet) {
+            Ok(ds) => ds,
+            Err(e) => {
+                warn!("{}", e);
+                return None;
+            }
+        };
         let mut parsed_packet = ds.parse().expect("cannot run parser");
 
         let fn_table = c_abi::fn_table();
