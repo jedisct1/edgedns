@@ -46,7 +46,7 @@ impl Hooks {
         let ds = match DNSSector::new(packet) {
             Ok(ds) => ds,
             Err(e) => {
-                warn!("{}", e);
+                warn!("Cannot parse packet: {}", e);
                 return None;
             }
         };
