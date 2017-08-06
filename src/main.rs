@@ -1,6 +1,5 @@
 //! Import all the required crates, instanciate the main components and start
 //! the service.
-
 #![feature(conservative_impl_trait)]
 #![allow(dead_code, unused_imports, unused_variables)]
 
@@ -10,7 +9,7 @@ extern crate libedgedns;
 #[macro_use]
 extern crate log;
 
-use clap::{Arg, App};
+use clap::{App, Arg};
 use libedgedns::{Config, EdgeDNS};
 
 fn main() {

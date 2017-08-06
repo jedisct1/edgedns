@@ -16,7 +16,7 @@ use std::io::{self, Read, Write};
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::time;
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 use std::thread;
 use super::EdgeDNSContext;
 use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE, MAX_TCP_IDLE_MS};
@@ -155,8 +155,8 @@ impl TcpAcceptor {
             debug!("Expected length: {}", expected_len);
             future::ok((rh, expected_len))
         });
-        let fut_packet_read = fut_expected_len
-            .and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
+        let fut_packet_read =
+            fut_expected_len.and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
         let varz = self.varz.clone();
         let tcp_client_query = TcpClientQuery::new(self, wh);
         let fut_packet = fut_packet_read.and_then(move |(rh, packet)| {

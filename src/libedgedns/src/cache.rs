@@ -175,8 +175,8 @@ impl Cache {
             normalized_question.qtype == dns::DNS_TYPE_TXT
         {
             debug!("CHAOS TXT");
-            let packet = dns::build_version_packet(normalized_question, self.config.max_ttl)
-                .unwrap();
+            let packet =
+                dns::build_version_packet(normalized_question, self.config.max_ttl).unwrap();
             return Some(packet);
         }
         None

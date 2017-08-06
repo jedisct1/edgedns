@@ -10,8 +10,8 @@ use config::Config;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::Arc;
-use super::{UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MIN_TIMEOUT_MS,
-            UPSTREAM_QUERY_MAX_TIMEOUT_MS};
+use super::{UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MAX_TIMEOUT_MS,
+            UPSTREAM_QUERY_MIN_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use upstream_probe::UpstreamProbe;
 use varz::Varz;
@@ -127,8 +127,8 @@ impl UpstreamServer {
             None => UPSTREAM_QUERY_MAX_TIMEOUT_MS,
             Some(rtt_est) => {
                 let timeout = ((rtt_est +
-                                    self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
-                                   1000.0) as u64;
+                    self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
+                    1000.0) as u64;
                 if timeout < UPSTREAM_QUERY_MIN_TIMEOUT_MS {
                     UPSTREAM_QUERY_MIN_TIMEOUT_MS
                 } else if timeout > UPSTREAM_QUERY_MAX_TIMEOUT_MS {

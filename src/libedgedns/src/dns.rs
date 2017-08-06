@@ -5,7 +5,7 @@ use rand::random;
 use std::fmt;
 use std::io::Write;
 
-use super::{DNS_QUERY_MIN_SIZE, DNS_UDP_NOEDNS0_MAX_SIZE};
+use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 pub const DNS_CLASS_CH: u16 = 3;
 pub const DNS_CLASS_IN: u16 = 1;

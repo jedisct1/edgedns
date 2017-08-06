@@ -27,7 +27,7 @@ net2 = "*"
 nix = "~0.8 "
 parking_lot = "*"
 privdrop = "*"
-prometheus = {version = "*", default-features = false}
+prometheus = {git = "https://github.com/pingcap/rust-prometheus", default-features = false}
 rand = "*"
 siphasher = "*"
 slab = "*"

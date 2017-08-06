@@ -2,7 +2,7 @@
 //!
 //! This provides a consistent interface with TCP sockets.
 
-use futures::{Async, Stream, Poll};
+use futures::{Async, Poll, Stream};
 use net::SocketAddr;
 use std::io;
 use std::net;

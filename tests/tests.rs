@@ -12,7 +12,7 @@ mod test {
     use nix::sys::ioctl::libc::pid_t;
     use nix::unistd::{fork, read, ForkResult, dup2};
     use nix::sys::ioctl::libc::alarm;
-    use nix::sys::socket::{socketpair, AddressFamily, SockType, SockFlag};
+    use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
 
     use regex::Regex;
 
@@ -38,9 +38,13 @@ mod test {
         output: RawFd,
     }
     impl Server {
-            pub fn new() -> Server {
-                Server{pid: 0, startup_text: String::from(""), output: 0}
+        pub fn new() -> Server {
+            Server {
+                pid: 0,
+                startup_text: String::from(""),
+                output: 0,
             }
+        }
     }
 
     impl Drop for Server {
@@ -52,8 +56,9 @@ mod test {
     }
 
     fn spawn_server<F1, F2>(child_fn: F1, mut is_ready: F2, timeout: Duration) -> Server
-        where F1: Fn() -> (),
-              F2: FnMut(&str, pid_t) -> bool
+    where
+        F1: Fn() -> (),
+        F2: FnMut(&str, pid_t) -> bool,
     {
 
         let mut server = Server {
@@ -105,18 +110,19 @@ mod test {
         let mut ret = EdgeDNSInstance {
             udp_ports: Vec::new(),
             tcp_ports: Vec::new(),
-            server: spawn_server(|| {
-                                     env::set_var("RUST_LOG", "info");
-                                     env_logger::init().expect("Failed to init logger");
-                                     let config = Config::from_string(cfg_str);
-                                     assert!(config.is_ok());
-                                     EdgeDNS::new(config.unwrap());
-                                 },
-                                 |out, _| {
-                                     out.contains("UDP listener is ready") &&
-                                     out.contains("TCP listener is ready")
-                                 },
-                                 Duration::new(5, 0)),
+            server: spawn_server(
+                || {
+                    env::set_var("RUST_LOG", "info");
+                    env_logger::init().expect("Failed to init logger");
+                    let config = Config::from_string(cfg_str);
+                    assert!(config.is_ok());
+                    EdgeDNS::new(config.unwrap());
+                },
+                |out, _| {
+                    out.contains("UDP listener is ready") && out.contains("TCP listener is ready")
+                },
+                Duration::new(5, 0),
+            ),
         };
 
         for proto in ["TCP", "UDP"].iter() {
@@ -142,22 +148,31 @@ mod test {
     fn spawn_coredns(domain: &str, zone_str: &str) -> CoreDNS {
         let mut conf_file = NamedTempFile::new().unwrap();
         let mut zone_file = NamedTempFile::new().unwrap();
-        zone_file.write_all(zone_str.as_bytes()).expect("write_all failed");
+        zone_file
+            .write_all(zone_str.as_bytes())
+            .expect("write_all failed");
         let zfile_path = zone_file.path().to_str().unwrap();
-        let conf_str = format!(r#"
+        let conf_str = format!(
+            r#"
 {}:0 {{
     file {}
     errors stdout
     log stdout
 }}
-"#, domain, zfile_path);
-        conf_file.write_all(conf_str.as_bytes()).expect("write_all failed");
+"#,
+            domain,
+            zfile_path
+        );
+        conf_file
+            .write_all(conf_str.as_bytes())
+            .expect("write_all failed");
         let cfile_path = conf_file.path().to_str().unwrap();
         let mut ret = CoreDNS {
-            udp_port : 0,
+            udp_port: 0,
             server: Server::new(),
         };
-        ret.server = spawn_server(|| {
+        ret.server = spawn_server(
+            || {
                 Command::new("coredns")
                     .args(&["-log", "-dns.port", "0", "-conf", cfile_path])
                     .exec();
@@ -181,7 +196,8 @@ mod test {
                 ret.udp_port = udp_port;
                 true
             },
-            Duration::new(5, 0));
+            Duration::new(5, 0),
+        );
         ret
     }
 
@@ -246,14 +262,19 @@ mail3         IN  A     192.0.2.5             ; IPv4 address for mail3.example.c
     #[test]
     fn coredns_test() {
         let coredns = spawn_coredns("example.com", EXAMPLE_DOT_COM_ZONE);
-        let cfg = format!(r#"
+        let cfg = format!(
+            r#"
 [upstream]
 servers = ["127.0.0.1:{}"]
 [network]
 listen = "127.0.0.1:0"
-"#, coredns.udp_port);
+"#,
+            coredns.udp_port
+        );
         let server = spawn_edgedns(&cfg);
-        let re = Regex::new(r"\n;; ANSWER SECTION:\nmail.example.com.\s+\d+\s+IN\s+A\s+192.0.2.3").unwrap();
+        let re = Regex::new(
+            r"\n;; ANSWER SECTION:\nmail.example.com.\s+\d+\s+IN\s+A\s+192.0.2.3",
+        ).unwrap();
         for port in &server.udp_ports {
             let output = dig("mail.example.com", Qprotocol::UDP, "127.0.0.1", *port).stdout;
             assert!(re.is_match(&output));

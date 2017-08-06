@@ -4,7 +4,7 @@ use futures::future::{self, FutureResult};
 use hyper;
 use hyper::header::{ContentLength, ContentType};
 use hyper::mime::Mime;
-use hyper::server::{Http, Service, Server, Request, Response};
+use hyper::server::{Http, Request, Response, Server, Service};
 use hyper::{StatusCode, Uri};
 use prometheus::{self, Encoder, TextEncoder};
 use std::io;
@@ -33,8 +33,8 @@ impl Service for WebService {
         let StartInstant(start_instant) = self.varz.start_instant;
         let uptime = start_instant.elapsed().as_secs();
         self.varz.uptime.set(uptime as f64);
-        let client_queries = self.varz.client_queries_udp.get() +
-            self.varz.client_queries_tcp.get();
+        let client_queries =
+            self.varz.client_queries_udp.get() + self.varz.client_queries_tcp.get();
         self.varz.client_queries.set(client_queries);
         let metric_families = prometheus::gather();
         let mut buffer = vec![];
@@ -51,7 +51,9 @@ impl Service for WebService {
 
 impl WebService {
     fn new(edgedns_context: &EdgeDNSContext) -> WebService {
-        WebService { varz: edgedns_context.varz.clone() }
+        WebService {
+            varz: edgedns_context.varz.clone(),
+        }
     }
 
     pub fn spawn(
