@@ -79,7 +79,10 @@ impl ClientQuery {
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
         let mut packet = if self.hooks.enabled(Stage::Deliver) {
-            self.hooks.apply(packet, Stage::Deliver).unwrap()
+            match self.hooks.apply_clientside(&self, packet, Stage::Deliver) {
+                Ok(packet) => packet,
+                Err(e) => return Box::new(future::err(io::Error::last_os_error())),
+            }
         } else {
             packet
         };

@@ -1,5 +1,6 @@
 //! Pre/post cache/request hooks
 
+use client_query::ClientQuery;
 use dnssector::c_abi::{self, FnTable};
 use dnssector::{DNSSector, ParsedPacket};
 use nix::libc::c_void;
@@ -35,9 +36,14 @@ impl Hooks {
         self.dlh.is_some()
     }
 
-    pub fn apply(&self, packet: Vec<u8>, stage: Stage) -> Option<Vec<u8>> {
+    pub fn apply_clientside(
+        &self,
+        client_query: &ClientQuery,
+        packet: Vec<u8>,
+        stage: Stage,
+    ) -> Result<Vec<u8>, &'static str> {
         if !self.enabled(stage) {
-            return None;
+            return Ok(packet);
         }
         let dlh = self.dlh.as_ref().unwrap();
         let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> ()> =
@@ -47,16 +53,51 @@ impl Hooks {
             Ok(ds) => ds,
             Err(e) => {
                 warn!("Cannot parse packet: {}", e);
-                return None;
+                return Err("Cannot parse packet");
             }
         };
-        let mut parsed_packet = ds.parse().expect("cannot run parser");
+        let mut parsed_packet = match ds.parse() {
+            Ok(parsed_packet) => parsed_packet,
+            Err(e) => {
+                warn!("Invalid packet: {}", e);
+                return Err("Invalid packet");
+            }
+        };
 
         let fn_table = c_abi::fn_table();
         unsafe { hook(&fn_table, &mut parsed_packet) }
 
         let packet = parsed_packet.into_packet();
+        Ok(packet)
+    }
 
-        Some(packet)
+    pub fn apply_serverside(&self, packet: Vec<u8>, stage: Stage) -> Result<Vec<u8>, &'static str> {
+        if !self.enabled(stage) {
+            return Ok(packet);
+        }
+        let dlh = self.dlh.as_ref().unwrap();
+        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> ()> =
+            unsafe { dlh.get(b"hook").unwrap() };
+
+        let ds = match DNSSector::new(packet) {
+            Ok(ds) => ds,
+            Err(e) => {
+                warn!("Cannot parse packet: {}", e);
+                return Err("Cannot parse packet");
+            }
+        };
+        let mut parsed_packet = match ds.parse() {
+            Ok(parsed_packet) => parsed_packet,
+            Err(e) => {
+                warn!("Invalid packet: {}", e);
+                return Err("Invalid packet");
+            }
+        };
+
+        let fn_table = c_abi::fn_table();
+        unsafe { hook(&fn_table, &mut parsed_packet) }
+
+        let packet = parsed_packet.into_packet();
+        Ok(packet)
     }
 }
