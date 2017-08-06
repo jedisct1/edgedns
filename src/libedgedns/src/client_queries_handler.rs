@@ -22,7 +22,7 @@ use parking_lot::RwLock;
 use pending_query::{PendingQueries, PendingQuery};
 use rand::distributions::{IndependentSample, Range};
 use rand;
-use resolver::{ResolverCore, LoadBalancingMode};
+use resolver::{LoadBalancingMode, ResolverCore};
 use std::io;
 use std::net;
 use std::rc::Rc;
@@ -30,7 +30,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::time;
-use super::{UPSTREAM_QUERY_MAX_TIMEOUT_MS, UPSTREAM_PROBES_DELAY_MS};
+use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use tokio_timer::{wheel, Timer};
 use upstream_server::UpstreamServer;
@@ -197,8 +197,8 @@ impl ClientQueriesHandler {
         }
         let mut rng = rand::thread_rng();
         let random_offline_server_range = Range::new(0usize, offline_servers.len());
-        let random_offline_server_idx = offline_servers[random_offline_server_range
-                                                            .ind_sample(&mut rng)];
+        let random_offline_server_idx =
+            offline_servers[random_offline_server_range.ind_sample(&mut rng)];
         let mut random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
             if last_probe_ts.elapsed_since_recent() <
@@ -409,8 +409,8 @@ impl ClientQueriesHandler {
                 let mut map = map_arc.write();
                 if let Some(pending_query) = map.remove(&key) {
                     varz.inflight_queries.dec();
-                    let fut = retry_query
-                        .maybe_respond_to_all_clients_with_stale_entry(&pending_query);
+                    let fut =
+                        retry_query.maybe_respond_to_all_clients_with_stale_entry(&pending_query);
                     let _ = pending_query.done_tx.send(());
                     waiting_clients_count.fetch_sub(pending_query.client_queries.len(), Relaxed);
                     return fut;
@@ -479,8 +479,8 @@ impl NormalizedQuestion {
         ),
         &'static str,
     > {
-        let (query_packet, normalized_question_minimal) = dns::build_query_packet(self, false)
-            .expect("Unable to build a new query packet");
+        let (query_packet, normalized_question_minimal) =
+            dns::build_query_packet(self, false).expect("Unable to build a new query packet");
         let upstream_server_idx = match self.pick_upstream(
             upstream_servers,
             upstream_servers_live,

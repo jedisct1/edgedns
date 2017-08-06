@@ -1,10 +1,8 @@
 //! Import all the required crates, instanciate the main components and start
 //! the service.
-
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-#![cfg_attr(feature="clippy", allow(identity_op, ptr_arg, collapsible_if, let_and_return))]
-
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(feature = "clippy", allow(identity_op, ptr_arg, collapsible_if, let_and_return))]
 #![feature(conservative_impl_trait)]
 #![allow(dead_code, unused_imports, unused_variables)]
 
@@ -167,10 +165,10 @@ impl EdgeDNS {
         let varz = Arc::new(Varz::new());
         let hooks = Arc::new(Hooks::new());
         let cache = Cache::new(config.clone());
-        let udp_socket = socket_udp_bound(&config.listen_addr)
-            .expect("Unable to create a UDP client socket");
-        let tcp_listener = socket_tcp_bound(&config.listen_addr)
-            .expect("Unable to create a TCP client socket");
+        let udp_socket =
+            socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");
+        let tcp_listener =
+            socket_tcp_bound(&config.listen_addr).expect("Unable to create a TCP client socket");
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
             let log_dnstap = LogDNSTap::new(&config);
             let dnstap_sender = log_dnstap.sender();
@@ -190,8 +188,8 @@ impl EdgeDNS {
             tcp_arbitrator: tcp_arbitrator,
             dnstap_sender: dnstap_sender,
         };
-        let resolver_tx = ResolverCore::spawn(&edgedns_context)
-            .expect("Unable to spawn the resolver");
+        let resolver_tx =
+            ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");
         let (service_ready_tx, service_ready_rx) = mpsc::sync_channel::<u8>(1);
         let mut tasks: Vec<thread::JoinHandle<()>> = Vec::new();
         for _ in 0..config.udp_acceptor_threads {

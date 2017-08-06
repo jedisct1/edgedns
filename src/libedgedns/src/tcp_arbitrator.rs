@@ -54,21 +54,20 @@ impl TcpArbitrator {
         };
         let mut slab = &mut self.sessions_mx.lock().slab;
         self.recycle_slot_if_full(&mut slab, h);
-        match slab.insert(session) {
-            Err(_) => {
-                warn!("Tcp arbitrator slab is full");
-                Err("Tcp arbitrator slab is full")
-            }
-            Ok(idx) => Ok((session_rx, idx)),
+        if slab.len() == slab.capacity() {
+            warn!("Tcp arbitrator slab is full");
+            return Err("Tcp arbitrator slab is full");
         }
+        let idx = slab.insert(session);
+        Ok((session_rx, idx))
     }
 
-    pub fn delete_session(&mut self, idx: usize) -> Option<()> {
-        self.sessions_mx.lock().slab.remove(idx).map(|_| {})
+    pub fn delete_session(&mut self, idx: usize) {
+        self.sessions_mx.lock().slab.remove(idx);
     }
 
     fn recycle_slot_if_full(&self, mut slab: &mut Slab<Session>, h: u64) {
-        if slab.has_available() {
+        if slab.len() < slab.capacity() {
             return;
         }
         let mut rng = rand::thread_rng();
@@ -77,23 +76,22 @@ impl TcpArbitrator {
         let base_slot = (h as usize) % capacity;
         let mut new_slot = None;
         for i in 0..MAX_TCP_HASH_DISTANCE {
-            let probed_slot = (base_slot + (random_distance + i) % MAX_TCP_HASH_DISTANCE) %
-                capacity;
+            let probed_slot =
+                (base_slot + (random_distance + i) % MAX_TCP_HASH_DISTANCE) % capacity;
             match slab.get(probed_slot) {
                 None => {
                     new_slot = Some(probed_slot);
                     break;
                 }
-                Some(session) => {
-                    if session.h == h {
-                        new_slot = Some(probed_slot);
-                        break;
-                    }
-                }
+                Some(session) => if session.h == h {
+                    new_slot = Some(probed_slot);
+                    break;
+                },
             }
         }
         let new_slot = new_slot.unwrap_or((base_slot + random_distance) % MAX_TCP_HASH_DISTANCE);
-        if let Some(prev_session) = slab.remove(new_slot) {
+        if slab.contains(new_slot) {
+            let prev_session = slab.remove(new_slot);
             info!("Recycling session index {}", new_slot);
             let _ = prev_session.session_tx.send(());
         }

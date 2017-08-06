@@ -11,7 +11,7 @@ use hooks::{Hooks, Stage};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
-use super::{DNS_QUERY_MIN_SIZE, DNS_MAX_UDP_SIZE, DNS_MAX_TCP_SIZE};
+use super::{DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE};
 use varz::Varz;
 
 #[derive(Clone, Debug)]

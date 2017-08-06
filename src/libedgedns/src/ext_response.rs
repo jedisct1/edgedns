@@ -16,13 +16,13 @@
 use cache::Cache;
 use client_query::ClientQuery;
 use config::Config;
-use dns::{NormalizedQuestionKey, normalize, tid, min_ttl, set_ttl, rcode, DNS_RCODE_SERVFAIL};
+use dns::{min_ttl, normalize, rcode, set_ttl, tid, NormalizedQuestionKey, DNS_RCODE_SERVFAIL};
 use futures::Future;
 use futures::Stream;
 use futures::future;
 use log_dnstap;
 use parking_lot::RwLock;
-use pending_query::{PendingQuery, PendingQueries};
+use pending_query::{PendingQueries, PendingQuery};
 use resolver::ResolverCore;
 use std::io;
 use std::net::{self, SocketAddr};
@@ -151,19 +151,17 @@ impl ExtResponse {
                 self.varz.upstream_errors.inc();
                 Err("Unexpected RRs in a response")
             }
-            Ok(ttl) => {
-                if rcode(packet) == DNS_RCODE_SERVFAIL {
-                    let _ = set_ttl(&mut packet, FAILURE_TTL);
-                    Ok(FAILURE_TTL)
-                } else if ttl < self.config.min_ttl {
-                    if self.decrement_ttl {
-                        let _ = set_ttl(&mut packet, self.config.min_ttl);
-                    }
-                    Ok(self.config.min_ttl)
-                } else {
-                    Ok(ttl)
+            Ok(ttl) => if rcode(packet) == DNS_RCODE_SERVFAIL {
+                let _ = set_ttl(&mut packet, FAILURE_TTL);
+                Ok(FAILURE_TTL)
+            } else if ttl < self.config.min_ttl {
+                if self.decrement_ttl {
+                    let _ = set_ttl(&mut packet, self.config.min_ttl);
                 }
-            }
+                Ok(self.config.min_ttl)
+            } else {
+                Ok(ttl)
+            },
         }
     }
 
@@ -279,11 +277,10 @@ impl ExtResponse {
         self.varz
             .upstream_response_sizes
             .observe(packet.len() as f64);
-        if let Some(pending_query) =
-            self.pending_queries
-                .map_arc
-                .write()
-                .remove(&normalized_question_key)
+        if let Some(pending_query) = self.pending_queries
+            .map_arc
+            .write()
+            .remove(&normalized_question_key)
         {
             self.varz.inflight_queries.dec();
             let _ = pending_query.done_tx.send(());

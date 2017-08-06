@@ -22,14 +22,14 @@ use hooks::Hooks;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 use std::thread;
 use super::EdgeDNSContext;
 use tokio_core::reactor::{Core, Handle};
 use udp_stream::*;
 use varz::Varz;
 
-use super::{DNS_QUERY_MIN_SIZE, DNS_QUERY_MAX_SIZE};
+use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 struct UdpAcceptor {
     net_udp_socket: net::UdpSocket,

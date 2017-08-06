@@ -17,7 +17,7 @@ use futures::sync::oneshot;
 use jumphash::JumpHasher;
 use log_dnstap;
 use net_helpers::*;
-use nix::sys::socket::{bind, setsockopt, sockopt, SockAddr, InetAddr};
+use nix::sys::socket::{bind, setsockopt, sockopt, InetAddr, SockAddr};
 use parking_lot::RwLock;
 use pending_query::{PendingQueries, PendingQuery};
 use std::collections::HashMap;
@@ -135,8 +135,8 @@ impl ResolverCore {
                         &resolver_core,
                         net_ext_udp_socket.local_addr().unwrap().port(),
                     );
-                    let stream = ext_response_listener
-                        .fut_process_stream(&handle, net_ext_udp_socket);
+                    let stream =
+                        ext_response_listener.fut_process_stream(&handle, net_ext_udp_socket);
                     handle.spawn(stream.map_err(|_| {}).map(|_| {}));
                 }
                 let client_queries_handler = ClientQueriesHandler::new(&resolver_core);

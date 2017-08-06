@@ -3,7 +3,7 @@
 use dnssector::c_abi::{self, FnTable};
 use dnssector::{DNSSector, ParsedPacket};
 use nix::libc::c_void;
-use libloading::{Symbol, Library};
+use libloading::{Library, Symbol};
 
 pub enum Stage {
     Deliver,
