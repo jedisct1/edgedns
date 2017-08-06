@@ -87,8 +87,8 @@ use varz::*;
 use webservice::*;
 
 const CLOCK_RESOLUTION: u64 = 100;
-const DNS_MAX_SIZE: usize = 65535;
-const DNS_MAX_TCP_SIZE: usize = 65535;
+const DNS_MAX_SIZE: usize = 65_535;
+const DNS_MAX_TCP_SIZE: usize = 65_535;
 const DNS_MAX_UDP_SIZE: usize = 4096;
 const DNS_QUERY_MAX_SIZE: usize = 283;
 const DNS_QUERY_MIN_SIZE: usize = 17;

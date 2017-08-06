@@ -71,8 +71,8 @@ impl ResolverCore {
             channel(edgedns_context.config.max_active_queries);
         let pending_queries = PendingQueries::new();
         let mut net_ext_udp_sockets: Vec<net::UdpSocket> = Vec::new();
-        let ports = if config.udp_ports > 65535 - 1024 {
-            65535 - 1024
+        let ports = if config.udp_ports > 65_535 - 1024 {
+            65_535 - 1024
         } else {
             config.udp_ports
         };
