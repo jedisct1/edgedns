@@ -67,7 +67,7 @@ impl Hooks {
 
     pub fn apply_clientside(
         &self,
-        client_query: &ClientQuery,
+        session_state: SessionState,
         packet: Vec<u8>,
         stage: Stage,
     ) -> Result<(Action, Vec<u8>), &'static str> {
