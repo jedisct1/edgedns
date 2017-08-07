@@ -30,6 +30,7 @@ impl From<c_int> for Action {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Stage {
     Recv,
     Deliver,
@@ -71,8 +72,12 @@ impl Hooks {
             return Ok((Action::Pass, packet));
         }
         let dlh = self.dlh.as_ref().unwrap();
+        let symbol = match stage {
+            Stage::Recv => "hook_recv",
+            Stage::Deliver => "hook_deliver"
+        };
         let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int> =
-            unsafe { dlh.get(b"hook").unwrap() };
+            unsafe { dlh.get(symbol.as_bytes()).unwrap() };
 
         let ds = match DNSSector::new(packet) {
             Ok(ds) => ds,
