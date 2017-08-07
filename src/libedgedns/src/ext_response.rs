@@ -176,7 +176,7 @@ impl ExtResponse {
                 None => {
                     self.cache
                         .insert(normalized_question_key, packet, FAILURE_TTL);
-                }                
+                }
                 Some(cache_entry) => {
                     self.varz.client_queries_offline.inc();
                     self.cache
@@ -219,7 +219,7 @@ impl ExtResponse {
     ) -> Result<(), &'static str> {
         let map = self.pending_queries.map_arc.read();
         let pending_query = match map.get(normalized_question_key) {
-            None => return Err("No clients waiting for this query"),                
+            None => return Err("No clients waiting for this query"),
             Some(pending_query) => pending_query,
         };
         if let Err(e) = self.verify_ext_response(pending_query, packet, client_addr) {
