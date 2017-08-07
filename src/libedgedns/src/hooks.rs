@@ -8,6 +8,9 @@ use libloading::{Library, Symbol};
 use std::mem;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct SessionState;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Action {
     Pass = 1,
     Lookup,

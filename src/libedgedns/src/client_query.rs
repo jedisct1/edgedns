@@ -7,7 +7,7 @@ use dns::{self, NormalizedQuestion};
 use futures::sync::mpsc::Sender;
 use futures::{future, Future};
 use futures::Sink;
-use hooks::{Hooks, Stage};
+use hooks::{Hooks, Stage, SessionState};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
@@ -35,6 +35,7 @@ pub struct ClientQuery {
     pub ts: Instant,
     pub varz: Arc<Varz>,
     pub hooks: Arc<Hooks>,
+    pub session_state: SessionState
 }
 
 impl ClientQuery {
@@ -52,6 +53,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             varz: varz,
             hooks: hooks,
+            session_state: SessionState { }
         }
     }
 
@@ -69,6 +71,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             varz: varz.clone(),
             hooks: hooks.clone(),
+            session_state: SessionState { }
         }
     }
 
