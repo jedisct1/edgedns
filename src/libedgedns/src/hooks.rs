@@ -3,10 +3,35 @@
 use client_query::ClientQuery;
 use dnssector::c_abi::{self, FnTable};
 use dnssector::{DNSSector, ParsedPacket};
-use nix::libc::c_void;
+use nix::libc::{c_int, c_void};
 use libloading::{Library, Symbol};
+use std::mem;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Action {
+    Pass = 1,
+    Lookup,
+    Drop,
+}
+
+impl From<Action> for c_int {
+    fn from(v: Action) -> c_int {
+        unsafe { mem::transmute(v as c_int) }
+    }
+}
+
+impl From<c_int> for Action {
+    fn from(id: c_int) -> Action {
+        match id {
+            x if x == Action::Pass.into() => Action::Pass,
+            x if x == Action::Lookup.into() => Action::Lookup,
+            _ => Action::Drop
+        }
+    }
+}
 
 pub enum Stage {
+    Recv,
     Deliver,
 }
 
@@ -41,12 +66,12 @@ impl Hooks {
         client_query: &ClientQuery,
         packet: Vec<u8>,
         stage: Stage,
-    ) -> Result<Vec<u8>, &'static str> {
+    ) -> Result<(Action, Vec<u8>), &'static str> {
         if !self.enabled(stage) {
-            return Ok(packet);
+            return Ok((Action::Pass, packet));
         }
         let dlh = self.dlh.as_ref().unwrap();
-        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> ()> =
+        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int> =
             unsafe { dlh.get(b"hook").unwrap() };
 
         let ds = match DNSSector::new(packet) {
@@ -65,18 +90,18 @@ impl Hooks {
         };
 
         let fn_table = c_abi::fn_table();
-        unsafe { hook(&fn_table, &mut parsed_packet) }
+        let action = unsafe { hook(&fn_table, &mut parsed_packet) }.into();
 
         let packet = parsed_packet.into_packet();
-        Ok(packet)
+        Ok((action, packet))
     }
 
-    pub fn apply_serverside(&self, packet: Vec<u8>, stage: Stage) -> Result<Vec<u8>, &'static str> {
+    pub fn apply_serverside(&self, packet: Vec<u8>, stage: Stage) -> Result<(Action, Vec<u8>), &'static str> {
         if !self.enabled(stage) {
-            return Ok(packet);
+            return Ok((Action::Pass, packet));
         }
         let dlh = self.dlh.as_ref().unwrap();
-        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> ()> =
+        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int> =
             unsafe { dlh.get(b"hook").unwrap() };
 
         let ds = match DNSSector::new(packet) {
@@ -95,9 +120,9 @@ impl Hooks {
         };
 
         let fn_table = c_abi::fn_table();
-        unsafe { hook(&fn_table, &mut parsed_packet) }
+        let action = unsafe { hook(&fn_table, &mut parsed_packet) }.into();
 
         let packet = parsed_packet.into_packet();
-        Ok(packet)
+        Ok((action, packet))
     }
 }
