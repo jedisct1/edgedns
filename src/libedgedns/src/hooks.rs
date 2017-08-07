@@ -25,7 +25,7 @@ impl From<c_int> for Action {
         match id {
             x if x == Action::Pass.into() => Action::Pass,
             x if x == Action::Lookup.into() => Action::Lookup,
-            _ => Action::Drop
+            _ => Action::Drop,
         }
     }
 }
@@ -74,7 +74,7 @@ impl Hooks {
         let dlh = self.dlh.as_ref().unwrap();
         let symbol = match stage {
             Stage::Recv => "hook_recv",
-            Stage::Deliver => "hook_deliver"
+            Stage::Deliver => "hook_deliver",
         };
         let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int> =
             unsafe { dlh.get(symbol.as_bytes()).unwrap() };
@@ -101,7 +101,11 @@ impl Hooks {
         Ok((action, packet))
     }
 
-    pub fn apply_serverside(&self, packet: Vec<u8>, stage: Stage) -> Result<(Action, Vec<u8>), &'static str> {
+    pub fn apply_serverside(
+        &self,
+        packet: Vec<u8>,
+        stage: Stage,
+    ) -> Result<(Action, Vec<u8>), &'static str> {
         if !self.enabled(stage) {
             return Ok((Action::Pass, packet));
         }
