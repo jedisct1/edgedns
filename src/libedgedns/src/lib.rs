@@ -7,11 +7,11 @@
 #![allow(dead_code, unused_imports, unused_variables)]
 
 extern crate base64;
-extern crate byteorder;
-extern crate clockpro_cache;
 #[macro_use]
 extern crate bpf;
+extern crate byteorder;
 extern crate bytes;
+extern crate clockpro_cache;
 extern crate coarsetime;
 extern crate dnssector;
 extern crate dnstap;

@@ -7,7 +7,7 @@ use dns::{self, NormalizedQuestion};
 use futures::sync::mpsc::Sender;
 use futures::{future, Future};
 use futures::Sink;
-use hooks::{Hooks, Stage, SessionState};
+use hooks::{Hooks, SessionState, Stage};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
@@ -35,7 +35,7 @@ pub struct ClientQuery {
     pub ts: Instant,
     pub varz: Arc<Varz>,
     pub hooks: Arc<Hooks>,
-    pub session_state: SessionState
+    pub session_state: SessionState,
 }
 
 impl ClientQuery {
@@ -53,7 +53,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             varz: varz,
             hooks: hooks,
-            session_state: SessionState { }
+            session_state: SessionState {},
         }
     }
 
@@ -71,7 +71,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             varz: varz.clone(),
             hooks: hooks.clone(),
-            session_state: SessionState { }
+            session_state: SessionState {},
         }
     }
 
@@ -82,7 +82,9 @@ impl ClientQuery {
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
         let mut packet = if self.hooks.enabled(Stage::Deliver) {
-            match self.hooks.apply_clientside(self.session_state, packet, Stage::Deliver) {
+            match self.hooks
+                .apply_clientside(self.session_state, packet, Stage::Deliver)
+            {
                 Ok((_action, packet)) => packet,
                 Err(e) => return Box::new(future::err(io::Error::last_os_error())),
             }

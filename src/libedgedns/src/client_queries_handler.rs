@@ -401,8 +401,11 @@ impl ClientQueriesHandler {
                         upstream_server_idx,
                         upstream_servers[upstream_server_idx].pending_queries_count
                     );
-                    upstream_servers[upstream_server_idx]
-                        .record_failure(&config, &handle, &net_ext_udp_sockets_rc);
+                    upstream_servers[upstream_server_idx].record_failure(
+                        &config,
+                        &handle,
+                        &net_ext_udp_sockets_rc,
+                    );
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }
