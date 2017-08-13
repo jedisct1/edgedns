@@ -66,7 +66,7 @@ impl TcpArbitrator {
         self.sessions_mx.lock().slab.remove(idx);
     }
 
-    fn recycle_slot_if_full(&self, mut slab: &mut Slab<Session>, h: u64) {
+    fn recycle_slot_if_full(&self, slab: &mut Slab<Session>, h: u64) {
         if slab.len() < slab.capacity() {
             return;
         }
