@@ -19,7 +19,7 @@ pub enum Action {
 
 impl From<Action> for c_int {
     fn from(v: Action) -> c_int {
-        unsafe { mem::transmute(v as c_int) }
+        v as c_int
     }
 }
 
