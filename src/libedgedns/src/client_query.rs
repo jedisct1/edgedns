@@ -44,6 +44,7 @@ impl ClientQuery {
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
         hooks: Arc<Hooks>,
+        session_state: SessionState,
     ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::UDP,
@@ -53,7 +54,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             varz: varz,
             hooks: hooks,
-            session_state: SessionState {},
+            session_state: session_state,
         }
     }
 
@@ -62,6 +63,7 @@ impl ClientQuery {
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
         hooks: Arc<Hooks>,
+        session_state: SessionState,
     ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::TCP,
@@ -71,7 +73,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             varz: varz.clone(),
             hooks: hooks.clone(),
-            session_state: SessionState {},
+            session_state: session_state,
         }
     }
 

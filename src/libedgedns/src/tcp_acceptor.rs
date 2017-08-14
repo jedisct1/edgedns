@@ -11,7 +11,7 @@ use futures::future::{self, Future};
 use futures::Sink;
 use futures::stream::Stream;
 use futures::sync::mpsc::{channel, Sender};
-use hooks::Hooks;
+use hooks::{Hooks, SessionState};
 use std::cell::RefCell;
 use std::io::{self, Read, Write};
 use std::net::{self, SocketAddr};
@@ -81,11 +81,13 @@ impl TcpClientQuery {
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
         let cache_entry = self.cache.get2(&normalized_question);
+        let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
             tcpclient_tx,
             normalized_question,
             self.varz.clone(),
             self.hooks.clone(),
+            session_state,
         );
         let wh_cell = RefCell::new(self.wh);
         let fut = tcpclient_rx
@@ -97,7 +99,7 @@ impl TcpClientQuery {
                     warn!("No resolver response - TX part of the channel closed");
                     future::err(())
                 }
-                Some(resolver_response) => future::ok(resolver_response),         
+                Some(resolver_response) => future::ok(resolver_response),
             })
             .and_then(|resolver_response| {
                 let wh = wh_cell.into_inner();

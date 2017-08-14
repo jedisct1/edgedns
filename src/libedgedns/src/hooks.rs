@@ -7,7 +7,7 @@ use nix::libc::{c_int, c_void};
 use libloading::{Library, Symbol};
 use std::mem;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct SessionState;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

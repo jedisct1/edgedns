@@ -18,7 +18,7 @@ use futures::future::{self, Future};
 use futures::oneshot;
 use futures::stream::Stream;
 use futures::sync::mpsc::Sender;
-use hooks::Hooks;
+use hooks::{Hooks, SessionState, Stage};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
@@ -74,6 +74,21 @@ impl UdpAcceptor {
             self.varz.client_queries_errors.inc();
             return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
         }
+        let session_state = SessionState::default();
+        let packet = if self.hooks.enabled(Stage::Recv) {
+            let packet = match Rc::try_unwrap(packet) {
+                Ok(packet) => packet,
+                Err(_) => return Box::new(future::err(io::Error::last_os_error())),
+            };
+            match self.hooks
+                .apply_clientside(session_state, packet, Stage::Recv)
+            {
+                Ok((_action, packet)) => Rc::new(packet),
+                Err(e) => return Box::new(future::err(io::Error::last_os_error())),
+            }
+        } else {
+            packet
+        };
         let normalized_question = match dns::normalize(&packet, true) {
             Ok(normalized_question) => normalized_question,
             Err(e) => {
@@ -88,6 +103,7 @@ impl UdpAcceptor {
             normalized_question,
             self.varz.clone(),
             self.hooks.clone(),
+            session_state,
         );
         if let Some(mut cache_entry) = cache_entry {
             if !cache_entry.is_expired() {
