@@ -6,7 +6,7 @@ dependencies = [
  "bpf 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "clippy 0.0.150 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy 0.0.151 (registry+https://github.com/rust-lang/crates.io-index)",
  "clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "coarsetime 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "dnssector 0.1.0 (git+https://github.com/jedisct1/dnssector)",
@@ -22,7 +22,7 @@ dependencies = [
  "nix 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "privdrop 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "prometheus 0.3.0 (git+https://github.com/pingcap/rust-prometheus)",
+ "prometheus 0.3.1 (git+https://github.com/pingcap/rust-prometheus)",
  "rand 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "siphasher 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "slab 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -30,7 +30,7 @@ dependencies = [
  "tokio-core 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-io 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-timer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "toml 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -152,16 +152,16 @@ dependencies = [
 
 [[package]]
 name = "clippy"
-version = "0.0.150"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cargo_metadata 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "clippy_lints 0.0.150 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clippy_lints 0.0.151 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "clippy_lints"
-version = "0.0.150"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "itertools 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -173,7 +173,7 @@ dependencies = [
  "semver 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "toml 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-normalization 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -596,8 +596,8 @@ dependencies = [
 
 [[package]]
 name = "prometheus"
-version = "0.3.0"
-source = "git+https://github.com/pingcap/rust-prometheus#f4f83ca19db284ad0ccac4c937f2c825a7cb1bf5"
+version = "0.3.1"
+source = "git+https://github.com/pingcap/rust-prometheus#e4d7878fd02da4e87bcbbb697b50cff646d35bf4"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -895,7 +895,7 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -971,8 +971,8 @@ dependencies = [
 "checksum cargo_metadata 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "be1057b8462184f634c3a208ee35b0f935cfd94b694b26deadccd98732088d7b"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
 "checksum chomp 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9f74ad218e66339b11fd23f693fb8f1d621e80ba6ac218297be26073365d163d"
-"checksum clippy 0.0.150 (registry+https://github.com/rust-lang/crates.io-index)" = "26e7cf49814f6559e6fa745598fb11f51dbc35b91fc081f431f54df8b8c4c3fa"
-"checksum clippy_lints 0.0.150 (registry+https://github.com/rust-lang/crates.io-index)" = "9fd935b6c402fc14cedfd1bae6a2d64edb7a13545648c9c8a19243174e88d194"
+"checksum clippy 0.0.151 (registry+https://github.com/rust-lang/crates.io-index)" = "23c47ac157ce628b5b854c06d2e4ad296c86b5953765e72a15ede56deb2ec65a"
+"checksum clippy_lints 0.0.151 (registry+https://github.com/rust-lang/crates.io-index)" = "75f6005ba7cba8a2370f72f447e96d89b4de39df80d2698d5df9435c7af8db2c"
 "checksum clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "83779adb8130382bbc0f602356a3fa832988cfc59440bb6501f8ee8aece72d7f"
 "checksum coarsetime 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "98dfc134e659e267100e9f8ae12a7c7789d811c6284f656977f76744a8a5d93b"
 "checksum conv 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "78ff10625fd0ac447827aa30ea8b861fead473bb60aeb73af6c1c58caf0d1299"
@@ -1024,7 +1024,7 @@ dependencies = [
 "checksum parking_lot_core 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0ad2c4d148942b3560034785bf19df586ebba53351e8c78f84984147d5795eef"
 "checksum percent-encoding 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de154f638187706bde41d9b4738748933d64e6b37bdbffc0b47a97d16a6ae356"
 "checksum privdrop 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "155d6604ad2ea639e4dbd79d51ac1ace87fc1701d8e955a47aea1db529d69b2e"
-"checksum prometheus 0.3.0 (git+https://github.com/pingcap/rust-prometheus)" = "<none>"
+"checksum prometheus 0.3.1 (git+https://github.com/pingcap/rust-prometheus)" = "<none>"
 "checksum protobuf 1.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "568a15e4d572d9a5e63ae3a55f84328c984842887db179b40b4cc6a608bac6a4"
 "checksum pulldown-cmark 0.0.15 (registry+https://github.com/rust-lang/crates.io-index)" = "378e941dbd392c101f2cb88097fa4d7167bc421d4b88de3ff7dbee503bc3233b"
 "checksum quick-error 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ac990ab4e038dd8481a5e3fd00641067fcfc674ad663f3222752ed5284e05d4"
@@ -1063,7 +1063,7 @@ dependencies = [
 "checksum tokio-proto 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8fbb47ae81353c63c487030659494b295f6cb6576242f907f203473b191b0389"
 "checksum tokio-service 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "24da22d077e0f15f55162bdbdc661228c1581892f52074fb242678d015b45162"
 "checksum tokio-timer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6131e780037787ff1b3f8aad9da83bca02438b72277850dd6ad0d455e0e20efc"
-"checksum toml 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3e5e16033aacf7eead46cbcb62d06cf9d1c2aa1b12faa4039072f7ae5921103b"
+"checksum toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a7540f4ffc193e0d3c94121edb19b055670d369f77d5804db11ae053a45b6e7e"
 "checksum unicase 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2e01da42520092d0cd2d6ac3ae69eb21a22ad43ff195676b86f8c37f487d6b80"
 "checksum unicode-normalization 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "51ccda9ef9efa3f7ef5d91e8f9b83bbe6955f9bf86aec89d5cce2c874625920f"
 "checksum unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f860d7d29cf02cb2f3f359fd35991af3d30bac52c57d265a3c461074cb4dc"
