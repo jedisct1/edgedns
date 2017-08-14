@@ -81,8 +81,10 @@ impl UdpAcceptor {
                 .apply_clientside(session_state, packet, Stage::Recv)
             {
                 Ok((action, packet)) => match action {
-                    Action::Drop => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
-                    Action::Pass | Action::Lookup => Rc::new(packet)
+                    Action::Drop => {
+                        return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
+                    }
+                    Action::Pass | Action::Lookup => Rc::new(packet),
                 },
                 Err(e) => return Box::new(future::err(io::Error::last_os_error())),
             }

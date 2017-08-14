@@ -242,7 +242,7 @@ dependencies = [
 [[package]]
 name = "dnssector"
 version = "0.1.0"
-source = "git+https://github.com/jedisct1/dnssector#4025c8f35cf28cdf0a62982cdba4c029cab42f71"
+source = "git+https://github.com/jedisct1/dnssector#686fe3add4979b875c6cad6dbebece6d9878457d"
 dependencies = [
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "chomp 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
