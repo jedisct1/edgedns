@@ -86,7 +86,7 @@ impl UdpAcceptor {
                     }
                     Action::Pass | Action::Lookup => Rc::new(packet),
                 },
-                Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
+                Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
             }
         } else {
             packet
