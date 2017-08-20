@@ -13,6 +13,7 @@
 //! not signed, or a response to a question sent without the `DO` bit. We encode
 //! the `DO` bit in the case of the query name in order to lift this ambiguity.
 
+use super::{DNS_QUERY_MIN_SIZE, FAILURE_TTL};
 use cache::Cache;
 use client_query::ClientQuery;
 use config::Config;
@@ -30,7 +31,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
-use super::{DNS_QUERY_MIN_SIZE, FAILURE_TTL};
 use tokio_core::reactor::Handle;
 use udp_stream::*;
 use upstream_server::UpstreamServer;

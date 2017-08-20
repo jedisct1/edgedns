@@ -2,6 +2,7 @@
 //! Enforces a maximum amount of simultaneous sessions, but refusing new oneshot
 //! once the slab is full, or by reusing existing slots.
 
+use super::MAX_TCP_HASH_DISTANCE;
 use futures::sync::oneshot;
 use parking_lot::Mutex;
 use rand::{self, Rng};
@@ -11,7 +12,6 @@ use slab::Slab;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use super::MAX_TCP_HASH_DISTANCE;
 
 struct Session {
     session_tx: oneshot::Sender<()>,

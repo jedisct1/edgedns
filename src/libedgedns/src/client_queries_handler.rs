@@ -7,6 +7,7 @@
 //! unresponsive after too many timeouts, and bringing them back to life after
 //! regular probes have been successfully received.
 
+use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use cache::Cache;
 use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
@@ -20,8 +21,8 @@ use futures::sync::oneshot;
 use jumphash::JumpHasher;
 use parking_lot::RwLock;
 use pending_query::{PendingQueries, PendingQuery};
-use rand::distributions::{IndependentSample, Range};
 use rand;
+use rand::distributions::{IndependentSample, Range};
 use resolver::{LoadBalancingMode, ResolverCore};
 use std::io;
 use std::net;
@@ -30,7 +31,6 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::time;
-use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use tokio_timer::{wheel, Timer};
 use upstream_server::UpstreamServer;

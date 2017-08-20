@@ -4,6 +4,7 @@
 //! The `ResolverCore` class is also responsible for binding the UDP sockets dedicated
 //! to communicating with upstream resolvers.
 
+use super::EdgeDNSContext;
 use cache::Cache;
 use client_queries_handler::ClientQueriesHandler;
 use client_query::ClientQuery;
@@ -21,16 +22,15 @@ use nix::sys::socket::{bind, setsockopt, sockopt, InetAddr, SockAddr};
 use parking_lot::RwLock;
 use pending_query::{PendingQueries, PendingQuery};
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::io;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::io::Cursor;
 use std::net;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::FromRawFd;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::thread;
-use super::EdgeDNSContext;
 use tokio_core::reactor::{Core, Handle};
 use upstream_server::UpstreamServer;
 use varz::Varz;

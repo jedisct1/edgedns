@@ -5,13 +5,13 @@
 //! The number of in-flight queries for individual servers is also present,
 //! so that we can use this information for balancing the load.
 
+use super::{UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MAX_TIMEOUT_MS,
+            UPSTREAM_QUERY_MIN_TIMEOUT_MS};
 use coarsetime::{Duration, Instant};
 use config::Config;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::Arc;
-use super::{UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MAX_TIMEOUT_MS,
-            UPSTREAM_QUERY_MIN_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use upstream_probe::UpstreamProbe;
 use varz::Varz;

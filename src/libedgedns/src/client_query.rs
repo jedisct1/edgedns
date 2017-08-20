@@ -1,17 +1,17 @@
 //! A Client Query represents a question sent from the Udp and Tcp listeners
 //! to a Resolver. It does *not* represent a question sent to an upstream server.
 
+use super::{DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE};
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use coarsetime::Instant;
 use dns::{self, NormalizedQuestion};
-use futures::sync::mpsc::Sender;
 use futures::{future, Future};
 use futures::Sink;
+use futures::sync::mpsc::Sender;
 use hooks::{Hooks, SessionState, Stage};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
-use super::{DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE};
 use varz::Varz;
 
 #[derive(Clone, Debug)]

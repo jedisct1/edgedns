@@ -2,13 +2,15 @@
 //!
 //! This is a rewrite of the original mio-based code.
 
+use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE, MAX_TCP_IDLE_MS};
+use super::EdgeDNSContext;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use bytes::BufMut;
 use cache::Cache;
 use client_query::*;
 use dns::{self, NormalizedQuestion};
-use futures::future::{self, Future};
 use futures::Sink;
+use futures::future::{self, Future};
 use futures::stream::Stream;
 use futures::sync::mpsc::{channel, Sender};
 use hooks::{Hooks, SessionState};
@@ -16,16 +18,14 @@ use std::cell::RefCell;
 use std::io::{self, Read, Write};
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
-use std::time;
 use std::sync::{mpsc, Arc};
 use std::thread;
-use super::EdgeDNSContext;
-use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE, MAX_TCP_IDLE_MS};
+use std::time;
 use tcp_arbitrator::TcpArbitrator;
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::{Core, Handle};
-use tokio_io::io::{read_exact, write_all, ReadHalf, WriteHalf};
 use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::io::{read_exact, write_all, ReadHalf, WriteHalf};
 use tokio_timer::{wheel, Timer};
 use varz::Varz;
 

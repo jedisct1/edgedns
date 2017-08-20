@@ -2,10 +2,10 @@
 
 use futures::future::{self, FutureResult};
 use hyper;
+use hyper::{StatusCode, Uri};
 use hyper::header::{ContentLength, ContentType};
 use hyper::mime::Mime;
 use hyper::server::{Http, Request, Response, Server, Service};
-use hyper::{StatusCode, Uri};
 use prometheus::{self, Encoder, TextEncoder};
 use std::io;
 use std::sync::Arc;

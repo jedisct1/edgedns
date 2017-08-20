@@ -7,8 +7,8 @@ use base64;
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use coarsetime::Clock;
 use dns;
-use rand::distributions::{IndependentSample, Range};
 use rand::{self, Rng};
+use rand::distributions::{IndependentSample, Range};
 use siphasher::sip::SipHasher13;
 use std::hash::{Hash, Hasher};
 use std::io::Cursor;
@@ -24,8 +24,8 @@ const PROBE_KEY_B64_LEN: usize = 16;
 
 lazy_static! {
     static ref HASHER: SipHasher13 = {
-        let mut rng = rand::thread_rng();   
-        SipHasher13::new_with_keys(rng.gen(), rng.gen())          
+        let mut rng = rand::thread_rng();
+        SipHasher13::new_with_keys(rng.gen(), rng.gen())
     };
 }
 

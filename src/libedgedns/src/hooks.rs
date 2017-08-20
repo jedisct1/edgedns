@@ -1,10 +1,10 @@
 //! Pre/post cache/request hooks
 
 use client_query::ClientQuery;
-use dnssector::c_abi::{self, FnTable};
 use dnssector::{DNSSector, ParsedPacket};
-use nix::libc::{c_int, c_void};
+use dnssector::c_abi::{self, FnTable};
 use libloading::{Library, Symbol};
+use nix::libc::{c_int, c_void};
 use std::mem;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]

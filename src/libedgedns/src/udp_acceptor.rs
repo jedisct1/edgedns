@@ -10,6 +10,7 @@
 //!
 //! Timeouts are currently handled by the Resolvers themselves.
 
+use super::EdgeDNSContext;
 use cache::Cache;
 use client_query::*;
 use dns;
@@ -24,7 +25,6 @@ use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::{mpsc, Arc};
 use std::thread;
-use super::EdgeDNSContext;
 use tokio_core::reactor::{Core, Handle};
 use udp_stream::*;
 use varz::Varz;
