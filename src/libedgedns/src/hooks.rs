@@ -60,6 +60,7 @@ struct Service {
 
 pub struct Hooks {
     services: Trie<Vec<u8>, Service>,
+    master_service_id: Vec<u8>,
 }
 
 impl Service {
@@ -106,15 +107,17 @@ impl Hooks {
         let mut services = Trie::new();
         let master_service =
             Service::new(Some("c_hook.dylib")).expect("Unable to load the master service");
-        let master_service_id = vec![0u8; 1];
-        services.insert(master_service_id, master_service);
-        Hooks { services }
+        let master_service_id = Vec::new();
+        services.insert(master_service_id.clone(), master_service);
+        Hooks {
+            services,
+            master_service_id,
+        }
     }
 
     #[inline]
     pub fn enabled(&self, _stage: Stage) -> bool {
-        let master_service_id = vec![0u8; 1];
-        let service = self.services.get(&master_service_id);
+        let service = self.services.get(&self.master_service_id);
         service
             .expect("Nonexistent service")
             .service_hooks
@@ -144,10 +147,9 @@ impl Hooks {
                 return Err("Invalid packet");
             }
         };
-        let master_service_id = vec![0u8; 1];
         let service = self.services
-            .get(&master_service_id)
-            .expect("Nonexistent service");
+            .get(&self.master_service_id)
+            .expect("Nonexistent master service");
         let service_hooks = service.service_hooks.as_ref().unwrap();
         let hook = match stage {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
@@ -182,10 +184,9 @@ impl Hooks {
                 return Err("Invalid packet");
             }
         };
-        let master_service_id = vec![0u8; 1];
         let service = self.services
-            .get(&master_service_id)
-            .expect("Nonexistent service");
+            .get(&self.master_service_id)
+            .expect("Nonexistent master service");
         let service_hooks = service.service_hooks.as_ref().unwrap();
         let hook = match stage {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
