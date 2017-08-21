@@ -20,6 +20,7 @@ dnstap = "*"
 dnssector = {git = "https://github.com/jedisct1/dnssector"}
 env_logger = "*"
 futures = "*"
+glob = "*"
 hyper = {version = "*", optional = true, default-features = false}
 jumphash = "*"
 lazy_static = "*"
