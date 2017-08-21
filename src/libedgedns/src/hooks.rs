@@ -3,9 +3,14 @@
 use client_query::ClientQuery;
 use dnssector::{DNSSector, ParsedPacket};
 use dnssector::c_abi::{self, FnTable};
-use libloading::{Library, Symbol};
+use libloading::{self, Library};
+#[cfg(unix)]
+use libloading::os::unix::Symbol;
+#[cfg(windows)]
+use libloading::os::windows::Symbol;
 use nix::libc::{c_int, c_void};
 use std::mem;
+use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct SessionState;
@@ -39,25 +44,45 @@ pub enum Stage {
     Deliver,
 }
 
+struct ActiveLibrary {
+    library: Arc<Library>,
+    hook_recv: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int>,
+    hook_deliver: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int>,
+}
+
 pub struct Hooks {
-    dlh: Option<Library>,
+    dlh: Option<ActiveLibrary>,
 }
 
 impl Hooks {
     pub fn new() -> Self {
         let path = "c_hook.dylib";
-        let dlh = match Library::new(path) {
+        let library = match Library::new(path) {
             Err(err) => {
                 error!(
                     "Cannot load the sample hooks C library [{}] [{}]",
                     path,
                     err
                 );
-                None
+                return Hooks { dlh: None };
             }
-            Ok(dlh) => Some(dlh),
+            Ok(library) => Arc::new(library),
         };
-        Hooks { dlh: dlh }
+        let library_inner = library.clone();
+        let hook_recv_hl: libloading::Symbol<
+            unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int,
+        > = unsafe { library_inner.get("hook_recv".as_bytes()).unwrap() };
+        let hook_recv = unsafe { hook_recv_hl.into_raw() };
+        let hook_deliver_hl: libloading::Symbol<
+            unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int,
+        > = unsafe { library_inner.get("hook_deliver".as_bytes()).unwrap() };
+        let hook_deliver = unsafe { hook_deliver_hl.into_raw() };
+        let al = ActiveLibrary {
+            library,
+            hook_recv,
+            hook_deliver,
+        };
+        Hooks { dlh: Some(al) }
     }
 
     #[inline]
@@ -74,14 +99,6 @@ impl Hooks {
         if !self.enabled(stage) {
             return Ok((Action::Pass, packet));
         }
-        let dlh = self.dlh.as_ref().unwrap();
-        let symbol = match stage {
-            Stage::Recv => "hook_recv",
-            Stage::Deliver => "hook_deliver",
-        };
-        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int> =
-            unsafe { dlh.get(symbol.as_bytes()).unwrap() };
-
         let ds = match DNSSector::new(packet) {
             Ok(ds) => ds,
             Err(e) => {
@@ -96,7 +113,11 @@ impl Hooks {
                 return Err("Invalid packet");
             }
         };
-
+        let dlh = self.dlh.as_ref().unwrap();
+        let hook = match stage {
+            Stage::Recv => &dlh.hook_recv,
+            Stage::Deliver => &dlh.hook_deliver,
+        };
         let fn_table = c_abi::fn_table();
         let action = unsafe { hook(&fn_table, &mut parsed_packet) }.into();
 
@@ -112,10 +133,6 @@ impl Hooks {
         if !self.enabled(stage) {
             return Ok((Action::Pass, packet));
         }
-        let dlh = self.dlh.as_ref().unwrap();
-        let hook: Symbol<unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int> =
-            unsafe { dlh.get(b"hook").unwrap() };
-
         let ds = match DNSSector::new(packet) {
             Ok(ds) => ds,
             Err(e) => {
@@ -130,10 +147,13 @@ impl Hooks {
                 return Err("Invalid packet");
             }
         };
-
+        let dlh = self.dlh.as_ref().unwrap();
+        let hook = match stage {
+            Stage::Recv => &dlh.hook_recv,
+            Stage::Deliver => &dlh.hook_deliver,
+        };
         let fn_table = c_abi::fn_table();
         let action = unsafe { hook(&fn_table, &mut parsed_packet) }.into();
-
         let packet = parsed_packet.into_packet();
         Ok((action, packet))
     }
