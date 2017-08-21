@@ -3,6 +3,7 @@
 use client_query::ClientQuery;
 use dnssector::{DNSSector, ParsedPacket};
 use dnssector::c_abi::{self, FnTable};
+use glob::glob;
 use libloading::{self, Library};
 #[cfg(unix)]
 use libloading::os::unix::Symbol;
@@ -13,6 +14,9 @@ use qp_trie::Trie;
 use std::ffi::OsStr;
 use std::mem;
 use std::sync::Arc;
+
+const MASTER_SERVICE_LIBRARY_NAME: &'static str = "master";
+const DLL_EXT: &'static str = "dylib";
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct SessionState;
@@ -103,16 +107,54 @@ impl Service {
 }
 
 impl Hooks {
-    pub fn new() -> Self {
-        let mut services = Trie::new();
-        let master_service =
-            Service::new(Some("c_hook.dylib")).expect("Unable to load the master service");
+    fn load_libraries(&mut self, libraries_path: Option<&str>) {
+        let libraries_path = match libraries_path {
+            None => return,
+            Some(libraries_path) => libraries_path,
+        };
+        let path_expr = format!("{}/*.{}", libraries_path, DLL_EXT);
+        for library_path in glob(&path_expr).expect("Unsupported path for dynamic libraries") {
+            let library_path = match library_path {
+                Err(_) => continue,
+                Ok(library_path) => library_path,
+            };
+            let stem = match library_path.file_stem() {
+                None => continue,
+                Some(stem) => stem,
+            };
+            debug!("Loading dynamic library [{}]", library_path.display());
+            let services = &mut self.services;
+            let service_id = if stem == MASTER_SERVICE_LIBRARY_NAME {
+                info!("Loading master dynamic library");
+                &self.master_service_id
+            } else {
+                match stem.to_str() {
+                    None => continue,
+                    Some(stem) => stem.as_bytes(),
+                }
+            };
+            if stem == MASTER_SERVICE_LIBRARY_NAME {
+                let library_path_str = match library_path.to_str() {
+                    None => continue,
+                    Some(path_str) => path_str,
+                };
+                let service =
+                    Service::new(Some(library_path_str)).expect("Unable to load the service");
+                services.insert(service_id.to_vec(), service);
+                continue;
+            }
+        }
+    }
+
+    pub fn new(libraries_path: Option<&str>) -> Self {
+        let services = Trie::new();
         let master_service_id = Vec::new();
-        services.insert(master_service_id.clone(), master_service);
-        Hooks {
+        let mut hooks = Hooks {
             services,
             master_service_id,
-        }
+        };
+        hooks.load_libraries(libraries_path);
+        hooks
     }
 
     #[inline]

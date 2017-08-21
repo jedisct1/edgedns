@@ -18,6 +18,7 @@ extern crate dnstap;
 extern crate env_logger;
 #[macro_use]
 extern crate futures;
+extern crate glob;
 extern crate jumphash;
 #[macro_use]
 extern crate lazy_static;
@@ -164,7 +165,7 @@ impl EdgeDNS {
             .start()
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
-        let hooks = Arc::new(Hooks::new());
+        let hooks = Arc::new(Hooks::new(Some(".")));
         let cache = Cache::new(config.clone());
         let udp_socket =
             socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");
