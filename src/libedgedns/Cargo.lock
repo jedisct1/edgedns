@@ -238,7 +238,7 @@ dependencies = [
 [[package]]
 name = "dnssector"
 version = "0.1.0"
-source = "git+https://github.com/jedisct1/dnssector#c154d2bf128df13d85f33fcb5cfec5e120b39816"
+source = "git+https://github.com/jedisct1/dnssector#acfffdc267c92fb62ebc2599bf85530c44e9f031"
 dependencies = [
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "chomp 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -594,7 +594,7 @@ dependencies = [
 [[package]]
 name = "prometheus"
 version = "0.3.1"
-source = "git+https://github.com/pingcap/rust-prometheus#bc469072a88ff5c1eb08059535fad26b12008f00"
+source = "git+https://github.com/pingcap/rust-prometheus#75fff6f382ba80f1476ac0fb11466fddcb937b7c"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
