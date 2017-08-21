@@ -92,3 +92,8 @@ max_active_queries = 100000
 
 # Max number of clients waiting for a response to the same query
 max_clients_waiting_for_query = 1000
+
+
+[hooks]
+# Base directory for the dynamic libraries
+basedir = "."

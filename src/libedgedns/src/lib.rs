@@ -165,7 +165,8 @@ impl EdgeDNS {
             .start()
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
-        let hooks = Arc::new(Hooks::new(Some(".")));
+        let hooks_basedir = config.hooks_basedir.as_ref().map(|x| x.as_str());
+        let hooks = Arc::new(Hooks::new(hooks_basedir));
         let cache = Cache::new(config.clone());
         let udp_socket =
             socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");

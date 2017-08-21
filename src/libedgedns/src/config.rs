@@ -38,6 +38,7 @@ pub struct Config {
     pub max_waiting_clients: usize,
     pub max_active_queries: usize,
     pub max_clients_waiting_for_query: usize,
+    pub hooks_basedir: Option<String>
 }
 
 impl Config {
@@ -261,6 +262,12 @@ impl Config {
                 .to_owned()
         });
 
+        let config_hooks = toml_config.get("hooks");
+
+        let hooks_basedir = config_hooks.and_then(|x| x.get("basedir")).map(|x| {
+            x.as_str().expect("hooks.basedir must be a string").to_owned()
+        });
+
         Ok(Config {
             decrement_ttl,
             upstream_servers,
@@ -287,6 +294,7 @@ impl Config {
             max_waiting_clients,
             max_active_queries,
             max_clients_waiting_for_query,
+            hooks_basedir
         })
     }
 }
