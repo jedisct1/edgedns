@@ -28,6 +28,7 @@ extern crate net2;
 extern crate nix;
 extern crate parking_lot;
 extern crate privdrop;
+extern crate qp_trie;
 extern crate rand;
 extern crate siphasher;
 extern crate slab;

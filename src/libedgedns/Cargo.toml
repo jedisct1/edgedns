@@ -30,6 +30,7 @@ nix = "~0.8 "
 parking_lot = "*"
 privdrop = "*"
 prometheus = {git = "https://github.com/pingcap/rust-prometheus", default-features = false}
+qp-trie = "*"
 rand = "*"
 siphasher = "*"
 slab = "*"
