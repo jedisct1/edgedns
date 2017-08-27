@@ -1,8 +1,7 @@
 //! Pre/post cache/request hooks
 
 use client_query::ClientQuery;
-use dnssector::{DNSSector, ParsedPacket};
-use dnssector::c_abi::{self, FnTable};
+use dnssector::{self, DNSSector, ParsedPacket};
 use glob::glob;
 use libloading::{self, Library};
 #[cfg(unix)]
@@ -10,19 +9,26 @@ use libloading::os::unix::Symbol;
 #[cfg(windows)]
 use libloading::os::windows::Symbol;
 use nix::libc::{c_int, c_void};
+use parking_lot::RwLock;
 use qp_trie::Trie;
 use std::ffi::OsStr;
 use std::mem;
 use std::path::PathBuf;
+use std::ptr;
 use std::sync::Arc;
 
 const MASTER_SERVICE_LIBRARY_NAME: &'static str = "master";
 const DLL_EXT: &'static str = "dylib";
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct SessionStateInner {
+    env_str: Trie<Vec<u8>, Vec<u8>>,
+    env_i64: Trie<Vec<u8>, i64>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct SessionState {
-    env_str: Trie<String, Vec<u8>>,
-    env_i64: Trie<String, i64>,
+    inner: Arc<RwLock<SessionStateInner>>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -54,7 +60,8 @@ pub enum Stage {
     Deliver,
 }
 
-type HookSymbolClientT = unsafe extern "C" fn(*const FnTable, *mut ParsedPacket) -> c_int;
+type HookSymbolClientT = unsafe extern "C" fn(*const dnssector::c_abi::FnTable, *mut ParsedPacket)
+    -> c_int;
 
 struct ServiceHooks {
     library: Arc<Library>,
@@ -186,7 +193,7 @@ impl Hooks {
 
     pub fn apply_clientside(
         &self,
-        session_state: &SessionState,
+        session_state: &mut SessionState,
         packet: Vec<u8>,
         stage: Stage,
     ) -> Result<(Action, Vec<u8>), &'static str> {
@@ -215,8 +222,8 @@ impl Hooks {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
         };
-        let fn_table = c_abi::fn_table();
-        let action = unsafe { hook(&fn_table, &mut parsed_packet) }.into();
+        let dnssector_fn_table = dnssector::c_abi::fn_table();
+        let action = unsafe { hook(&dnssector_fn_table, &mut parsed_packet) }.into();
 
         let packet = parsed_packet.into_packet();
         Ok((action, packet))
@@ -252,8 +259,8 @@ impl Hooks {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
         };
-        let fn_table = c_abi::fn_table();
-        let action = unsafe { hook(&fn_table, &mut parsed_packet) }.into();
+        let dnssector_fn_table = dnssector::c_abi::fn_table();
+        let action = unsafe { hook(&dnssector_fn_table, &mut parsed_packet) }.into();
         let packet = parsed_packet.into_packet();
         Ok((action, packet))
     }
