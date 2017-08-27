@@ -1,5 +1,6 @@
 //! Pre/post cache/request hooks
 
+use c_abi;
 use client_query::ClientQuery;
 use dnssector::{self, DNSSector, ParsedPacket};
 use glob::glob;
@@ -22,13 +23,13 @@ const DLL_EXT: &'static str = "dylib";
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct SessionStateInner {
-    env_str: Trie<Vec<u8>, Vec<u8>>,
-    env_i64: Trie<Vec<u8>, i64>,
+    pub env_str: Trie<Vec<u8>, Vec<u8>>,
+    pub env_i64: Trie<Vec<u8>, i64>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct SessionState {
-    inner: Arc<RwLock<SessionStateInner>>,
+    pub inner: Arc<RwLock<SessionStateInner>>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

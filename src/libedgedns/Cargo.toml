@@ -24,6 +24,7 @@ glob = "*"
 hyper = {version = "*", optional = true, default-features = false}
 jumphash = "*"
 lazy_static = "*"
+libc = "*"
 libloading = "*"
 log = "*"
 net2 = "*"

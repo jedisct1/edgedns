@@ -22,6 +22,7 @@ extern crate glob;
 extern crate jumphash;
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 extern crate libloading;
 #[macro_use]
 extern crate log;
@@ -46,6 +47,7 @@ extern crate hyper;
 #[macro_use]
 extern crate prometheus;
 
+mod c_abi;
 mod cache;
 mod client_query;
 mod client_queries_handler;
