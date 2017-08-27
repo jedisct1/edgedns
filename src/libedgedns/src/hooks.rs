@@ -19,8 +19,11 @@ use std::sync::Arc;
 const MASTER_SERVICE_LIBRARY_NAME: &'static str = "master";
 const DLL_EXT: &'static str = "dylib";
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
-pub struct SessionState;
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct SessionState {
+    env_str: Trie<String, Vec<u8>>,
+    env_i64: Trie<String, i64>,
+}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Action {
@@ -125,16 +128,17 @@ impl Hooks {
                 Some(stem) => stem.as_bytes(),
             }
         };
-        if stem == MASTER_SERVICE_LIBRARY_NAME {
-            let library_path_str = match library_path.to_str() {
-                None => return Err("Unsupported path name"),
-                Some(path_str) => path_str,
-            };
-            let service = match Service::new(Some(library_path_str)) {
-                Ok(service) => service,
-                Err(_) => return Err("Unable to register the service"),
-            };
-            services.insert(service_id.to_vec(), service);
+        let library_path_str = match library_path.to_str() {
+            None => return Err("Unsupported path name"),
+            Some(path_str) => path_str,
+        };
+        let service = match Service::new(Some(library_path_str)) {
+            Ok(service) => service,
+            Err(_) => return Err("Unable to register the service"),
+        };
+
+        if services.insert(service_id.to_vec(), service).is_some() {
+            debug!("Replacing a previous version of the library");
         }
         Ok(())
     }
@@ -182,7 +186,7 @@ impl Hooks {
 
     pub fn apply_clientside(
         &self,
-        session_state: SessionState,
+        session_state: &SessionState,
         packet: Vec<u8>,
         stage: Stage,
     ) -> Result<(Action, Vec<u8>), &'static str> {

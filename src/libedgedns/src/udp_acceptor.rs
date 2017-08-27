@@ -78,7 +78,7 @@ impl UdpAcceptor {
         let packet = if self.hooks.enabled(Stage::Recv) {
             let packet = (*packet).clone(); // XXX - Remove that clone()
             match self.hooks
-                .apply_clientside(session_state, packet, Stage::Recv)
+                .apply_clientside(&session_state, packet, Stage::Recv)
             {
                 Ok((action, packet)) => match action {
                     Action::Drop => {

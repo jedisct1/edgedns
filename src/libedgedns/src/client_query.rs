@@ -85,7 +85,7 @@ impl ClientQuery {
         let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
         let mut packet = if self.hooks.enabled(Stage::Deliver) {
             match self.hooks
-                .apply_clientside(self.session_state, packet, Stage::Deliver)
+                .apply_clientside(&self.session_state, packet, Stage::Deliver)
             {
                 Ok((_action, packet)) => packet,
                 Err(e) => return Box::new(future::err(io::Error::last_os_error())),
