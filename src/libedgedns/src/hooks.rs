@@ -13,6 +13,7 @@ use nix::libc::{c_int, c_void};
 use qp_trie::Trie;
 use std::ffi::OsStr;
 use std::mem;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 const MASTER_SERVICE_LIBRARY_NAME: &'static str = "master";
@@ -65,6 +66,7 @@ struct Service {
 pub struct Hooks {
     services: Trie<Vec<u8>, Service>,
     master_service_id: Vec<u8>,
+    libraries_path: Option<String>,
 }
 
 impl Service {
@@ -107,41 +109,52 @@ impl Service {
 }
 
 impl Hooks {
-    fn load_libraries(&mut self, libraries_path: Option<&str>) {
-        let libraries_path = match libraries_path {
-            None => return,
-            Some(libraries_path) => libraries_path,
+    fn load_library(&mut self, library_path: &PathBuf) -> Result<(), &'static str> {
+        let stem = match library_path.file_stem() {
+            None => return Err("Missing stem from file name"),
+            Some(stem) => stem,
         };
-        let path_expr = format!("{}/*.{}", libraries_path, DLL_EXT);
+        debug!("Loading dynamic library [{}]", library_path.display());
+        let services = &mut self.services;
+        let service_id = if stem == MASTER_SERVICE_LIBRARY_NAME {
+            info!("Loading master dynamic library");
+            &self.master_service_id
+        } else {
+            match stem.to_str() {
+                None => return Err("Unsupported path name"),
+                Some(stem) => stem.as_bytes(),
+            }
+        };
+        if stem == MASTER_SERVICE_LIBRARY_NAME {
+            let library_path_str = match library_path.to_str() {
+                None => return Err("Unsupported path name"),
+                Some(path_str) => path_str,
+            };
+            let service = match Service::new(Some(library_path_str)) {
+                Ok(service) => service,
+                Err(_) => return Err("Unable to register the service"),
+            };
+            services.insert(service_id.to_vec(), service);
+        }
+        Ok(())
+    }
+
+    fn load_libraries(&mut self) {
+        let path_expr = {
+            let libraries_path = match self.libraries_path {
+                None => return,
+                Some(ref libraries_path) => libraries_path,
+            };
+            format!("{}/*.{}", libraries_path, DLL_EXT)
+        };
         for library_path in glob(&path_expr).expect("Unsupported path for dynamic libraries") {
             let library_path = match library_path {
                 Err(_) => continue,
-                Ok(library_path) => library_path,
+                Ok(ref library_path) => library_path,
             };
-            let stem = match library_path.file_stem() {
-                None => continue,
-                Some(stem) => stem,
-            };
-            debug!("Loading dynamic library [{}]", library_path.display());
-            let services = &mut self.services;
-            let service_id = if stem == MASTER_SERVICE_LIBRARY_NAME {
-                info!("Loading master dynamic library");
-                &self.master_service_id
-            } else {
-                match stem.to_str() {
-                    None => continue,
-                    Some(stem) => stem.as_bytes(),
-                }
-            };
-            if stem == MASTER_SERVICE_LIBRARY_NAME {
-                let library_path_str = match library_path.to_str() {
-                    None => continue,
-                    Some(path_str) => path_str,
-                };
-                let service =
-                    Service::new(Some(library_path_str)).expect("Unable to load the service");
-                services.insert(service_id.to_vec(), service);
-                continue;
+            match self.load_library(&library_path) {
+                Ok(()) => {}
+                Err(e) => warn!("[{}]: {}", library_path.display(), e),
             }
         }
     }
@@ -152,8 +165,9 @@ impl Hooks {
         let mut hooks = Hooks {
             services,
             master_service_id,
+            libraries_path: libraries_path.map(|x| x.to_owned()),
         };
-        hooks.load_libraries(libraries_path);
+        hooks.load_libraries();
         hooks
     }
 
