@@ -90,3 +90,48 @@ unsafe extern "C" fn env_get_i64(
     *val_p = val;
     0
 }
+
+/// C wrappers to the internal API
+#[repr(C)]
+pub struct FnTable {
+    pub error_description:
+        unsafe extern "C" fn(c_err: *const CErr) -> *const c_char,
+    pub env_insert_str: unsafe extern "C" fn(
+        c_err: *const CErr,
+        session_state: &mut SessionState,
+        key: *const c_char,
+        val: *const c_char,
+    ) -> c_int,
+    pub env_insert_i64: unsafe extern "C" fn(
+        c_err: *const CErr,
+        session_state: &mut SessionState,
+        key: *const c_char,
+        val: i64,
+    ) -> c_int,
+    pub env_get_str: unsafe extern "C" fn(
+        c_err: *const CErr,
+        session_state: &SessionState,
+        key: *const c_char,
+        val_: *mut c_char,
+        val_len_p: *mut size_t,
+        val_max_len: size_t,
+    ) -> c_int,
+    pub env_get_i64: unsafe extern "C" fn(
+        c_err: *const CErr,
+        session_state: &SessionState,
+        key: *const c_char,
+        val_p: *mut i64,
+    ) -> c_int,
+    abi_version: u64,
+}
+
+pub fn fn_table() -> FnTable {
+    FnTable {
+        error_description,
+        env_insert_str,
+        env_insert_i64,
+        env_get_str,
+        env_get_i64,
+        abi_version: ABI_VERSION,
+    }
+}

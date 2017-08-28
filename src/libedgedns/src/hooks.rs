@@ -61,8 +61,12 @@ pub enum Stage {
     Deliver,
 }
 
-type HookSymbolClientT = unsafe extern "C" fn(*const dnssector::c_abi::FnTable, *mut ParsedPacket)
-    -> c_int;
+type HookSymbolClientT = unsafe extern "C" fn(
+    *const c_abi::FnTable,
+    *mut SessionState,
+    *const dnssector::c_abi::FnTable,
+    *mut ParsedPacket,
+) -> c_int;
 
 struct ServiceHooks {
     library: Arc<Library>,
@@ -223,8 +227,16 @@ impl Hooks {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
         };
+        let fn_table = c_abi::fn_table();
         let dnssector_fn_table = dnssector::c_abi::fn_table();
-        let action = unsafe { hook(&dnssector_fn_table, &mut parsed_packet) }.into();
+        let action = unsafe {
+            hook(
+                &fn_table,
+                session_state,
+                &dnssector_fn_table,
+                &mut parsed_packet,
+            )
+        }.into();
 
         let packet = parsed_packet.into_packet();
         Ok((action, packet))
@@ -260,8 +272,16 @@ impl Hooks {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
         };
+        let fn_table = c_abi::fn_table();
         let dnssector_fn_table = dnssector::c_abi::fn_table();
-        let action = unsafe { hook(&dnssector_fn_table, &mut parsed_packet) }.into();
+        let action = unsafe {
+            hook(
+                &fn_table,
+                ptr::null_mut(),
+                &dnssector_fn_table,
+                &mut parsed_packet,
+            )
+        }.into();
         let packet = parsed_packet.into_packet();
         Ok((action, packet))
     }
