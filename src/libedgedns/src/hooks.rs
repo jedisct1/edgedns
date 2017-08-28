@@ -197,6 +197,25 @@ impl Hooks {
             .is_some()
     }
 
+    fn apply_for_service(
+        &self,
+        service: &Service,
+        session_state: &mut SessionState,
+        parsed_packet: &mut ParsedPacket,
+        stage: Stage,
+    ) -> Action {
+        let service_hooks = service.service_hooks.as_ref().unwrap();
+        let hook = match stage {
+            Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
+            Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
+        };
+        let fn_table = c_abi::fn_table();
+        let dnssector_fn_table = dnssector::c_abi::fn_table();
+        let action =
+            unsafe { hook(&fn_table, session_state, &dnssector_fn_table, parsed_packet) }.into();
+        action
+    }
+
     pub fn apply_clientside(
         &self,
         session_state: &mut SessionState,
@@ -222,31 +241,19 @@ impl Hooks {
         };
 
         // master service hooks
-
         let service = self.services
             .get(&self.master_service_id)
             .expect("Nonexistent master service");
-        let service_hooks = service.service_hooks.as_ref().unwrap();
-        let hook = match stage {
-            Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
-            Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
-        };
-        let fn_table = c_abi::fn_table();
-        let dnssector_fn_table = dnssector::c_abi::fn_table();
-        let action = unsafe {
-            hook(
-                &fn_table,
-                session_state,
-                &dnssector_fn_table,
-                &mut parsed_packet,
-            )
-        }.into();
+        let action = self.apply_for_service(service, session_state, &mut parsed_packet, stage);
+        if action != Action::Pass {
+            let packet = parsed_packet.into_packet();
+            return Ok((action, packet));
+        }
 
         // service_id hooks
-
         let service = {
             let service_id = &session_state.inner.read().service_id;
-            if action != Action::Pass || service_id.is_none() {
+            if service_id.is_none() {
                 let packet = parsed_packet.into_packet();
                 return Ok((action, packet));
             }
@@ -254,7 +261,7 @@ impl Hooks {
             match self.services.get(service_id) {
                 None => {
                     warn!(
-                        "service_id=[{:?}] but no loaded shared library with this id",
+                        "service_id={:?} but no loaded shared library with that id",
                         service_id
                     );
                     let packet = parsed_packet.into_packet();
@@ -263,21 +270,7 @@ impl Hooks {
                 Some(service) => service,
             }
         };
-        let service_hooks = service.service_hooks.as_ref().unwrap();
-        let hook = match stage {
-            Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
-            Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
-        };
-        let fn_table = c_abi::fn_table();
-        let dnssector_fn_table = dnssector::c_abi::fn_table();
-        let action = unsafe {
-            hook(
-                &fn_table,
-                session_state,
-                &dnssector_fn_table,
-                &mut parsed_packet,
-            )
-        }.into();
+        let action = self.apply_for_service(service, session_state, &mut parsed_packet, stage);
 
         let packet = parsed_packet.into_packet();
         Ok((action, packet))
