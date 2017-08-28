@@ -22,8 +22,8 @@ unsafe extern "C" fn error_description(c_err: *const CErr) -> *const c_char {
 }
 
 unsafe extern "C" fn env_insert_str(
-    c_err: *const CErr,
     session_state: &mut SessionState,
+    c_err: *const CErr,
     key: *const c_char,
     val: *const c_char,
 ) -> c_int {
@@ -35,8 +35,8 @@ unsafe extern "C" fn env_insert_str(
 }
 
 unsafe extern "C" fn env_insert_i64(
-    c_err: *const CErr,
     session_state: &mut SessionState,
+    c_err: *const CErr,
     key: *const c_char,
     val: i64,
 ) -> c_int {
@@ -47,8 +47,8 @@ unsafe extern "C" fn env_insert_i64(
 }
 
 unsafe extern "C" fn env_get_str(
-    c_err: *const CErr,
     session_state: &SessionState,
+    c_err: *const CErr,
     key: *const c_char,
     val_: *mut c_char,
     val_len_p: *mut size_t,
@@ -76,8 +76,8 @@ unsafe extern "C" fn env_get_str(
 }
 
 unsafe extern "C" fn env_get_i64(
-    c_err: *const CErr,
     session_state: &SessionState,
+    c_err: *const CErr,
     key: *const c_char,
     val_p: *mut i64,
 ) -> c_int {
@@ -97,28 +97,28 @@ pub struct FnTable {
     pub error_description:
         unsafe extern "C" fn(c_err: *const CErr) -> *const c_char,
     pub env_insert_str: unsafe extern "C" fn(
-        c_err: *const CErr,
         session_state: &mut SessionState,
+        c_err: *const CErr,
         key: *const c_char,
         val: *const c_char,
     ) -> c_int,
     pub env_insert_i64: unsafe extern "C" fn(
-        c_err: *const CErr,
         session_state: &mut SessionState,
+        c_err: *const CErr,
         key: *const c_char,
         val: i64,
     ) -> c_int,
     pub env_get_str: unsafe extern "C" fn(
-        c_err: *const CErr,
         session_state: &SessionState,
+        c_err: *const CErr,
         key: *const c_char,
         val_: *mut c_char,
         val_len_p: *mut size_t,
         val_max_len: size_t,
     ) -> c_int,
     pub env_get_i64: unsafe extern "C" fn(
-        c_err: *const CErr,
         session_state: &SessionState,
+        c_err: *const CErr,
         key: *const c_char,
         val_p: *mut i64,
     ) -> c_int,
