@@ -25,10 +25,12 @@ unsafe extern "C" fn env_insert_str(
     session_state: &mut SessionState,
     c_err: *const CErr,
     key: *const c_char,
+    key_len: size_t,
     val: *const c_char,
+    val_len: size_t,
 ) -> c_int {
-    let key = CStr::from_ptr(key).to_bytes().to_owned();
-    let val = CStr::from_ptr(val).to_bytes().to_owned();
+    let key = slice::from_raw_parts(key as *const u8, key_len).to_owned();
+    let val = slice::from_raw_parts(val as *const u8, val_len).to_owned();
     let env_str = &mut session_state.inner.write().env_str;
     env_str.insert(key, val);
     0
@@ -38,9 +40,10 @@ unsafe extern "C" fn env_insert_i64(
     session_state: &mut SessionState,
     c_err: *const CErr,
     key: *const c_char,
+    key_len: size_t,
     val: i64,
 ) -> c_int {
-    let key = CStr::from_ptr(key).to_bytes().to_owned();
+    let key = slice::from_raw_parts(key as *const u8, key_len).to_owned();
     let env_i64 = &mut session_state.inner.write().env_i64;
     env_i64.insert(key, val);
     0
@@ -50,27 +53,25 @@ unsafe extern "C" fn env_get_str(
     session_state: &SessionState,
     c_err: *const CErr,
     key: *const c_char,
+    key_len: size_t,
     val_: *mut c_char,
     val_len_p: *mut size_t,
     val_max_len: size_t,
 ) -> c_int {
-    let key = CStr::from_ptr(key).to_bytes();
+    let key = slice::from_raw_parts(key as *const u8, key_len);
     let env_str = &session_state.inner.read().env_str;
     let val = match env_str.get(key) {
         None => return -1,
         Some(val) => val,
     };
-    let val = match CString::new(val.to_owned()) {
-        Err(_) => return -1,
-        Ok(val) => val.into_bytes_with_nul(),
-    };
     let val_len = val.len();
-    if val.len() > val_max_len {
+    if val.len() >= val_max_len {
         *val_len_p = 0;
         return -1;
     }
     let val_ = slice::from_raw_parts_mut(val_ as *mut u8, val_len);
     val_[..val_len].copy_from_slice(&val[..]);
+    val_[val_len] = 0;
     *val_len_p = val_len;
     -1
 }
@@ -79,9 +80,10 @@ unsafe extern "C" fn env_get_i64(
     session_state: &SessionState,
     c_err: *const CErr,
     key: *const c_char,
+    key_len: size_t,
     val_p: *mut i64,
 ) -> c_int {
-    let key = CStr::from_ptr(key).to_bytes();
+    let key = slice::from_raw_parts(key as *const u8, key_len);
     let env_i64 = &session_state.inner.read().env_i64;
     let val = match env_i64.get(key) {
         None => return -1,
@@ -100,18 +102,22 @@ pub struct FnTable {
         session_state: &mut SessionState,
         c_err: *const CErr,
         key: *const c_char,
+        key_len: size_t,
         val: *const c_char,
+        val_len: size_t,
     ) -> c_int,
     pub env_insert_i64: unsafe extern "C" fn(
         session_state: &mut SessionState,
         c_err: *const CErr,
         key: *const c_char,
+        key_len: size_t,
         val: i64,
     ) -> c_int,
     pub env_get_str: unsafe extern "C" fn(
         session_state: &SessionState,
         c_err: *const CErr,
         key: *const c_char,
+        key_len: size_t,
         val_: *mut c_char,
         val_len_p: *mut size_t,
         val_max_len: size_t,
@@ -120,6 +126,7 @@ pub struct FnTable {
         session_state: &SessionState,
         c_err: *const CErr,
         key: *const c_char,
+        key_len: size_t,
         val_p: *mut i64,
     ) -> c_int,
     abi_version: u64,
