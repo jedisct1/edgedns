@@ -15,7 +15,6 @@ extern crate clockpro_cache;
 extern crate coarsetime;
 extern crate dnssector;
 extern crate dnstap;
-extern crate env_logger;
 #[macro_use]
 extern crate futures;
 extern crate glob;
@@ -26,7 +25,6 @@ extern crate libc;
 extern crate libloading;
 #[macro_use]
 extern crate log;
-extern crate net2;
 extern crate nix;
 extern crate parking_lot;
 extern crate privdrop;

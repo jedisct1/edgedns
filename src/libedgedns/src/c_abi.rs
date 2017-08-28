@@ -1,8 +1,8 @@
-
 use hooks::SessionState;
 use libc::{c_char, c_int, c_void, size_t};
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
+use std::slice;
 
 const ABI_VERSION: u64 = 0x1;
 
@@ -50,11 +50,28 @@ unsafe extern "C" fn env_get_str(
     c_err: *const CErr,
     session_state: &SessionState,
     key: *const c_char,
-    val: *mut c_char,
-    val_len: *mut size_t,
+    val_: *mut c_char,
+    val_len_p: *mut size_t,
     val_max_len: size_t,
 ) -> c_int {
     let key = CStr::from_ptr(key).to_bytes();
+    let env_str = &session_state.inner.read().env_str;
+    let val = match env_str.get(key) {
+        None => return -1,
+        Some(val) => val,
+    };
+    let val = match CString::new(val.to_owned()) {
+        Err(_) => return -1,
+        Ok(val) => val.into_bytes_with_nul(),
+    };
+    let val_len = val.len();
+    if val.len() > val_max_len {
+        *val_len_p = 0;
+        return -1;
+    }
+    let val_ = slice::from_raw_parts_mut(val_ as *mut u8, val_len);
+    val_[..val_len].copy_from_slice(&val[..]);
+    *val_len_p = val_len;
     -1
 }
 
