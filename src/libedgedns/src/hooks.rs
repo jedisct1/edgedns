@@ -23,6 +23,7 @@ const DLL_EXT: &'static str = "dylib";
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct SessionStateInner {
+    pub service_id: Option<Vec<u8>>,
     pub env_str: Trie<Vec<u8>, Vec<u8>>,
     pub env_i64: Trie<Vec<u8>, i64>,
 }
@@ -219,9 +220,49 @@ impl Hooks {
                 return Err("Invalid packet");
             }
         };
+
+        // master service hooks
+
         let service = self.services
             .get(&self.master_service_id)
             .expect("Nonexistent master service");
+        let service_hooks = service.service_hooks.as_ref().unwrap();
+        let hook = match stage {
+            Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
+            Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
+        };
+        let fn_table = c_abi::fn_table();
+        let dnssector_fn_table = dnssector::c_abi::fn_table();
+        let action = unsafe {
+            hook(
+                &fn_table,
+                session_state,
+                &dnssector_fn_table,
+                &mut parsed_packet,
+            )
+        }.into();
+
+        // service_id hooks
+
+        let service = {
+            let service_id = &session_state.inner.read().service_id;
+            if action != Action::Pass || service_id.is_none() {
+                let packet = parsed_packet.into_packet();
+                return Ok((action, packet));
+            }
+            let service_id = service_id.as_ref().unwrap();
+            match self.services.get(service_id) {
+                None => {
+                    warn!(
+                        "service_id=[{:?}] but no loaded shared library with this id",
+                        service_id
+                    );
+                    let packet = parsed_packet.into_packet();
+                    return Ok((action, packet));
+                }
+                Some(service) => service,
+            }
+        };
         let service_hooks = service.service_hooks.as_ref().unwrap();
         let hook = match stage {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),

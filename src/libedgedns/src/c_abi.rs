@@ -21,6 +21,21 @@ unsafe extern "C" fn error_description(c_err: *const CErr) -> *const c_char {
     (*c_err).description_cs.as_bytes() as *const _ as *const c_char
 }
 
+unsafe extern "C" fn set_service_id(
+    session_state: &mut SessionState,
+    c_err: *const CErr,
+    service_id: *const c_char,
+    service_id_len: size_t,
+) -> c_int {
+    let service_id = slice::from_raw_parts(service_id as *const u8, service_id_len).to_owned();
+    let service_id_p = &mut session_state.inner.write().service_id;
+    if service_id_p.is_some() {
+        return -1;
+    }
+    *service_id_p = Some(service_id);
+    0
+}
+
 unsafe extern "C" fn env_insert_str(
     session_state: &mut SessionState,
     c_err: *const CErr,
@@ -98,6 +113,12 @@ unsafe extern "C" fn env_get_i64(
 pub struct FnTable {
     pub error_description:
         unsafe extern "C" fn(c_err: *const CErr) -> *const c_char,
+    pub set_service_id: unsafe extern "C" fn(
+        session_state: &mut SessionState,
+        c_err: *const CErr,
+        service_id: *const c_char,
+        service_id_len: size_t,
+    ) -> c_int,
     pub env_insert_str: unsafe extern "C" fn(
         session_state: &mut SessionState,
         c_err: *const CErr,
@@ -135,6 +156,7 @@ pub struct FnTable {
 pub fn fn_table() -> FnTable {
     FnTable {
         error_description,
+        set_service_id,
         env_insert_str,
         env_insert_i64,
         env_get_str,
