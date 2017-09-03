@@ -103,8 +103,7 @@ pub fn socket_udp_bound(addr: &str) -> io::Result<UdpSocket> {
 }
 
 pub fn set_bpf_udp_dns(socket_fd: RawFd) -> io::Result<()> {
-    let filter =
-        bpfprog!(8,72 0 0 4,53 0 5 17,72 0 0 12,21 0 3 1,72 0 0 18,37 1 0 1,6 0 0 262144,6 0 0 0);
+    let filter = bpfprog!(8,72 0 0 4,53 0 5 17,72 0 0 12,21 0 3 1,72 0 0 18,37 1 0 1,6 0 0 262144,6 0 0 0);
     bpf::attach_filter(socket_fd, filter)
 }
 
