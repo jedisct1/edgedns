@@ -169,7 +169,7 @@ impl Hooks {
                 Err(_) => continue,
                 Ok(ref library_path) => library_path,
             };
-            match self.load_library(&library_path) {
+            match self.load_library(library_path) {
                 Ok(()) => {}
                 Err(e) => warn!("[{}]: {}", library_path.display(), e),
             }
