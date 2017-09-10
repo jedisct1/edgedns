@@ -118,7 +118,7 @@ impl UpstreamProbe {
             return Err("Decoded key doesn't have the expected length");
         }
         let mut probe_key_c = Cursor::new(probe_key);
-        let ts_secs = probe_key_c.read_u32::<NativeEndian>().unwrap() as u64;
+        let ts_secs = u64::from(probe_key_c.read_u32::<NativeEndian>().unwrap());
         let now_secs = Clock::recent_since_epoch().as_secs();
         if ts_secs < now_secs || ts_secs - now_secs > 10 {
             return Err("Probe response is too old");

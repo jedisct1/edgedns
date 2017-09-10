@@ -83,7 +83,7 @@ impl Cache {
             return false;
         }
         let now = Instant::recent();
-        let duration = Duration::from_secs(ttl as u64);
+        let duration = Duration::from_secs(u64::from(ttl));
         let expiration = now + duration;
         let cache_entry = CacheEntry {
             expiration: expiration,
@@ -117,12 +117,12 @@ impl Cache {
     pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {
-                expiration: Instant::recent() + Duration::from_secs(self.config.max_ttl as u64),
+                expiration: Instant::recent() + Duration::from_secs(u64::from(self.config.max_ttl)),
                 packet: special_packet,
             })
         } else if normalized_question.qclass != DNS_CLASS_IN {
             Some(CacheEntry {
-                expiration: Instant::recent() + Duration::from_secs(self.config.max_ttl as u64),
+                expiration: Instant::recent() + Duration::from_secs(u64::from(self.config.max_ttl)),
                 packet: dns::build_refused_packet(normalized_question).unwrap(),
             })
         } else {
