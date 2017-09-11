@@ -51,6 +51,7 @@ extern crate prometheus;
 
 mod c_abi;
 mod cache;
+mod cli_listener;
 mod client_query;
 mod client_queries_handler;
 mod config;

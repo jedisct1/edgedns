@@ -50,6 +50,9 @@ tokio-timer = "*"
 tokio-uds = "*"
 toml = "*"
 
+[build-dependencies]
+prost-build = "*"
+
 [profile.release]
 lto = true
 panic = "abort"
