@@ -1,5 +1,4 @@
 extern crate clap;
-extern crate futures;
 extern crate prost;
 #[macro_use]
 extern crate prost_derive;
