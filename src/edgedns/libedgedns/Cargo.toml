@@ -8,6 +8,10 @@ publish = false
 webservice = ["hyper"]
 nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
 
+[[bin]]
+name = "edgedns"
+path = "src/edgedns/main.rs"
+
 [dependencies]
 base64 = "*"
 bpf = "*"

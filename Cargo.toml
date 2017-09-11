@@ -10,8 +10,12 @@ clippy = ["libedgedns/clippy"]
 
 default = ["nightly", "webservice"]
 
+[[bin]]
+name = "edgedns"
+path = "src/edgedns/main.rs"
+
 [dependencies.libedgedns]
-path = "src/libedgedns"
+path = "src/edgedns/libedgedns"
 
 [dependencies]
 clap = "*"
