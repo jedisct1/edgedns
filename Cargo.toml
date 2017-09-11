@@ -14,13 +14,28 @@ default = ["nightly", "webservice"]
 name = "edgedns"
 path = "src/edgedns/main.rs"
 
+[[bin]]
+name = "edgedns-cli"
+path = "src/edgedns-cli/main.rs"
+
 [dependencies.libedgedns]
 path = "src/edgedns/libedgedns"
 
 [dependencies]
+bytes = "*"
 clap = "*"
 env_logger = "*"
+futures = "*"
 log = "*"
+prost = "*"
+prost-derive = "*"
+prost-types = "*"
+tokio-core = "*"
+tokio-io = "*"
+tokio-uds = "*"
+
+[build-dependencies]
+prost-build = "*"
 
 [profile.release]
 lto = true

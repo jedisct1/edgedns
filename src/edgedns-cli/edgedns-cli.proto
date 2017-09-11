@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package edgedns.cli;
+
+message Command {
+    message ServiceLoad {
+        string service_id = 1;
+        string library_path = 2;
+    }
+
+    message ServiceUnload {
+        string service_id = 1;
+    }
+
+    oneof action {
+        ServiceLoad service_load = 1;
+        ServiceUnload service_unload = 2;
+    }
+}
