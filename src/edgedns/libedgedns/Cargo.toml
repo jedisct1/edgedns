@@ -36,6 +36,9 @@ nix = "~0.8 "
 parking_lot = "*"
 privdrop = "*"
 prometheus = {git = "https://github.com/pingcap/rust-prometheus", default-features = false}
+prost = "*"
+prost-derive = "*"
+prost-types = "*"
 qp-trie = "*"
 rand = "*"
 siphasher = "*"
@@ -44,6 +47,7 @@ socket-priority = "*"
 tokio-core = "*"
 tokio-io = "*"
 tokio-timer = "*"
+tokio-uds = "*"
 toml = "*"
 
 [profile.release]

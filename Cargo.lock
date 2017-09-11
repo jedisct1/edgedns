@@ -546,6 +546,9 @@ dependencies = [
  "parking_lot 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "privdrop 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "prometheus 0.3.2 (git+https://github.com/pingcap/rust-prometheus)",
+ "prost 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost-derive 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost-types 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "qp-trie 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "siphasher 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -554,6 +557,7 @@ dependencies = [
  "tokio-core 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-io 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-timer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-uds 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

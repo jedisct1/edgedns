@@ -28,6 +28,9 @@ extern crate log;
 extern crate nix;
 extern crate parking_lot;
 extern crate privdrop;
+extern crate prost;
+#[macro_use]
+extern crate prost_derive;
 extern crate qp_trie;
 extern crate rand;
 extern crate siphasher;
@@ -37,6 +40,7 @@ extern crate tokio_core;
 #[macro_use]
 extern crate tokio_io;
 extern crate tokio_timer;
+extern crate tokio_uds;
 extern crate toml;
 
 #[cfg(feature = "webservice")]
