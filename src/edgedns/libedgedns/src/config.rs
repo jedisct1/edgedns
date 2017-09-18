@@ -185,21 +185,19 @@ impl Config {
                 .to_owned()
         });
 
-        let udp_acceptor_threads = config_global.and_then(|x| x.get("threads_udp")).map_or(
-            1,
-            |x| {
+        let udp_acceptor_threads = config_global
+            .and_then(|x| x.get("threads_udp"))
+            .map_or(1, |x| {
                 x.as_integer()
                     .expect("global.threads_udp must be an integer")
-            },
-        ) as usize;
+            }) as usize;
 
-        let tcp_acceptor_threads = config_global.and_then(|x| x.get("threads_tcp")).map_or(
-            1,
-            |x| {
+        let tcp_acceptor_threads = config_global
+            .and_then(|x| x.get("threads_tcp"))
+            .map_or(1, |x| {
                 x.as_integer()
                     .expect("global.threads_tcp must be an integer")
-            },
-        ) as usize;
+            }) as usize;
 
         let max_tcp_clients = config_global.and_then(|x| x.get("max_tcp_clients")).map_or(
             250,

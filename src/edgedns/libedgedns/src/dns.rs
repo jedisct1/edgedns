@@ -325,13 +325,13 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
         return None;
     }
     debug_assert!(DNS_OFFSET_EDNS_PAYLOAD_SIZE > DNS_OFFSET_EDNS_TYPE);
-    if packet[offset + DNS_OFFSET_EDNS_TYPE] != (DNS_TYPE_OPT >> 8) as u8 ||
-        packet[offset + DNS_OFFSET_EDNS_TYPE + 1] != DNS_TYPE_OPT as u8
+    if packet[offset + DNS_OFFSET_EDNS_TYPE] != (DNS_TYPE_OPT >> 8) as u8
+        || packet[offset + DNS_OFFSET_EDNS_TYPE + 1] != DNS_TYPE_OPT as u8
     {
         return None;
     }
-    let mut payload_size = (u16::from(packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE]) << 8) |
-        u16::from(packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE + 1]);
+    let mut payload_size = (u16::from(packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE]) << 8)
+        | u16::from(packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE + 1]);
     if offset >= packet_len - DNS_OFFSET_EDNS_DO {
         return None;
     }
@@ -515,8 +515,8 @@ pub fn min_ttl(
         }
         let qtype = u16::from(packet[offset]) << 8 | u16::from(packet[offset + 1]);
         let qclass = u16::from(packet[offset + 2]) << 8 | u16::from(packet[offset + 3]);
-        let ttl = u32::from(packet[offset + 4]) << 24 | u32::from(packet[offset + 5]) << 16 |
-            u32::from(packet[offset + 6]) << 8 | u32::from(packet[offset + 7]);
+        let ttl = u32::from(packet[offset + 4]) << 24 | u32::from(packet[offset + 5]) << 16
+            | u32::from(packet[offset + 6]) << 8 | u32::from(packet[offset + 7]);
         let rdlen = (u16::from(packet[offset + 8]) << 8 | u16::from(packet[offset + 9])) as usize;
         offset += 10;
         if qtype != DNS_TYPE_OPT {

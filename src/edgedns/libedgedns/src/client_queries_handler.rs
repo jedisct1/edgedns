@@ -201,8 +201,8 @@ impl ClientQueriesHandler {
             offline_servers[random_offline_server_range.ind_sample(&mut rng)];
         let random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
-            if last_probe_ts.elapsed_since_recent() <
-                Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
+            if last_probe_ts.elapsed_since_recent()
+                < Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
             {
                 return Ok(None);
             }

@@ -97,14 +97,13 @@ impl UpstreamProbe {
         } else {
             probe_suffix.len() + 1
         };
-        if probe_name.len() !=
-            1 + probe_prefix_len + PROBE_KEY_B64_LEN + 1 + probe_suffix_len_with_terminator
+        if probe_name.len()
+            != 1 + probe_prefix_len + PROBE_KEY_B64_LEN + 1 + probe_suffix_len_with_terminator
         {
             return Err("Name length doesn't match the length of a valid probe");
         }
-        if probe_name.is_empty() ||
-            probe_name[0] as usize != probe_prefix_len + PROBE_KEY_B64_LEN ||
-            !probe_name[1..].starts_with(PROBE_PREFIX)
+        if probe_name.is_empty() || probe_name[0] as usize != probe_prefix_len + PROBE_KEY_B64_LEN
+            || !probe_name[1..].starts_with(PROBE_PREFIX)
         {
             return Err("Probe prefix doesn't match");
         }

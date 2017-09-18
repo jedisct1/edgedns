@@ -59,9 +59,9 @@ impl UpstreamServer {
     }
 
     pub fn prepare_send(&mut self, config: &Config) {
-        if self.offline ||
-            self.last_successful_response_instant.elapsed_since_recent() <
-                config.upstream_max_failure_duration
+        if self.offline
+            || self.last_successful_response_instant.elapsed_since_recent()
+                < config.upstream_max_failure_duration
         {
             return;
         }
@@ -78,8 +78,8 @@ impl UpstreamServer {
             return;
         }
         self.failures = self.failures.saturating_add(1);
-        if self.last_successful_response_instant.elapsed_since_recent() <
-            config.upstream_max_failure_duration
+        if self.last_successful_response_instant.elapsed_since_recent()
+            < config.upstream_max_failure_duration
         {
             return;
         }
@@ -126,9 +126,9 @@ impl UpstreamServer {
         let timeout = match self.rtt_est {
             None => UPSTREAM_QUERY_MAX_TIMEOUT_MS,
             Some(rtt_est) => {
-                let timeout = ((rtt_est +
-                    self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
-                    1000.0) as u64;
+                let timeout = ((rtt_est
+                    + self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT)
+                    * 1000.0) as u64;
                 if timeout < UPSTREAM_QUERY_MIN_TIMEOUT_MS {
                     UPSTREAM_QUERY_MIN_TIMEOUT_MS
                 } else if timeout > UPSTREAM_QUERY_MAX_TIMEOUT_MS {
