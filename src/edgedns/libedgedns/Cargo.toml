@@ -6,7 +6,7 @@ publish = false
 
 [features]
 webservice = ["hyper"]
-nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
+nightly = ["log/nightly", "prometheus/nightly"]
 
 [[bin]]
 name = "edgedns"
