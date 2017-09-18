@@ -29,27 +29,28 @@ impl CLIListener {
         }
     }
 
-    fn client_action(action: Option<cli::command::Action>, hooks_arc: Arc<RwLock<Hooks>>) {
+    fn client_action(
+        action: Option<cli::command::Action>,
+        hooks_arc: Arc<RwLock<Hooks>>,
+    ) -> Result<(), &'static str> {
         match action {
             Some(cli::command::Action::ServiceLoad(service_load)) => {
                 match hooks_arc.write().load_library_for_service_id(
                     &service_load.library_path,
                     &service_load.service_id.as_bytes(),
                 ) {
-                    Err(e) => error!("{}", e),
-                    _ => {}
-                };
+                    Err(e) => Err(e),
+                    _ => Ok(()),
+                }
             }
-            Some(cli::command::Action::ServiceUnload(service_unload)) => {
-                match hooks_arc
-                    .write()
-                    .unregister_service(&service_unload.service_id.as_bytes())
-                {
-                    Err(e) => error!("{}", e),
-                    _ => {}
-                };
-            }
-            _ => warn!("Unsupported action"),
+            Some(cli::command::Action::ServiceUnload(service_unload)) => match hooks_arc
+                .write()
+                .unregister_service(&service_unload.service_id.as_bytes())
+            {
+                Err(e) => Err(e),
+                _ => Ok(()),
+            },
+            _ => Err("Unsupported action"),
         }
     }
 
@@ -58,15 +59,13 @@ impl CLIListener {
         let buf = Vec::new();
         let reader = read_to_end(socket, buf)
             .map(move |(socket, serialized)| {
-                match cli::Command::decode(&mut Cursor::new(serialized)) {
-                    Err(_) => warn!("Invalid serialized command received from the CLI"),
-                    Ok(command) => {
-                        Self::client_action(command.action, hooks_arc);
-                    }
+                let res = match cli::Command::decode(&mut Cursor::new(serialized)) {
+                    Err(_) => Err("Invalid serialized command received from the CLI"),
+                    Ok(command) => Self::client_action(command.action, hooks_arc),
                 };
-                socket
+                (res, socket)
             })
-            .and_then(move |mut socket| {
+            .and_then(move |(_res, mut socket)| {
                 let _ = socket.write_all(b"DONE\n");
                 Ok(())
             })
