@@ -195,7 +195,7 @@ impl Hooks {
     }
 
     pub fn unregister_service(&mut self, service_id: &[u8]) -> Result<(), &'static str> {
-        debug!("Unloading service [{:?}]", service_id);
+        debug!("Unregistering service [{:?}]", service_id);
         self.services.remove(service_id);
         Ok(())
     }
