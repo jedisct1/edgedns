@@ -20,6 +20,7 @@ use futures::oneshot;
 use futures::stream::Stream;
 use futures::sync::mpsc::Sender;
 use hooks::{Action, Hooks, SessionState, Stage};
+use parking_lot::RwLock;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
@@ -36,7 +37,7 @@ struct UdpAcceptor {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
-    hooks: Arc<Hooks>,
+    hooks_arc: Arc<RwLock<Hooks>>,
 }
 
 pub struct UdpAcceptorCore {
@@ -44,7 +45,7 @@ pub struct UdpAcceptorCore {
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Arc<Varz>,
-    hooks: Arc<Hooks>,
+    hooks_arc: Arc<RwLock<Hooks>>,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
 }
 
@@ -58,7 +59,7 @@ impl UdpAcceptor {
             resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             cache: udp_acceptor_core.cache.clone(),
             varz: udp_acceptor_core.varz.clone(),
-            hooks: udp_acceptor_core.hooks.clone(),
+            hooks_arc: udp_acceptor_core.hooks_arc.clone(),
         }
     }
 
@@ -75,9 +76,9 @@ impl UdpAcceptor {
             return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
         }
         let mut session_state = SessionState::default();
-        let packet = if self.hooks.enabled(Stage::Recv) {
+        let packet = if self.hooks_arc.read().enabled(Stage::Recv) {
             let packet = (*packet).clone(); // XXX - Remove that clone()
-            match self.hooks
+            match self.hooks_arc.read() // XXX - Remove that RwLock.read()
                 .apply_clientside(&mut session_state, packet, Stage::Recv)
             {
                 Ok((action, packet)) => match action {
@@ -104,7 +105,7 @@ impl UdpAcceptor {
             client_addr,
             normalized_question,
             self.varz.clone(),
-            self.hooks.clone(),
+            self.hooks_arc.clone(),
             session_state,
         );
         if let Some(mut cache_entry) = cache_entry {
@@ -164,19 +165,19 @@ impl UdpAcceptorCore {
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();
-        let hooks = edgedns_context.hooks.clone();
+        let hooks_arc = edgedns_context.hooks_arc.clone();
 
         let udp_acceptor_th = thread::Builder::new()
             .name("udp_acceptor".to_string())
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let udp_acceptor_core = UdpAcceptorCore {
-                    net_udp_socket: net_udp_socket,
-                    cache: cache,
-                    resolver_tx: resolver_tx,
+                    net_udp_socket,
+                    cache,
+                    resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
-                    varz: varz,
-                    hooks: hooks,
+                    varz,
+                    hooks_arc,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core

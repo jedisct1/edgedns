@@ -9,6 +9,7 @@ use futures::{future, Future};
 use futures::Sink;
 use futures::sync::mpsc::Sender;
 use hooks::{Hooks, SessionState, Stage};
+use parking_lot::RwLock;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
@@ -34,7 +35,7 @@ pub struct ClientQuery {
     pub normalized_question: NormalizedQuestion,
     pub ts: Instant,
     pub varz: Arc<Varz>,
-    pub hooks: Arc<Hooks>,
+    pub hooks_arc: Arc<RwLock<Hooks>>,
     pub session_state: SessionState,
 }
 
@@ -43,18 +44,18 @@ impl ClientQuery {
         client_addr: SocketAddr,
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
-        hooks: Arc<Hooks>,
+        hooks_arc: Arc<RwLock<Hooks>>,
         session_state: SessionState,
     ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::UDP,
             client_addr: Some(client_addr),
             tcpclient_tx: None,
-            normalized_question: normalized_question,
+            normalized_question,
             ts: Instant::recent(),
-            varz: varz,
-            hooks: hooks,
-            session_state: session_state,
+            varz,
+            hooks_arc,
+            session_state,
         }
     }
 
@@ -62,18 +63,18 @@ impl ClientQuery {
         tcpclient_tx: Sender<ResolverResponse>,
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
-        hooks: Arc<Hooks>,
+        hooks_arc: Arc<RwLock<Hooks>>,
         session_state: SessionState,
     ) -> Self {
         ClientQuery {
             proto: ClientQueryProtocol::TCP,
             client_addr: None,
             tcpclient_tx: Some(tcpclient_tx),
-            normalized_question: normalized_question,
+            normalized_question,
             ts: Instant::recent(),
             varz: varz.clone(),
-            hooks: hooks.clone(),
-            session_state: session_state,
+            hooks_arc: hooks_arc.clone(),
+            session_state,
         }
     }
 
@@ -83,8 +84,9 @@ impl ClientQuery {
         net_udp_socket: Option<&net::UdpSocket>,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
-        let mut packet = if self.hooks.enabled(Stage::Deliver) {
-            match self.hooks.apply_clientside(
+        let mut packet = if self.hooks_arc.read().enabled(Stage::Deliver) {
+            // XXX - TODO: remove both RwLock.read()
+            match self.hooks_arc.read().apply_clientside(
                 &mut self.session_state.clone(),
                 packet,
                 Stage::Deliver,

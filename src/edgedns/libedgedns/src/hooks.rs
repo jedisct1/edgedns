@@ -125,7 +125,7 @@ impl Service {
 }
 
 impl Hooks {
-    fn load_library(&mut self, library_path: &PathBuf) -> Result<(), &'static str> {
+    pub fn load_library(&mut self, library_path: &PathBuf) -> Result<(), &'static str> {
         let stem = match library_path.file_stem() {
             None => return Err("Missing stem from file name"),
             Some(stem) => stem,

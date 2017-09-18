@@ -79,6 +79,7 @@ pub use config::Config;
 use hooks::Hooks;
 use log_dnstap::LogDNSTap;
 use net_helpers::*;
+use parking_lot::RwLock;
 use privdrop::PrivDrop;
 use resolver::*;
 use std::net;
@@ -124,7 +125,7 @@ pub struct EdgeDNSContext {
     pub tcp_listener: net::TcpListener,
     pub cache: Cache,
     pub varz: Arc<Varz>,
-    pub hooks: Arc<Hooks>,
+    pub hooks_arc: Arc<RwLock<Hooks>>,
     pub tcp_arbitrator: TcpArbitrator,
     pub dnstap_sender: Option<log_dnstap::Sender>,
 }
@@ -171,7 +172,7 @@ impl EdgeDNS {
             .expect("Unable to spawn the internal timer");
         let varz = Arc::new(Varz::new());
         let hooks_basedir = config.hooks_basedir.as_ref().map(|x| x.as_str());
-        let hooks = Arc::new(Hooks::new(hooks_basedir));
+        let hooks_arc = Arc::new(RwLock::new(Hooks::new(hooks_basedir)));
         let cache = Cache::new(config.clone());
         let udp_socket =
             socket_udp_bound(&config.listen_addr).expect("Unable to create a UDP client socket");
@@ -188,13 +189,13 @@ impl EdgeDNS {
         let edgedns_context = EdgeDNSContext {
             config: config.clone(),
             listen_addr: config.listen_addr.to_owned(),
-            udp_socket: udp_socket,
-            tcp_listener: tcp_listener,
-            cache: cache,
-            varz: varz,
-            hooks: hooks,
-            tcp_arbitrator: tcp_arbitrator,
-            dnstap_sender: dnstap_sender,
+            udp_socket,
+            tcp_listener,
+            cache,
+            varz,
+            hooks_arc,
+            tcp_arbitrator,
+            dnstap_sender,
         };
         let resolver_tx =
             ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");
