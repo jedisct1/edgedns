@@ -62,6 +62,14 @@ impl CLIListener {
                                             _ => {}
                                         };
                                     }
+                                    Some(cli::command::Action::ServiceUnload(service_unload)) => {
+                                        match hooks_arc.write().unregister_service(
+                                            &service_unload.service_id.as_bytes(),
+                                        ) {
+                                            Err(e) => error!("{}", e),
+                                            _ => {}
+                                        };
+                                    }
                                     _ => warn!("Unsupported command"),
                                 },
                             };

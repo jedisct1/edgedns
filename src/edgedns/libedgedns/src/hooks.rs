@@ -194,6 +194,12 @@ impl Hooks {
         }
     }
 
+    pub fn unregister_service(&mut self, service_id: &[u8]) -> Result<(), &'static str> {
+        debug!("Unloading service [{:?}]", service_id);
+        self.services.remove(service_id);
+        Ok(())
+    }
+
     pub fn new(libraries_path: Option<&str>) -> Self {
         let services = Trie::new();
         let master_service_id = Vec::new();
