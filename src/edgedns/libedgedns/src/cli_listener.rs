@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::str;
 use std::sync::Arc;
 use std::thread;
-use tokio_core::reactor::Core;
+use tokio_core::reactor::{Core, Handle};
 use tokio_io::io::{read_to_end, write_all};
 use tokio_uds::{UnixListener, UnixStream};
 
@@ -29,6 +29,51 @@ impl CLIListener {
         }
     }
 
+    fn client_action(action: Option<cli::command::Action>, hooks_arc: Arc<RwLock<Hooks>>) {
+        match action {
+            Some(cli::command::Action::ServiceLoad(service_load)) => {
+                match hooks_arc.write().load_library_for_service_id(
+                    &service_load.library_path,
+                    &service_load.service_id.as_bytes(),
+                ) {
+                    Err(e) => error!("{}", e),
+                    _ => {}
+                };
+            }
+            Some(cli::command::Action::ServiceUnload(service_unload)) => {
+                match hooks_arc
+                    .write()
+                    .unregister_service(&service_unload.service_id.as_bytes())
+                {
+                    Err(e) => error!("{}", e),
+                    _ => {}
+                };
+            }
+            _ => warn!("Unsupported action"),
+        }
+    }
+
+    fn client_process(&self, socket: UnixStream, handle: &Handle) {
+        let hooks_arc = self.hooks_arc.clone();
+        let buf = Vec::new();
+        let reader = read_to_end(socket, buf)
+            .map(move |(socket, serialized)| {
+                match cli::Command::decode(&mut Cursor::new(serialized)) {
+                    Err(_) => warn!("Invalid serialized command received from the CLI"),
+                    Ok(command) => {
+                        Self::client_action(command.action, hooks_arc);
+                    }
+                };
+                socket
+            })
+            .and_then(move |mut socket| {
+                let _ = socket.write_all(b"DONE\n");
+                Ok(())
+            })
+            .then(|_| Ok(()));
+        handle.spawn(reader)
+    }
+
     pub fn spawn(self) {
         let cli_listener_th = thread::Builder::new()
             .name("cli_listener".to_string())
@@ -46,41 +91,7 @@ impl CLIListener {
                     }
                 };
                 let task = listener.incoming().for_each(|(socket, _client_addr)| {
-                    let hooks_arc = self.hooks_arc.clone();
-                    let buf = Vec::new();
-                    let reader = read_to_end(socket, buf)
-                        .map(move |(socket, serialized)| {
-                            let command = match cli::Command::decode(&mut Cursor::new(serialized)) {
-                                Err(_) => warn!("Invalid serialized command received from the CLI"),
-                                Ok(command) => match command.action {
-                                    Some(cli::command::Action::ServiceLoad(service_load)) => {
-                                        match hooks_arc.write().load_library_for_service_id(
-                                            &service_load.library_path,
-                                            &service_load.service_id.as_bytes(),
-                                        ) {
-                                            Err(e) => error!("{}", e),
-                                            _ => {}
-                                        };
-                                    }
-                                    Some(cli::command::Action::ServiceUnload(service_unload)) => {
-                                        match hooks_arc.write().unregister_service(
-                                            &service_unload.service_id.as_bytes(),
-                                        ) {
-                                            Err(e) => error!("{}", e),
-                                            _ => {}
-                                        };
-                                    }
-                                    _ => warn!("Unsupported command"),
-                                },
-                            };
-                            socket
-                        })
-                        .and_then(move |mut socket| {
-                            let _ = socket.write_all(b"DONE\n");
-                            Ok(())
-                        })
-                        .then(|_| Ok(()));
-                    handle.spawn(reader);
+                    self.client_process(socket, &handle);
                     Ok(())
                 });
                 event_loop.run(task).unwrap();
