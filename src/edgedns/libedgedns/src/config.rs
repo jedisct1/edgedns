@@ -39,6 +39,7 @@ pub struct Config {
     pub max_active_queries: usize,
     pub max_clients_waiting_for_query: usize,
     pub hooks_basedir: Option<String>,
+    pub hooks_socket_path: Option<String>,
 }
 
 impl Config {
@@ -268,6 +269,12 @@ impl Config {
                 .to_owned()
         });
 
+        let hooks_socket_path = config_hooks.and_then(|x| x.get("socket_path")).map(|x| {
+            x.as_str()
+                .expect("hooks.socket_path must be a string")
+                .to_owned()
+        });
+
         Ok(Config {
             decrement_ttl,
             upstream_servers,
@@ -295,6 +302,7 @@ impl Config {
             max_active_queries,
             max_clients_waiting_for_query,
             hooks_basedir,
+            hooks_socket_path,
         })
     }
 }

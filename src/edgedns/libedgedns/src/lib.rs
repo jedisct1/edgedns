@@ -75,6 +75,7 @@ mod varz;
 mod webservice;
 
 use cache::Cache;
+use cli_listener::CLIListener;
 pub use config::Config;
 use hooks::Hooks;
 use log_dnstap::LogDNSTap;
@@ -224,6 +225,16 @@ impl EdgeDNS {
             tasks.push(webservice.unwrap());
             service_ready_rx.recv().unwrap();
         }
+        match (&config.hooks_basedir, &config.hooks_socket_path) {
+            (&Some(ref _hooks_basedir), &Some(ref hooks_socket_path)) => {
+                let cli_listener = CLIListener::new(
+                    hooks_socket_path.to_string(),
+                    edgedns_context.hooks_arc.clone(),
+                );
+                cli_listener.spawn();
+            }
+            _ => {}
+        };
         Self::privileges_drop(&config);
         log_dnstap.map(|mut x| x.start());
         info!("EdgeDNS is ready to process requests");

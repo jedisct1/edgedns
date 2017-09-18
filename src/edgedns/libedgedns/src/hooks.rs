@@ -125,6 +125,24 @@ impl Service {
 }
 
 impl Hooks {
+    pub fn load_library_for_service_id(
+        &mut self,
+        library_path_str: &str,
+        service_id: &[u8],
+    ) -> Result<(), &'static str> {
+        debug!("Loading dynamic library [{}]", library_path_str);
+        let services = &mut self.services;
+        let service = match Service::new(Some(library_path_str)) {
+            Ok(service) => service,
+            Err(_) => return Err("Unable to register the service"),
+        };
+
+        if services.insert(service_id.to_vec(), service).is_some() {
+            debug!("Replacing a previous version of the library");
+        }
+        Ok(())
+    }
+
     pub fn load_library(&mut self, library_path: &PathBuf) -> Result<(), &'static str> {
         let stem = match library_path.file_stem() {
             None => return Err("Missing stem from file name"),
