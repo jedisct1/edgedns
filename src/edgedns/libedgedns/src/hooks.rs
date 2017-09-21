@@ -19,7 +19,12 @@ use std::ptr;
 use std::sync::Arc;
 
 const MASTER_SERVICE_LIBRARY_NAME: &'static str = "master";
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 const DLL_EXT: &'static str = "dylib";
+#[cfg(all(target_os = "unix", not(any(target_os = "macos", target_os = "ios"))))]
+const DLL_EXT: &'static str = "so";
+#[cfg(target_os = "windows")]
+const DLL_EXT: &'static str = "dll";
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct SessionStateInner {
