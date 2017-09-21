@@ -138,9 +138,7 @@ impl ClientQuery {
                 return Box::new(
                     self.tcpclient_tx
                         .clone()
-                        .expect(
-                            "Response sent using TCP but no associated TCP client channel",
-                        )
+                        .expect("Response sent using TCP but no associated TCP client channel")
                         .send(resolver_response)
                         .map(|_| {})
                         .map_err(|_| io::Error::last_os_error()),

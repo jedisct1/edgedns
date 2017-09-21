@@ -224,9 +224,7 @@ impl ExtResponse {
         };
         if let Err(e) = self.verify_ext_response(pending_query, packet, client_addr) {
             warn!("{}", e);
-            return Err(
-                "Received response is not valid for the query originally sent",
-            );
+            return Err("Received response is not valid for the query originally sent");
         }
         let client_queries = &pending_query.client_queries;
         if let Some(ref dnstap_sender) = self.dnstap_sender {
