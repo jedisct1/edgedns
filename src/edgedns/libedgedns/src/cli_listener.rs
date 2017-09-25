@@ -37,7 +37,7 @@ impl CLIListener {
             Some(cli::command::Action::ServiceLoad(service_load)) => {
                 match hooks_arc.write().load_library_for_service_id(
                     &service_load.library_path,
-                    &service_load.service_id.as_bytes(),
+                    service_load.service_id.as_bytes(),
                 ) {
                     Err(e) => Err(e),
                     _ => Ok(()),
@@ -45,7 +45,7 @@ impl CLIListener {
             }
             Some(cli::command::Action::ServiceUnload(service_unload)) => match hooks_arc
                 .write()
-                .unregister_service(&service_unload.service_id.as_bytes())
+                .unregister_service(service_unload.service_id.as_bytes())
             {
                 Err(e) => Err(e),
                 _ => Ok(()),
