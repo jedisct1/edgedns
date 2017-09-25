@@ -71,8 +71,8 @@ impl TcpClientQuery {
             handle: tcp_acceptor.handle.clone(),
             resolver_tx: tcp_acceptor.resolver_tx.clone(),
             cache: tcp_acceptor.cache.clone(),
-            varz: tcp_acceptor.varz.clone(),
-            hooks_arc: tcp_acceptor.hooks_arc.clone(),
+            varz: Arc::clone(&tcp_acceptor.varz),
+            hooks_arc: Arc::clone(&tcp_acceptor.hooks_arc),
         }
     }
 
@@ -86,8 +86,8 @@ impl TcpClientQuery {
         let client_query = ClientQuery::tcp(
             tcpclient_tx,
             normalized_question,
-            self.varz.clone(),
-            self.hooks_arc.clone(),
+            Arc::clone(&self.varz),
+            Arc::clone(&self.hooks_arc),
             session_state,
         );
         let wh_cell = RefCell::new(self.wh);
@@ -134,8 +134,8 @@ impl TcpAcceptor {
                 .expect("Couldn't clone a TCP socket"),
             resolver_tx: tcp_acceptor_core.resolver_tx.clone(),
             cache: tcp_acceptor_core.cache.clone(),
-            varz: tcp_acceptor_core.varz.clone(),
-            hooks_arc: tcp_acceptor_core.hooks_arc.clone(),
+            varz: Arc::clone(&tcp_acceptor_core.varz),
+            hooks_arc: Arc::clone(&tcp_acceptor_core.hooks_arc),
             tcp_arbitrator: tcp_acceptor_core.tcp_arbitrator.clone(),
         }
     }
@@ -153,7 +153,7 @@ impl TcpAcceptor {
             "Incoming connection using TCP, session index {}",
             session_idx
         );
-        let varz = self.varz.clone();
+        let varz = Arc::clone(&self.varz);
         varz.client_queries_tcp.inc();
         let (rh, wh) = client.split();
         let fut_expected_len = read_exact(rh, vec![0u8; 2]).and_then(move |(rh, len_buf)| {
@@ -171,7 +171,7 @@ impl TcpAcceptor {
         });
         let fut_packet_read =
             fut_expected_len.and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
-        let varz = self.varz.clone();
+        let varz = Arc::clone(&self.varz);
         let tcp_client_query = TcpClientQuery::new(self, wh);
         let fut_packet = fut_packet_read.and_then(move |(rh, packet)| {
             let normalized_question = match dns::normalize(&packet, true) {
@@ -247,8 +247,8 @@ impl TcpAcceptorCore {
     ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_tcp_listener = edgedns_context.tcp_listener.try_clone()?;
         let cache = edgedns_context.cache.clone();
-        let varz = edgedns_context.varz.clone();
-        let hooks_arc = edgedns_context.hooks_arc.clone();
+        let varz = Arc::clone(&edgedns_context.varz);
+        let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
         let tcp_arbitrator = edgedns_context.tcp_arbitrator.clone();
         let timer = wheel()
             .tick_duration(time::Duration::from_millis(MAX_TCP_IDLE_MS / 2))

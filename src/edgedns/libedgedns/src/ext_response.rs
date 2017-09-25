@@ -52,13 +52,13 @@ pub struct ExtResponse {
 impl ExtResponse {
     pub fn new(resolver_core: &ResolverCore, local_port: u16) -> Self {
         ExtResponse {
-            config: resolver_core.config.clone(),
+            config: Rc::clone(&resolver_core.config),
             dnstap_sender: resolver_core.dnstap_sender.clone(),
             pending_queries: resolver_core.pending_queries.clone(),
-            waiting_clients_count: resolver_core.waiting_clients_count.clone(),
-            upstream_servers_arc: resolver_core.upstream_servers_arc.clone(),
+            waiting_clients_count: Rc::clone(&resolver_core.waiting_clients_count),
+            upstream_servers_arc: Arc::clone(&resolver_core.upstream_servers_arc),
             cache: resolver_core.cache.clone(),
-            varz: resolver_core.varz.clone(),
+            varz: Arc::clone(&resolver_core.varz),
             decrement_ttl: resolver_core.decrement_ttl,
             local_port: local_port,
             net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),

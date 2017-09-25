@@ -44,7 +44,7 @@ impl Stream for UdpStream {
             unsafe { bufw.set_len(count) };
             client_ip
         };
-        let buf = self.buf.clone();
+        let buf = Rc::clone(&self.buf);
         Ok(Async::Ready(Some((buf, client_ip))))
     }
 }

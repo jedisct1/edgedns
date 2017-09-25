@@ -52,7 +52,7 @@ impl Service for WebService {
 impl WebService {
     fn new(edgedns_context: &EdgeDNSContext) -> WebService {
         WebService {
-            varz: edgedns_context.varz.clone(),
+            varz: Arc::clone(&edgedns_context.varz),
         }
     }
 

@@ -58,8 +58,8 @@ impl UdpAcceptor {
                 .expect("Couldn't clone a UDP socket"),
             resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             cache: udp_acceptor_core.cache.clone(),
-            varz: udp_acceptor_core.varz.clone(),
-            hooks_arc: udp_acceptor_core.hooks_arc.clone(),
+            varz: Arc::clone(&udp_acceptor_core.varz),
+            hooks_arc: Arc::clone(&udp_acceptor_core.hooks_arc),
         }
     }
 
@@ -104,8 +104,8 @@ impl UdpAcceptor {
         let client_query = ClientQuery::udp(
             client_addr,
             normalized_question,
-            self.varz.clone(),
-            self.hooks_arc.clone(),
+            Arc::clone(&self.varz),
+            Arc::clone(&self.hooks_arc),
             session_state,
         );
         if let Some(mut cache_entry) = cache_entry {
@@ -164,8 +164,8 @@ impl UdpAcceptorCore {
     ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let cache = edgedns_context.cache.clone();
-        let varz = edgedns_context.varz.clone();
-        let hooks_arc = edgedns_context.hooks_arc.clone();
+        let varz = Arc::clone(&edgedns_context.varz);
+        let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
 
         let udp_acceptor_th = thread::Builder::new()
             .name("udp_acceptor".to_string())

@@ -55,17 +55,17 @@ impl Clone for ClientQueriesHandler {
     fn clone(&self) -> Self {
         ClientQueriesHandler {
             cache: self.cache.clone(),
-            config: self.config.clone(),
+            config: Rc::clone(&self.config),
             handle: self.handle.clone(),
             net_udp_socket: self.net_udp_socket.try_clone().unwrap(),
-            net_ext_udp_sockets_rc: self.net_ext_udp_sockets_rc.clone(),
+            net_ext_udp_sockets_rc: Rc::clone(&self.net_ext_udp_sockets_rc),
             pending_queries: self.pending_queries.clone(),
-            upstream_servers_arc: self.upstream_servers_arc.clone(),
-            upstream_servers_live_arc: self.upstream_servers_live_arc.clone(),
-            waiting_clients_count: self.waiting_clients_count.clone(),
+            upstream_servers_arc: Arc::clone(&self.upstream_servers_arc),
+            upstream_servers_live_arc: Arc::clone(&self.upstream_servers_live_arc),
+            waiting_clients_count: Rc::clone(&self.waiting_clients_count),
             jumphasher: self.jumphasher,
             timer: self.timer.clone(),
-            varz: self.varz.clone(),
+            varz: Arc::clone(&self.varz),
         }
     }
 }
@@ -77,17 +77,17 @@ impl ClientQueriesHandler {
             .build();
         ClientQueriesHandler {
             cache: resolver_core.cache.clone(),
-            config: resolver_core.config.clone(),
+            config: Rc::clone(&resolver_core.config),
             handle: resolver_core.handle.clone(),
             net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),
-            net_ext_udp_sockets_rc: resolver_core.net_ext_udp_sockets_rc.clone(),
+            net_ext_udp_sockets_rc: Rc::clone(&resolver_core.net_ext_udp_sockets_rc),
             pending_queries: resolver_core.pending_queries.clone(),
-            upstream_servers_arc: resolver_core.upstream_servers_arc.clone(),
-            upstream_servers_live_arc: resolver_core.upstream_servers_live_arc.clone(),
-            waiting_clients_count: resolver_core.waiting_clients_count.clone(),
+            upstream_servers_arc: Arc::clone(&resolver_core.upstream_servers_arc),
+            upstream_servers_live_arc: Arc::clone(&resolver_core.upstream_servers_live_arc),
+            waiting_clients_count: Rc::clone(&resolver_core.waiting_clients_count),
             jumphasher: resolver_core.jumphasher,
             timer: timer,
-            varz: resolver_core.varz.clone(),
+            varz: Arc::clone(&resolver_core.varz),
         }
     }
 
@@ -286,12 +286,12 @@ impl ClientQueriesHandler {
             time::Duration::from_millis(upstream_server.timeout_ms_est()),
         );
         let retry_query = self.clone();
-        let upstream_servers_arc = self.upstream_servers_arc.clone();
-        let upstream_servers_live_arc = self.upstream_servers_live_arc.clone();
-        let config = self.config.clone();
+        let upstream_servers_arc = Arc::clone(&self.upstream_servers_arc);
+        let upstream_servers_live_arc = Arc::clone(&self.upstream_servers_live_arc);
+        let config = Rc::clone(&self.config);
         let normalized_question = normalized_question.clone();
         let handle = self.handle.clone();
-        let net_ext_udp_sockets_rc = self.net_ext_udp_sockets_rc.clone();
+        let net_ext_udp_sockets_rc = Rc::clone(&self.net_ext_udp_sockets_rc);
         let fut = timeout
             .map(|_| {})
             .map_err(|_| io::Error::last_os_error())
@@ -375,14 +375,14 @@ impl ClientQueriesHandler {
             done_rx,
             time::Duration::from_millis(UPSTREAM_QUERY_MAX_TIMEOUT_MS),
         );
-        let map_arc = self.pending_queries.map_arc.clone();
-        let waiting_clients_count = self.waiting_clients_count.clone();
-        let upstream_servers_arc = self.upstream_servers_arc.clone();
-        let upstream_servers_live_arc = self.upstream_servers_live_arc.clone();
-        let config = self.config.clone();
+        let map_arc = Arc::clone(&self.pending_queries.map_arc);
+        let waiting_clients_count = Rc::clone(&self.waiting_clients_count);
+        let upstream_servers_arc = Arc::clone(&self.upstream_servers_arc);
+        let upstream_servers_live_arc = Arc::clone(&self.upstream_servers_live_arc);
+        let config = Rc::clone(&self.config);
         let handle = self.handle.clone();
-        let varz = self.varz.clone();
-        let net_ext_udp_sockets_rc = self.net_ext_udp_sockets_rc.clone();
+        let varz = Arc::clone(&self.varz);
+        let net_ext_udp_sockets_rc = Rc::clone(&self.net_ext_udp_sockets_rc);
         let mut retry_query = self.clone();
         let fut = timeout
             .map(|_| {})

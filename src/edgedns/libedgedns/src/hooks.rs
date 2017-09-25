@@ -108,7 +108,7 @@ impl Service {
             Ok(library) => Arc::new(library),
         };
 
-        let library_inner = library.clone();
+        let library_inner = Arc::clone(&library);
 
         let hook_recv_hl: libloading::Result<libloading::Symbol<HookSymbolClientT>> =
             unsafe { library_inner.get(b"hook_recv") };

@@ -229,7 +229,7 @@ impl EdgeDNS {
             (&Some(ref _hooks_basedir), &Some(ref hooks_socket_path)) => {
                 let cli_listener = CLIListener::new(
                     hooks_socket_path.to_string(),
-                    edgedns_context.hooks_arc.clone(),
+                    Arc::clone(&edgedns_context.hooks_arc),
                 );
                 cli_listener.spawn();
             }

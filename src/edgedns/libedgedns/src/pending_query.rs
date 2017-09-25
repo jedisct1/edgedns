@@ -34,7 +34,7 @@ impl PendingQuery {
         client_query: &ClientQuery,
         done_tx: oneshot::Sender<()>,
     ) -> Self {
-        let varz = client_query.varz.clone();
+        let varz = Arc::clone(&client_query.varz);
         PendingQuery {
             normalized_question_minimal: normalized_question_minimal,
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),

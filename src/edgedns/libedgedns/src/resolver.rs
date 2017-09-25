@@ -103,7 +103,7 @@ impl ResolverCore {
         let config = edgedns_context.config.clone();
         let dnstap_sender = edgedns_context.dnstap_sender.clone();
         let cache = edgedns_context.cache.clone();
-        let varz = edgedns_context.varz.clone();
+        let varz = Arc::clone(&edgedns_context.varz);
         let decrement_ttl = config.decrement_ttl;
         let lbmode = config.lbmode;
         let upstream_max_failure_duration = config.upstream_max_failure_duration;

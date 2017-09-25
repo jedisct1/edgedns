@@ -55,7 +55,7 @@ impl CLIListener {
     }
 
     fn client_process(&self, socket: UnixStream, handle: &Handle) {
-        let hooks_arc = self.hooks_arc.clone();
+        let hooks_arc = Arc::clone(&self.hooks_arc);
         let buf = Vec::new();
         let reader = read_to_end(socket, buf)
             .map(move |(socket, serialized)| {
