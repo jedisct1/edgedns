@@ -226,7 +226,8 @@ impl EdgeDNS {
             service_ready_rx.recv().unwrap();
         }
         if let (&Some(ref _hooks_basedir), &Some(ref hooks_socket_path)) =
-            (&config.hooks_basedir, &config.hooks_socket_path) {
+            (&config.hooks_basedir, &config.hooks_socket_path)
+        {
             let cli_listener = CLIListener::new(
                 hooks_socket_path.to_string(),
                 Arc::clone(&edgedns_context.hooks_arc),
