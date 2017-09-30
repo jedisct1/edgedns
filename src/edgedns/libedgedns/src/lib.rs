@@ -225,15 +225,13 @@ impl EdgeDNS {
             tasks.push(webservice.unwrap());
             service_ready_rx.recv().unwrap();
         }
-        match (&config.hooks_basedir, &config.hooks_socket_path) {
-            (&Some(ref _hooks_basedir), &Some(ref hooks_socket_path)) => {
-                let cli_listener = CLIListener::new(
-                    hooks_socket_path.to_string(),
-                    Arc::clone(&edgedns_context.hooks_arc),
-                );
-                cli_listener.spawn();
-            }
-            _ => {}
+        if let (&Some(ref _hooks_basedir), &Some(ref hooks_socket_path)) =
+            (&config.hooks_basedir, &config.hooks_socket_path) {
+            let cli_listener = CLIListener::new(
+                hooks_socket_path.to_string(),
+                Arc::clone(&edgedns_context.hooks_arc),
+            );
+            cli_listener.spawn();
         };
         Self::privileges_drop(&config);
         log_dnstap.map(|mut x| x.start());
