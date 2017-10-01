@@ -56,7 +56,7 @@ mod client_query;
 mod client_queries_handler;
 mod config;
 pub mod dns;
-mod ext_response;
+mod ext_udp_listener;
 mod hooks;
 mod log_dnstap;
 mod net_helpers;

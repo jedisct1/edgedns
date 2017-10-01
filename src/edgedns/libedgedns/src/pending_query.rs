@@ -9,7 +9,7 @@ use futures::sync::mpsc::{channel, Receiver, Sender};
 use futures::sync::oneshot;
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::net;
+use std::net::{self, SocketAddr};
 use std::sync::Arc;
 use upstream_server::UpstreamServer;
 use varz::Varz;
