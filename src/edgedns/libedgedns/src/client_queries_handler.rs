@@ -20,7 +20,7 @@ use futures::sync::mpsc::Receiver;
 use futures::sync::oneshot;
 use jumphash::JumpHasher;
 use parking_lot::RwLock;
-use pending_query::{PendingQueries, PendingQuery};
+use pending_query::{PendingQueries, PendingQuery, PendingQueryKey};
 use rand;
 use rand::distributions::{IndependentSample, Range};
 use resolver::{LoadBalancingMode, ResolverCore};
@@ -129,11 +129,11 @@ impl ClientQueriesHandler {
 
     fn maybe_add_to_existing_pending_query(
         &mut self,
-        normalized_question_key: &NormalizedQuestionKey,
+        pending_query_key: &PendingQueryKey,
         client_query: &ClientQuery,
     ) -> bool {
         let mut pending_queries = self.pending_queries.map_arc.write();
-        match pending_queries.get_mut(normalized_question_key) {
+        match pending_queries.get_mut(pending_query_key) {
             None => false,
             Some(pending_query) => {
                 pending_query.client_queries.push(client_query.clone());
@@ -223,7 +223,10 @@ impl ClientQueriesHandler {
             return self.maybe_respond_with_stale_entry(&client_query);
         }
         let normalized_question = &client_query.normalized_question;
-        let key = normalized_question.key();
+        let key = PendingQueryKey {
+            normalized_question_key: normalized_question.key(),
+            custom_hash: 0,
+        };
         self.cap_pending_queries();
         if self.maybe_add_to_existing_pending_query(&key, &client_query) {
             return Box::new(future::ok(()));
@@ -318,7 +321,10 @@ impl ClientQueriesHandler {
     ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("timeout");
         let mut map = self.pending_queries.map_arc.write();
-        let key = normalized_question.key();
+        let key = PendingQueryKey {
+            normalized_question_key: normalized_question.key(),
+            custom_hash: 0,
+        };
         let pending_query = match map.get_mut(&key) {
             None => return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>,
             Some(pending_query) => pending_query,

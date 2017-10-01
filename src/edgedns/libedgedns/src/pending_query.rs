@@ -14,6 +14,12 @@ use std::sync::Arc;
 use upstream_server::UpstreamServer;
 use varz::Varz;
 
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct PendingQueryKey {
+    pub normalized_question_key: NormalizedQuestionKey,
+    pub custom_hash: u64,
+}
+
 pub struct PendingQuery {
     pub normalized_question_minimal: NormalizedQuestionMinimal,
     pub local_port: u16,
@@ -50,7 +56,7 @@ impl PendingQuery {
 
 #[derive(Clone)]
 pub struct PendingQueries {
-    pub map_arc: Arc<RwLock<HashMap<NormalizedQuestionKey, PendingQuery>>>,
+    pub map_arc: Arc<RwLock<HashMap<PendingQueryKey, PendingQuery>>>,
 }
 
 impl PendingQueries {
