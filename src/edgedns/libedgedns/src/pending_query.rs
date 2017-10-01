@@ -5,6 +5,7 @@
 use client_query::ClientQuery;
 use coarsetime::Instant;
 use dns::{NormalizedQuestionKey, NormalizedQuestionMinimal};
+use ext_udp_listener::ExtUdpQueryKey;
 use futures::sync::mpsc::{channel, Receiver, Sender};
 use futures::sync::oneshot;
 use parking_lot::RwLock;
@@ -29,6 +30,7 @@ pub struct PendingQuery {
     pub probed_upstream_server_idx: Option<usize>,
     pub done_tx: oneshot::Sender<()>,
     pub varz: Arc<Varz>,
+    pub ext_udp_query_key: Option<ExtUdpQueryKey>,
 }
 
 impl PendingQuery {
@@ -42,14 +44,15 @@ impl PendingQuery {
     ) -> Self {
         let varz = Arc::clone(&client_query.varz);
         PendingQuery {
-            normalized_question_minimal: normalized_question_minimal,
+            normalized_question_minimal,
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),
             client_queries: vec![client_query.clone()],
             ts: Instant::recent(),
-            upstream_server_idx: upstream_server_idx,
+            upstream_server_idx,
             probed_upstream_server_idx: None,
-            done_tx: done_tx,
-            varz: varz,
+            done_tx,
+            varz,
+            ext_udp_query_key: None,
         }
     }
 }
@@ -57,11 +60,16 @@ impl PendingQuery {
 #[derive(Clone)]
 pub struct PendingQueries {
     pub map_arc: Arc<RwLock<HashMap<PendingQueryKey, PendingQuery>>>,
+    pub ext_udp_map_arc: Arc<RwLock<HashMap<ExtUdpQueryKey, PendingQueryKey>>>,
 }
 
 impl PendingQueries {
     pub fn new() -> Self {
         let map_arc = Arc::new(RwLock::new(HashMap::new()));
-        PendingQueries { map_arc: map_arc }
+        let ext_udp_map_arc = Arc::new(RwLock::new(HashMap::new()));
+        PendingQueries {
+            map_arc,
+            ext_udp_map_arc,
+        }
     }
 }

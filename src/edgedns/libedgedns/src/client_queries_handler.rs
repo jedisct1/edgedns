@@ -13,6 +13,7 @@ use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
 use dns::{self, NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal};
+use ext_udp_listener::ExtUdpQueryKey;
 use futures::Future;
 use futures::Stream;
 use futures::future;
@@ -123,6 +124,13 @@ impl ClientQueriesHandler {
             let clients_count = pending_query.client_queries.len();
             let prev_count = self.waiting_clients_count.fetch_sub(clients_count, Relaxed);
             assert!(prev_count >= clients_count);
+
+            if let Some(ref ext_udp_query_key) = pending_query.ext_udp_query_key {
+                self.pending_queries
+                    .ext_udp_map_arc
+                    .write()
+                    .remove(ext_udp_query_key);
+            }
         }
         true
     }
@@ -265,7 +273,6 @@ impl ClientQueriesHandler {
         if let Ok(Some(probe_idx)) = probe_idx {
             pending_query.probed_upstream_server_idx = Some(probe_idx);
         }
-        let mut map = self.pending_queries.map_arc.write();
         debug!(
             "Sending {:?} to {:?}",
             pending_query.normalized_question_minimal,
@@ -280,7 +287,18 @@ impl ClientQueriesHandler {
             upstream_server_idx,
             upstream_server.pending_queries_count
         );
-        map.insert(key, pending_query);
+        let ext_udp_query_key = ExtUdpQueryKey {
+            normalized_question_minimal: pending_query.normalized_question_minimal.clone(),
+            local_port: pending_query.local_port,
+        };
+        self.pending_queries
+            .map_arc
+            .write()
+            .insert(key.clone(), pending_query);
+        self.pending_queries
+            .ext_udp_map_arc
+            .write()
+            .insert(ext_udp_query_key, key);
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());

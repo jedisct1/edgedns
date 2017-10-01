@@ -26,7 +26,7 @@ pub const DNS_TYPE_OPT: u16 = 41;
 pub const DNS_TYPE_SOA: u16 = 6;
 pub const DNS_TYPE_TXT: u16 = 16;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct NormalizedQuestion {
     pub qname: Vec<u8>,
     pub tid: u16,
@@ -46,7 +46,7 @@ pub struct NormalizedQuestionKey {
     pub dnssec: bool,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct NormalizedQuestionMinimal {
     pub qname: Vec<u8>,
     pub tid: u16,
