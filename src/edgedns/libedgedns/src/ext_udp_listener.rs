@@ -311,11 +311,11 @@ impl ExtUdpListener {
         self.varz
             .upstream_response_sizes
             .observe(packet.len() as f64);
-        let key = PendingQueryKey {
-            normalized_question_key: normalized_question_key.clone(),
-            custom_hash: 0,
-        };
-        if let Some(pending_query) = self.pending_queries.map_arc.write().remove(&key) {
+        if let Some(pending_query) = self.pending_queries
+            .map_arc
+            .write()
+            .remove(&pending_query_key)
+        {
             self.varz.inflight_queries.dec();
             let _ = pending_query.done_tx.send(());
             let clients_count = pending_query.client_queries.len();
