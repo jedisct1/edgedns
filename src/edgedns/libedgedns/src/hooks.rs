@@ -12,6 +12,7 @@ use libloading::os::windows::Symbol;
 use nix::libc::{c_int, c_void};
 use parking_lot::RwLock;
 use qp_trie::Trie;
+use siphasher::sip128::SipHasher13;
 use std::ffi::OsStr;
 use std::mem;
 use std::path::PathBuf;
@@ -26,11 +27,12 @@ const DLL_EXT: &'static str = "so";
 #[cfg(target_os = "windows")]
 const DLL_EXT: &'static str = "dll";
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct SessionStateInner {
     pub service_id: Option<Vec<u8>>,
     pub env_str: Trie<Vec<u8>, Vec<u8>>,
     pub env_i64: Trie<Vec<u8>, i64>,
+    pub hash_state: SipHasher13,
 }
 
 #[derive(Clone, Debug, Default)]
