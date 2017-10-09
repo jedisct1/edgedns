@@ -30,6 +30,7 @@ pub struct PendingQuery {
     pub done_tx: oneshot::Sender<()>,
     pub varz: Arc<Varz>,
     pub ext_udp_query_key: Option<ExtUdpQueryKey>,
+    pub custom_hash: (u64, u64),
 }
 
 impl PendingQuery {
@@ -50,6 +51,7 @@ impl PendingQuery {
             done_tx,
             varz,
             ext_udp_query_key: None,
+            custom_hash: (0, 0),
         }
     }
 }

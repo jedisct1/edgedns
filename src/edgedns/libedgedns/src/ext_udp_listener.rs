@@ -14,7 +14,7 @@
 //! the `DO` bit in the case of the query name in order to lift this ambiguity.
 
 use super::{DNS_QUERY_MIN_SIZE, FAILURE_TTL};
-use cache::Cache;
+use cache::{Cache, CacheKey};
 use client_query::ClientQuery;
 use config::Config;
 use dns::{min_ttl, normalize, rcode, set_ttl, tid, NormalizedQuestionKey,
@@ -165,26 +165,20 @@ impl ExtUdpListener {
         }
     }
 
-    fn store_to_cache(
-        &mut self,
-        packet: Vec<u8>,
-        normalized_question_key: NormalizedQuestionKey,
-        ttl: u32,
-    ) {
+    fn store_to_cache(&mut self, packet: Vec<u8>, cache_key: CacheKey, ttl: u32) {
         if rcode(&packet) == DNS_RCODE_SERVFAIL {
-            match self.cache.get(&normalized_question_key) {
+            match self.cache.get(&cache_key) {
                 None => {
-                    self.cache
-                        .insert(normalized_question_key, packet, FAILURE_TTL);
+                    self.cache.insert(cache_key, packet, FAILURE_TTL);
                 }
                 Some(cache_entry) => {
                     self.varz.client_queries_offline.inc();
                     self.cache
-                        .insert(normalized_question_key, cache_entry.packet, FAILURE_TTL);
+                        .insert(cache_key, cache_entry.packet, FAILURE_TTL);
                 }
             }
         } else {
-            self.cache.insert(normalized_question_key, packet, ttl);
+            self.cache.insert(cache_key, packet, ttl);
         }
         self.update_cache_stats();
     }
@@ -304,6 +298,7 @@ impl ExtUdpListener {
         self.varz
             .upstream_response_sizes
             .observe(packet.len() as f64);
+        let mut cache_key = None;
         if let Some(pending_query) = self.pending_queries
             .map_arc
             .write()
@@ -314,8 +309,14 @@ impl ExtUdpListener {
             let clients_count = pending_query.client_queries.len();
             let prev_count = self.waiting_clients_count.fetch_sub(clients_count, Relaxed);
             assert!(prev_count >= clients_count);
+            cache_key = Some(CacheKey {
+                normalized_question_key,
+                custom_hash: pending_query.custom_hash,
+            });
         }
-        self.store_to_cache(packet, normalized_question_key, ttl);
+        if let Some(cache_key) = cache_key {
+            self.store_to_cache(packet, cache_key, ttl);
+        }
         Box::new(future::ok(()))
     }
 

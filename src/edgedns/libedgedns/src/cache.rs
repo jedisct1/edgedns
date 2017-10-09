@@ -24,6 +24,12 @@ use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXD
 use parking_lot::Mutex;
 use std::sync::Arc;
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct CacheKey {
+    pub normalized_question_key: NormalizedQuestionKey,
+    pub custom_hash: (u64, u64),
+}
+
 #[derive(Clone, Debug)]
 pub struct CacheEntry {
     pub expiration: Instant,
@@ -40,7 +46,7 @@ impl CacheEntry {
 #[derive(Clone)]
 pub struct Cache {
     config: Config,
-    arc_mx: Arc<Mutex<ClockProCache<NormalizedQuestionKey, CacheEntry>>>,
+    arc_mx: Arc<Mutex<ClockProCache<CacheKey, CacheEntry>>>,
 }
 
 pub struct CacheStats {
@@ -72,12 +78,7 @@ impl Cache {
         }
     }
 
-    pub fn insert(
-        &mut self,
-        normalized_question_key: NormalizedQuestionKey,
-        packet: Vec<u8>,
-        ttl: u32,
-    ) -> bool {
+    pub fn insert(&mut self, cache_key: CacheKey, packet: Vec<u8>, ttl: u32) -> bool {
         debug_assert!(packet.len() >= dns::DNS_HEADER_SIZE);
         if packet.len() < dns::DNS_HEADER_SIZE {
             return false;
@@ -90,14 +91,12 @@ impl Cache {
             packet: packet,
         };
         let mut cache = self.arc_mx.lock();
-        cache.insert(normalized_question_key, cache_entry)
+        cache.insert(cache_key, cache_entry)
     }
 
-    pub fn get(&mut self, normalized_question_key: &NormalizedQuestionKey) -> Option<CacheEntry> {
+    pub fn get(&mut self, cache_key: &CacheKey) -> Option<CacheEntry> {
         let mut cache = self.arc_mx.lock();
-        cache
-            .get_mut(normalized_question_key)
-            .and_then(|res| Some(res.clone()))
+        cache.get_mut(cache_key).and_then(|res| Some(res.clone()))
     }
 
     /// get2() does a couple things before checking that a key is present in the cache.
@@ -114,7 +113,11 @@ impl Cache {
     /// We are not checking additional cache entries for now. Both to be minimize
     /// possible incompatibilities with RFC 8020, and for speed.
     /// This might be revisited later.
-    pub fn get2(&mut self, normalized_question: &NormalizedQuestion) -> Option<CacheEntry> {
+    pub fn get2(
+        &mut self,
+        normalized_question: &NormalizedQuestion,
+        custom_hash: (u64, u64),
+    ) -> Option<CacheEntry> {
         if let Some(special_packet) = self.handle_special_queries(normalized_question) {
             Some(CacheEntry {
                 expiration: Instant::recent() + Duration::from_secs(u64::from(self.config.max_ttl)),
@@ -127,7 +130,11 @@ impl Cache {
             })
         } else {
             let normalized_question_key = normalized_question.key();
-            let cache_entry = self.get(&normalized_question_key);
+            let cache_key = CacheKey {
+                normalized_question_key: normalized_question_key.clone(),
+                custom_hash,
+            };
+            let cache_entry = self.get(&cache_key);
             if let Some(mut cache_entry) = cache_entry {
                 if self.config.decrement_ttl {
                     let now = Instant::recent();
@@ -143,7 +150,7 @@ impl Cache {
                 if let Some(qname_shifted) = dns::qname_shift(&qname) {
                     let mut normalized_question_key = normalized_question.key();
                     normalized_question_key.qname_lc = qname_shifted.to_owned();
-                    let shifted_cache_entry = self.get(&normalized_question_key);
+                    let shifted_cache_entry = self.get(&cache_key);
                     if let Some(shifted_cache_entry) = shifted_cache_entry {
                         debug!("Shifted query cached");
                         let shifted_packet = shifted_cache_entry.packet;

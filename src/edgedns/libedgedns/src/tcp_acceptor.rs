@@ -79,9 +79,10 @@ impl TcpClientQuery {
     fn fut_process_query(
         mut self,
         normalized_question: NormalizedQuestion,
+        custom_hash: (u64, u64),
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
-        let cache_entry = self.cache.get2(&normalized_question);
+        let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
             tcpclient_tx,
@@ -89,6 +90,7 @@ impl TcpClientQuery {
             Arc::clone(&self.varz),
             Arc::clone(&self.hooks_arc),
             session_state,
+            custom_hash,
         );
         let wh_cell = RefCell::new(self.wh);
         let fut = tcpclient_rx
@@ -185,7 +187,8 @@ impl TcpAcceptor {
                     ))) as Box<Future<Item = _, Error = _>>;
                 }
             };
-            tcp_client_query.fut_process_query(normalized_question)
+            let custom_hash = (0u64, 0u64);
+            tcp_client_query.fut_process_query(normalized_question, custom_hash)
         });
         let fut_timeout = self.timer
             .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));

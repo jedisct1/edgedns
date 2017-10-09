@@ -156,7 +156,7 @@ impl ClientQueriesHandler {
         client_query: &ClientQuery,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let normalized_question = &client_query.normalized_question;
-        let cache_entry = self.cache.get2(normalized_question);
+        let cache_entry = self.cache.get2(normalized_question, client_query.custom_hash);
         if let Some(mut cache_entry) = cache_entry {
             self.varz.client_queries_offline.inc();
             debug!("All upstream servers are down - Responding with stale entry");

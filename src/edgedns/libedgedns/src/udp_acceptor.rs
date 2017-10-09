@@ -100,13 +100,15 @@ impl UdpAcceptor {
                 return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
             }
         };
-        let cache_entry = self.cache.get2(&normalized_question);
+        let custom_hash = (0u64, 0u64);
+        let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         let client_query = ClientQuery::udp(
             client_addr,
             normalized_question,
             Arc::clone(&self.varz),
             Arc::clone(&self.hooks_arc),
             session_state,
+            custom_hash,
         );
         if let Some(mut cache_entry) = cache_entry {
             if !cache_entry.is_expired() {
