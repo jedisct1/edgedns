@@ -220,7 +220,7 @@ impl ExtUdpListener {
         let map = self.pending_queries.map_arc.read();
         let key = PendingQueryKey {
             normalized_question_key: normalized_question_key.clone(),
-            custom_hash: 0,
+            custom_hash: (0, 0),
         };
         let pending_query = match map.get(&key) {
             None => return Err("No clients waiting for this query"),

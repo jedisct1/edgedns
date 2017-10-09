@@ -233,7 +233,7 @@ impl ClientQueriesHandler {
         let normalized_question = &client_query.normalized_question;
         let key = PendingQueryKey {
             normalized_question_key: normalized_question.key(),
-            custom_hash: 0,
+            custom_hash: (0, 0),
         };
         self.cap_pending_queries();
         if self.maybe_add_to_existing_pending_query(&key, &client_query) {
@@ -340,7 +340,7 @@ impl ClientQueriesHandler {
         let mut map = self.pending_queries.map_arc.write();
         let key = PendingQueryKey {
             normalized_question_key: normalized_question.key(),
-            custom_hash: 0,
+            custom_hash: (0, 0),
         };
         let pending_query = match map.get_mut(&key) {
             None => return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>,

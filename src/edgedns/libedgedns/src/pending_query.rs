@@ -18,7 +18,7 @@ use varz::Varz;
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct PendingQueryKey {
     pub normalized_question_key: NormalizedQuestionKey,
-    pub custom_hash: u64,
+    pub custom_hash: (u64, u64),
 }
 
 pub struct PendingQuery {
