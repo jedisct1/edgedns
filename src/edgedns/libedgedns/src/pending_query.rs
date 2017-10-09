@@ -23,7 +23,6 @@ pub struct PendingQueryKey {
 
 pub struct PendingQuery {
     pub normalized_question_minimal: NormalizedQuestionMinimal,
-    pub local_port: u16,
     pub client_queries: Vec<ClientQuery>,
     pub ts: Instant,
     pub upstream_server_idx: usize,
@@ -38,14 +37,12 @@ impl PendingQuery {
         normalized_question_minimal: NormalizedQuestionMinimal,
         upstream_server: &UpstreamServer,
         upstream_server_idx: usize,
-        net_ext_udp_socket: &net::UdpSocket,
         client_query: &ClientQuery,
         done_tx: oneshot::Sender<()>,
     ) -> Self {
         let varz = Arc::clone(&client_query.varz);
         PendingQuery {
             normalized_question_minimal,
-            local_port: net_ext_udp_socket.local_addr().unwrap().port(),
             client_queries: vec![client_query.clone()],
             ts: Instant::recent(),
             upstream_server_idx,

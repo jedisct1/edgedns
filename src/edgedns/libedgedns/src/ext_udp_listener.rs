@@ -97,13 +97,6 @@ impl ExtUdpListener {
         client_addr: SocketAddr,
     ) -> Result<(), String> {
         debug_assert!(packet.len() >= DNS_QUERY_MIN_SIZE);
-        if self.local_port != pending_query.local_port {
-            return Err(format!(
-                "Got a reponse on port {} for a query sent on port {}",
-                self.local_port,
-                pending_query.local_port
-            ));
-        }
         if pending_query.normalized_question_minimal.tid != tid(packet) {
             return Err(format!(
                 "Sent a query with tid {} but got a response for tid {:?}",
