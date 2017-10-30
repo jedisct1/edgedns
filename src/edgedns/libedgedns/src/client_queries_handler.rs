@@ -13,7 +13,6 @@ use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
 use dns::{self, NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal};
-use ext_udp_listener::ExtUdpQueryKey;
 use futures::Future;
 use futures::Stream;
 use futures::future;

@@ -37,12 +37,6 @@ use udp_stream::*;
 use upstream_server::UpstreamServer;
 use varz::Varz;
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct ExtUdpQueryKey {
-    pub normalized_question_minimal: NormalizedQuestionMinimal,
-    pub local_port: u16,
-}
-
 pub struct ExtUdpListener {
     config: Rc<Config>,
     dnstap_sender: Option<log_dnstap::Sender>,
