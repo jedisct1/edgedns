@@ -208,15 +208,11 @@ impl ExtUdpListener {
     fn verify_and_maybe_dispatch_pending_query(
         &mut self,
         mut packet: &mut [u8],
-        normalized_question_key: &NormalizedQuestionKey,
+        pending_query_key: &PendingQueryKey,
         client_addr: SocketAddr,
     ) -> Result<(), &'static str> {
         let map = self.pending_queries.map_arc.read();
-        let key = PendingQueryKey {
-            normalized_question_key: normalized_question_key.clone(),
-            custom_hash: (0, 0),
-        };
-        let pending_query = match map.get(&key) {
+        let pending_query = match map.get(&pending_query_key) {
             None => return Err("No clients waiting for this query"),
             Some(pending_query) => pending_query,
         };
@@ -261,35 +257,11 @@ impl ExtUdpListener {
             }
             Ok(ttl) => ttl,
         };
-        let minimal = normalized_question.minimal();
-        let ext_udp_query_key = ExtUdpQueryKey {
-            normalized_question_minimal: minimal,
-            local_port: self.local_port,
-        };
-        let pending_query_key = match self.pending_queries
-            .ext_udp_map_arc
-            .read()
-            .get(&ext_udp_query_key)
-        {
-            None => return Box::new(future::ok(())),
-            Some(pending_query_key) => pending_query_key.clone(),
-        };
-        match self.pending_queries.map_arc.read().get(&pending_query_key) {
-            None => {
-                warn!("ExtUdpQueryKey not linked to any PendingQuery");
-                return Box::new(future::ok(()));
-            }
-            _ => {
-                let _ = self.pending_queries
-                    .ext_udp_map_arc
-                    .write()
-                    .remove(&ext_udp_query_key);
-            }
-        };
         let normalized_question_key = normalized_question.key();
+        let pending_query_key = PendingQueryKey::new(normalized_question_key.clone());
         if let Err(e) = self.verify_and_maybe_dispatch_pending_query(
             &mut packet,
-            &normalized_question_key,
+            &pending_query_key,
             client_addr,
         ) {
             debug!("Couldn't dispatch response: {}", e);

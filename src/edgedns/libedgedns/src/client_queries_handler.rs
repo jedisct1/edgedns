@@ -124,13 +124,6 @@ impl ClientQueriesHandler {
             let clients_count = pending_query.client_queries.len();
             let prev_count = self.waiting_clients_count.fetch_sub(clients_count, Relaxed);
             assert!(prev_count >= clients_count);
-
-            if let Some(ref ext_udp_query_key) = pending_query.ext_udp_query_key {
-                self.pending_queries
-                    .ext_udp_map_arc
-                    .write()
-                    .remove(ext_udp_query_key);
-            }
         }
         true
     }
@@ -264,6 +257,7 @@ impl ClientQueriesHandler {
             normalized_question_minimal,
             upstream_server,
             upstream_server_idx,
+            net_ext_udp_socket,
             &client_query,
             done_tx,
         );
@@ -286,18 +280,10 @@ impl ClientQueriesHandler {
             upstream_server_idx,
             upstream_server.pending_queries_count
         );
-        let ext_udp_query_key = ExtUdpQueryKey {
-            normalized_question_minimal: pending_query.normalized_question_minimal.clone(),
-            local_port: net_ext_udp_socket.local_addr().unwrap().port(),
-        };
         self.pending_queries
             .map_arc
             .write()
             .insert(key.clone(), pending_query);
-        self.pending_queries
-            .ext_udp_map_arc
-            .write()
-            .insert(ext_udp_query_key, key);
         let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());
@@ -381,6 +367,7 @@ impl ClientQueriesHandler {
         );
         let (done_tx, done_rx) = oneshot::channel();
         pending_query.normalized_question_minimal = normalized_question_minimal;
+        pending_query.local_port = net_ext_udp_socket.local_addr().unwrap().port();
         pending_query.ts = Instant::recent();
         pending_query.upstream_server_idx = upstream_server_idx;
         pending_query.done_tx = done_tx;
