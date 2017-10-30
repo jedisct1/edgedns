@@ -111,8 +111,7 @@ unsafe extern "C" fn env_get_i64(
 /// C wrappers to the internal API
 #[repr(C)]
 pub struct FnTable {
-    pub error_description:
-        unsafe extern "C" fn(c_err: *const CErr) -> *const c_char,
+    pub error_description: unsafe extern "C" fn(c_err: *const CErr) -> *const c_char,
     pub set_service_id: unsafe extern "C" fn(
         session_state: &mut SessionState,
         c_err: *const CErr,

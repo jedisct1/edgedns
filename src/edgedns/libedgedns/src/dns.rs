@@ -448,7 +448,7 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
     let mut normalized_question = NormalizedQuestion {
         tid: tid(packet),
         flags: flags(packet),
-        payload_size: u16::from(DNS_UDP_NOEDNS0_MAX_SIZE),
+        payload_size: DNS_UDP_NOEDNS0_MAX_SIZE,
         labels_count: question.labels_count,
         dnssec: false,
         qname: question.qname.to_owned(),
@@ -461,7 +461,7 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
         }
         if let Some(edns0) = parse_edns0(packet) {
             normalized_question.dnssec = edns0.dnssec;
-            if edns0.payload_size > u16::from(DNS_UDP_NOEDNS0_MAX_SIZE) {
+            if edns0.payload_size > DNS_UDP_NOEDNS0_MAX_SIZE {
                 normalized_question.payload_size = edns0.payload_size;
             }
         }

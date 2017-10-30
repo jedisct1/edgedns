@@ -24,7 +24,7 @@ impl PendingQueryKey {
     pub fn new(normalized_question_key: NormalizedQuestionKey) -> Self {
         PendingQueryKey {
             normalized_question_key,
-            custom_hash: (0, 0)
+            custom_hash: (0, 0),
         }
     }
 }
@@ -67,14 +67,12 @@ impl PendingQuery {
 
 #[derive(Clone)]
 pub struct PendingQueries {
-    pub map_arc: Arc<RwLock<HashMap<PendingQueryKey, PendingQuery>>>
+    pub map_arc: Arc<RwLock<HashMap<PendingQueryKey, PendingQuery>>>,
 }
 
 impl PendingQueries {
     pub fn new() -> Self {
         let map_arc = Arc::new(RwLock::new(HashMap::new()));
-        PendingQueries {
-            map_arc
-        }
+        PendingQueries { map_arc }
     }
 }

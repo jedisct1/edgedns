@@ -123,7 +123,7 @@ impl ClientQuery {
         } else {
             dns::set_tid(&mut packet, normalized_question.tid);
             dns::overwrite_qname(&mut packet, &normalized_question.qname);
-            packet.as_ref()
+            packet
         };
         match self.proto {
             ClientQueryProtocol::UDP => {

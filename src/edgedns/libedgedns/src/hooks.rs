@@ -19,13 +19,13 @@ use std::path::PathBuf;
 use std::ptr;
 use std::sync::Arc;
 
-const MASTER_SERVICE_LIBRARY_NAME: &'static str = "master";
+const MASTER_SERVICE_LIBRARY_NAME: &str = "master";
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-const DLL_EXT: &'static str = "dylib";
+const DLL_EXT: &str = "dylib";
 #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
-const DLL_EXT: &'static str = "so";
+const DLL_EXT: &str = "so";
 #[cfg(target_os = "windows")]
-const DLL_EXT: &'static str = "dll";
+const DLL_EXT: &str = "dll";
 
 #[derive(Clone, Debug, Default)]
 pub struct SessionStateInner {
