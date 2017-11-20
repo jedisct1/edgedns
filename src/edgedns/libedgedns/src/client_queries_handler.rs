@@ -186,10 +186,12 @@ impl ClientQueriesHandler {
         let offline_servers: Vec<_> = upstream_servers
             .iter()
             .enumerate()
-            .filter_map(|(idx, upstream_server)| if upstream_server.offline {
-                Some(idx)
-            } else {
-                None
+            .filter_map(|(idx, upstream_server)| {
+                if upstream_server.offline {
+                    Some(idx)
+                } else {
+                    None
+                }
             })
             .collect();
         if offline_servers.is_empty() {
