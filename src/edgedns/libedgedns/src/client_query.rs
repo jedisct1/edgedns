@@ -65,8 +65,8 @@ impl ClientQuery {
     pub fn tcp(
         tcpclient_tx: Sender<ResolverResponse>,
         normalized_question: NormalizedQuestion,
-        varz: Arc<Varz>,
-        hooks_arc: Arc<RwLock<Hooks>>,
+        varz: &Arc<Varz>,
+        hooks_arc: &Arc<RwLock<Hooks>>,
         session_state: SessionState,
         custom_hash: (u64, u64),
     ) -> Self {

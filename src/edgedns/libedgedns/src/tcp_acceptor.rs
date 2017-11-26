@@ -87,8 +87,8 @@ impl TcpClientQuery {
         let client_query = ClientQuery::tcp(
             tcpclient_tx,
             normalized_question,
-            Arc::clone(&self.varz),
-            Arc::clone(&self.hooks_arc),
+            &Arc::clone(&self.varz),
+            &Arc::clone(&self.hooks_arc),
             session_state,
             custom_hash,
         );

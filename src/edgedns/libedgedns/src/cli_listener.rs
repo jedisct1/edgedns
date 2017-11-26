@@ -31,7 +31,7 @@ impl CLIListener {
 
     fn client_action(
         action: Option<cli::command::Action>,
-        hooks_arc: Arc<RwLock<Hooks>>,
+        hooks_arc: &Arc<RwLock<Hooks>>,
     ) -> Result<(), &'static str> {
         match action {
             Some(cli::command::Action::ServiceLoad(service_load)) => {
@@ -61,7 +61,7 @@ impl CLIListener {
             .map(move |(socket, serialized)| {
                 let res = match cli::Command::decode(&mut Cursor::new(serialized)) {
                     Err(_) => Err("Invalid serialized command received from the CLI"),
-                    Ok(command) => Self::client_action(command.action, hooks_arc),
+                    Ok(command) => Self::client_action(command.action, &hooks_arc),
                 };
                 (res, socket)
             })

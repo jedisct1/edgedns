@@ -100,7 +100,7 @@ impl ClientQueriesHandler {
         let mut self_inner = self.clone();
         let fut_client_query = resolver_rx.for_each(move |client_query| {
             let fut = self_inner
-                .fut_process_client_query(client_query)
+                .fut_process_client_query(&client_query)
                 .map_err(|_| {});
             handle.spawn(fut);
             future::ok(())
@@ -219,7 +219,7 @@ impl ClientQueriesHandler {
 
     fn fut_process_client_query(
         &mut self,
-        client_query: ClientQuery,
+        client_query: &ClientQuery,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("Incoming client query");
         if self.upstream_servers_live_arc.read().is_empty() {
@@ -315,14 +315,14 @@ impl ClientQueriesHandler {
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }
-                retry_query.fut_retry_query(normalized_question)
+                retry_query.fut_retry_query(&normalized_question)
             });
         Box::new(fut)
     }
 
     fn fut_retry_query(
         &self,
-        normalized_question: NormalizedQuestion,
+        normalized_question: &NormalizedQuestion,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("timeout");
         let mut map = self.pending_queries.map_arc.write();

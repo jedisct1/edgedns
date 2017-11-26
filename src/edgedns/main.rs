@@ -48,5 +48,5 @@ fn main() {
         }
         Ok(config) => config,
     };
-    EdgeDNS::new(config);
+    EdgeDNS::new(&config);
 }

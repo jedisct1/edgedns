@@ -167,7 +167,7 @@ impl EdgeDNS {
         pd.apply().unwrap();
     }
 
-    pub fn new(config: Config) -> EdgeDNS {
+    pub fn new(config: &Config) -> EdgeDNS {
         let ct = coarsetime::Updater::new(CLOCK_RESOLUTION)
             .start()
             .expect("Unable to spawn the internal timer");
