@@ -180,7 +180,7 @@ impl EdgeDNS {
         let tcp_listener =
             socket_tcp_bound(&config.listen_addr).expect("Unable to create a TCP client socket");
         let (log_dnstap, dnstap_sender) = if config.dnstap_enabled {
-            let log_dnstap = LogDNSTap::new(&config);
+            let log_dnstap = LogDNSTap::new(config);
             let dnstap_sender = log_dnstap.sender();
             (Some(log_dnstap), Some(dnstap_sender))
         } else {
@@ -234,7 +234,7 @@ impl EdgeDNS {
             );
             cli_listener.spawn();
         };
-        Self::privileges_drop(&config);
+        Self::privileges_drop(config);
         log_dnstap.map(|mut x| x.start());
         info!("EdgeDNS is ready to process requests");
         for task in tasks {

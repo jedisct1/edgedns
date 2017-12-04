@@ -60,10 +60,10 @@ impl Config {
                 ))
             }
         };
-        Self::parse(toml_config)
+        Self::parse(&toml_config)
     }
 
-    fn parse(toml_config: toml::Value) -> Result<Config, Error> {
+    fn parse(toml_config: &toml::Value) -> Result<Config, Error> {
         let config_upstream = toml_config.get("upstream");
         let decrement_ttl_str = config_upstream
             .and_then(|x| x.get("type"))
