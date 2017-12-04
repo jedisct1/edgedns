@@ -77,7 +77,7 @@ impl UdpAcceptor {
         }
         let mut session_state = SessionState::default();
         let packet = if self.hooks_arc.read().enabled(Stage::Recv) {
-            let packet = Rc::try_unwrap(packet).unwrap();
+            let packet = (*packet).clone(); // XXX - Remove that clone()
             match self.hooks_arc.read() // XXX - Remove that RwLock.read()
                 .apply_clientside(&mut session_state, packet, Stage::Recv)
             {
