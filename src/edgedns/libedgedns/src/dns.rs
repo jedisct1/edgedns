@@ -281,8 +281,7 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
         if name_len > DNS_MAX_HOSTNAME_LEN {
             info!(
                 "Name too long: {} bytes > {}",
-                name_len,
-                DNS_MAX_HOSTNAME_LEN
+                name_len, DNS_MAX_HOSTNAME_LEN
             );
             return Err("Name too long");
         }

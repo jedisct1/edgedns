@@ -270,8 +270,7 @@ impl ClientQueriesHandler {
         }
         debug!(
             "Sending {:?} to {:?}",
-            pending_query.normalized_question_minimal,
-            upstream_server.socket_addr
+            pending_query.normalized_question_minimal, upstream_server.socket_addr
         );
         self.varz.inflight_queries.inc();
         upstream_server.prepare_send(&self.config);
@@ -279,8 +278,7 @@ impl ClientQueriesHandler {
             upstream_server.pending_queries_count.saturating_add(1);
         debug!(
             "queries_count for server {}: {}",
-            upstream_server_idx,
-            upstream_server.pending_queries_count
+            upstream_server_idx, upstream_server.pending_queries_count
         );
         self.pending_queries
             .map_arc
@@ -342,8 +340,7 @@ impl ClientQueriesHandler {
             .saturating_sub(1);
         debug!(
             "Decrementing the number of pending queries for upstream {}: {}",
-            upstream_server_idx,
-            upstream_servers[upstream_server_idx].pending_queries_count
+            upstream_server_idx, upstream_servers[upstream_server_idx].pending_queries_count
         );
 
         let nq = normalized_question.new_pending_query(
@@ -378,8 +375,7 @@ impl ClientQueriesHandler {
             upstream_server.pending_queries_count.saturating_add(1);
         debug!(
             "New attempt: upstream server {} queries count: {}",
-            upstream_server_idx,
-            upstream_server.pending_queries_count
+            upstream_server_idx, upstream_server.pending_queries_count
         );
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(

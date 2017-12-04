@@ -170,9 +170,9 @@ impl Config {
 
         let config_global = toml_config.get("global");
 
-        let user = config_global.and_then(|x| x.get("user")).map(|x| {
-            x.as_str().expect("global.user must be a string").to_owned()
-        });
+        let user = config_global
+            .and_then(|x| x.get("user"))
+            .map(|x| x.as_str().expect("global.user must be a string").to_owned());
 
         let group = config_global.and_then(|x| x.get("group")).map(|x| {
             x.as_str()

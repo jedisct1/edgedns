@@ -90,9 +90,7 @@ impl ResolverCore {
         let upstream_servers: Vec<UpstreamServer> = config
             .upstream_servers
             .iter()
-            .map(|s| {
-                UpstreamServer::new(s).expect("Invalid upstream server address")
-            })
+            .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
         let upstream_servers_live_arc = Arc::new(RwLock::new(upstream_servers_live));

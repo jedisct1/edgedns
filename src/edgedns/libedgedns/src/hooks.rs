@@ -114,11 +114,15 @@ impl Service {
 
         let hook_recv_hl: libloading::Result<libloading::Symbol<HookSymbolClientT>> =
             unsafe { library_inner.get(b"hook_recv") };
-        let hook_recv = hook_recv_hl.ok().map(|hook| unsafe { hook.into_raw() });
+        let hook_recv = hook_recv_hl
+            .ok()
+            .map(|hook| unsafe { hook.into_raw() });
 
         let hook_deliver_hl: libloading::Result<libloading::Symbol<HookSymbolClientT>> =
             unsafe { library_inner.get(b"hook_deliver") };
-        let hook_deliver = hook_deliver_hl.ok().map(|hook| unsafe { hook.into_raw() });
+        let hook_deliver = hook_deliver_hl
+            .ok()
+            .map(|hook| unsafe { hook.into_raw() });
 
         let service_hooks = ServiceHooks {
             library,

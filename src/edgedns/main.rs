@@ -41,8 +41,7 @@ fn main() {
         Err(err) => {
             error!(
                 "The configuration couldn't be loaded -- [{}]: [{}]",
-                config_file,
-                err
+                config_file, err
             );
             return;
         }

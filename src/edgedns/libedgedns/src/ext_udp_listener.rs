@@ -77,9 +77,7 @@ impl ExtUdpListener {
                 .expect("Cannot clone a UDP socket"),
             handle,
         ).expect("Cannot create a UDP stream")
-            .for_each(move |(packet, client_addr)| {
-                self.fut_process_ext_socket(packet, client_addr)
-            })
+            .for_each(move |(packet, client_addr)| self.fut_process_ext_socket(packet, client_addr))
             .map_err(|_| io::Error::last_os_error());
         fut_ext_socket
     }
@@ -107,15 +105,13 @@ impl ExtUdpListener {
                 } else {
                     return Err(format!(
                         "Sent a probe query to {:?} but got a response from {:?}",
-                        probed_upstream_server.socket_addr,
-                        client_addr
+                        probed_upstream_server.socket_addr, client_addr
                     ));
                 }
             } else {
                 return Err(format!(
                     "Sent a query to {:?} but got a response from {:?}",
-                    upstream_servers[pending_query.upstream_server_idx].socket_addr,
-                    client_addr
+                    upstream_servers[pending_query.upstream_server_idx].socket_addr, client_addr
                 ));
             }
         } else {
