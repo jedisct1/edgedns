@@ -223,7 +223,7 @@ impl ClientQueriesHandler {
     ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("Incoming client query");
         if self.upstream_servers_live_arc.read().is_empty() {
-            return self.maybe_respond_with_stale_entry(&client_query);
+            return self.maybe_respond_with_stale_entry(client_query);
         }
         let normalized_question = &client_query.normalized_question;
         let key = PendingQueryKey {
@@ -231,7 +231,7 @@ impl ClientQueriesHandler {
             custom_hash: (0, 0),
         };
         self.cap_pending_queries();
-        if self.maybe_add_to_existing_pending_query(&key, &client_query) {
+        if self.maybe_add_to_existing_pending_query(&key, client_query) {
             return Box::new(future::ok(()));
         }
         let mut upstream_servers = self.upstream_servers_arc.write();
@@ -260,7 +260,7 @@ impl ClientQueriesHandler {
             upstream_server,
             upstream_server_idx,
             net_ext_udp_socket,
-            &client_query,
+            client_query,
             done_tx,
         );
         debug_assert_eq!(pending_query.client_queries.len(), 1);

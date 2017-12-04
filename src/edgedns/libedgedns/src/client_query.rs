@@ -76,8 +76,8 @@ impl ClientQuery {
             tcpclient_tx: Some(tcpclient_tx),
             normalized_question,
             ts: Instant::recent(),
-            varz: Arc::clone(&varz),
-            hooks_arc: Arc::clone(&hooks_arc),
+            varz: Arc::clone(varz),
+            hooks_arc: Arc::clone(hooks_arc),
             session_state,
             custom_hash,
         }
