@@ -89,9 +89,9 @@ impl ClientQuery {
         net_udp_socket: Option<&net::UdpSocket>,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
-        let mut packet = if self.hooks_arc.read().enabled(Stage::Deliver) {
-            // XXX - TODO: remove both RwLock.read()
-            match self.hooks_arc.read().apply_clientside(
+        let hooks_arc = self.hooks_arc.read();
+        let mut packet = if hooks_arc.enabled(Stage::Deliver) {
+            match hooks_arc.apply_clientside(
                 &mut self.session_state.clone(),
                 packet,
                 Stage::Deliver,
