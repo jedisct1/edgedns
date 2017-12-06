@@ -76,21 +76,22 @@ impl UdpAcceptor {
             return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
         }
         let mut session_state = SessionState::default();
-        let packet = if self.hooks_arc.read().enabled(Stage::Recv) {
-            let packet = (*packet).clone(); // XXX - Remove that clone()
-            match self.hooks_arc.read() // XXX - Remove that RwLock.read()
-                .apply_clientside(&mut session_state, packet, Stage::Recv)
-            {
-                Ok((action, packet)) => match action {
-                    Action::Drop => {
-                        return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
-                    }
-                    Action::Pass | Action::Lookup => Rc::new(packet),
-                },
-                Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
+        let packet = {
+            let hooks_arc = self.hooks_arc.read();
+            if hooks_arc.enabled(Stage::Recv) {
+                let packet = (*packet).clone(); // XXX - Remove that clone()
+                match hooks_arc.apply_clientside(&mut session_state, packet, Stage::Recv) {
+                    Ok((action, packet)) => match action {
+                        Action::Drop => {
+                            return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
+                        }
+                        Action::Pass | Action::Lookup => Rc::new(packet),
+                    },
+                    Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
+                }
+            } else {
+                packet
             }
-        } else {
-            packet
         };
         let normalized_question = match dns::normalize(&packet, true) {
             Ok(normalized_question) => normalized_question,
