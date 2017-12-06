@@ -211,7 +211,7 @@ dependencies = [
  "curl-sys 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-probe 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl-sys 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-sys 0.9.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "socket2 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -224,7 +224,7 @@ dependencies = [
  "cc 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl-sys 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-sys 0.9.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "vcpkg 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -277,7 +277,7 @@ dependencies = [
 [[package]]
 name = "dnssector"
 version = "0.1.0"
-source = "git+https://github.com/jedisct1/dnssector#be70915acbaf4bacaa65fafcba46c83ab1e0d713"
+source = "git+https://github.com/jedisct1/dnssector#a19500e0ee43d9b804723eff2c81bcfd38cbdcd3"
 dependencies = [
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chomp 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -547,7 +547,7 @@ dependencies = [
  "nix 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "privdrop 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "prometheus 0.3.4 (git+https://github.com/pingcap/rust-prometheus)",
+ "prometheus 0.3.5 (git+https://github.com/pingcap/rust-prometheus)",
  "prost 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-build 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-derive 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -729,7 +729,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.22"
+version = "0.9.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cc 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -757,18 +757,18 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "parking_lot_core 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot_core 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "parking_lot_core"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -807,8 +807,8 @@ dependencies = [
 
 [[package]]
 name = "prometheus"
-version = "0.3.4"
-source = "git+https://github.com/pingcap/rust-prometheus#8cd373e7ae578a9bfdcd3ed35defb1daa93e929f"
+version = "0.3.5"
+source = "git+https://github.com/pingcap/rust-prometheus#f9253d50c9a0c241eda98d0365ef05f2597582b6"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1043,7 +1043,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "smallvec"
-version = "0.4.4"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1401,17 +1401,17 @@ dependencies = [
 "checksum num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)" = "cacfcab5eb48250ee7d0c7896b51a2c5eec99c1feea5f32025635f5ae4b00070"
 "checksum num_cpus 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "514f0d73e64be53ff320680ca671b64fe3fb91da01e1ae2ddc99eb51d453b20d"
 "checksum openssl-probe 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d98df0270d404ccd3c050a41d579c52d1db15375168bb3471e04ec0f5f378daf"
-"checksum openssl-sys 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)" = "5483bdc56756041ba6aa37c9cb59cc2219f012a2a1377d97ad35556ac6676ee7"
+"checksum openssl-sys 0.9.23 (registry+https://github.com/rust-lang/crates.io-index)" = "2200ffec628e3f14c39fc0131a301db214f1a7d584e36507ee8700b0c7fb7a46"
 "checksum ordermap 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "40cd62c688b4d8078c3f0eef70d7762f17c08bf52b225799ddcb4cf275dd1f19"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
 "checksum parking_lot 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3e7f7c9857874e54afeb950eebeae662b1e51a2493666d2ea4c0a5d91dcf0412"
-"checksum parking_lot_core 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "4f610cb9664da38e417ea3225f23051f589851999535290e077939838ab7a595"
+"checksum parking_lot_core 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)" = "6c677d78851950b3aec390e681a411f78cc250cba277d4f578758a377f727970"
 "checksum percent-encoding 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 "checksum petgraph 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "28d0872a49ce3ee71b345f4fa675afe394d9e0d077f8eeeb3d04081724065d67"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
 "checksum podio 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "e5422a1ee1bc57cc47ae717b0137314258138f38fd5f3cea083f43a9725383a0"
 "checksum privdrop 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "155d6604ad2ea639e4dbd79d51ac1ace87fc1701d8e955a47aea1db529d69b2e"
-"checksum prometheus 0.3.4 (git+https://github.com/pingcap/rust-prometheus)" = "<none>"
+"checksum prometheus 0.3.5 (git+https://github.com/pingcap/rust-prometheus)" = "<none>"
 "checksum prost 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "f66b40a469da708e5bb9463d92b434a7581aa7758305a22950ae4a63dc1cf93e"
 "checksum prost-build 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8b39ad9ea74b849e8a52dc259f794aa359ee967e080e44ceb60ec0e02f810611"
 "checksum prost-derive 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "69fb9d2ab8ce9a3bd0e672de4292e110808c0cb8a6ce8d36c5301a7a9d6b89ee"
@@ -1442,7 +1442,7 @@ dependencies = [
 "checksum slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"
 "checksum slab 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fdeff4cd9ecff59ec7e3744cbca73dfe5ac35c2aedb2cfba8a1c715a18912e9d"
 "checksum smallvec 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4c8cbcd6df1e117c2210e13ab5109635ad68a929fcbb8964dc965b76cb5ee013"
-"checksum smallvec 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "ee4f357e8cd37bf8822e1b964e96fd39e2cb5a0424f8aaa284ccaccc2162411c"
+"checksum smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "44db0ecb22921ef790d17ae13a3f6d15784183ff5f2a01aa32098c7498d2b4b9"
 "checksum socket-priority 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9c8c157aab31873a138e0381122a4451733c117224b538c41a49d72da4ff4381"
 "checksum socket2 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "36b4896961171cd3317c7e9603d88f379f8c6e45342212235d356496680c68fd"
 "checksum spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7e4deb3c2455c73779e6d3eebceae9599fc70957e54c69fe88f93aa48e62f432"
