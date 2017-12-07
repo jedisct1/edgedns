@@ -13,12 +13,12 @@ use tokio_core::reactor::Handle;
 
 pub struct UdpStream {
     udp_socket: UdpSocket,
-    buf: Rc<Vec<u8>>,
+    buf: Vec<u8>,
 }
 
 impl UdpStream {
     pub fn from_socket(udp_socket: UdpSocket) -> Result<Self, io::Error> {
-        let buf = Rc::new(vec![0; DNS_MAX_UDP_SIZE]);
+        let buf = vec![0; DNS_MAX_UDP_SIZE];
         Ok(UdpStream { udp_socket, buf })
     }
 
@@ -32,19 +32,18 @@ impl UdpStream {
 }
 
 impl Stream for UdpStream {
-    type Item = (Rc<Vec<u8>>, SocketAddr);
+    type Item = (Vec<u8>, SocketAddr);
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         let client_ip = {
-            let bufw = Rc::get_mut(&mut self.buf).unwrap();
+            let mut bufw = &mut self.buf;
             let capacity = bufw.capacity();
             unsafe { bufw.set_len(capacity) };
-            let (count, client_ip) = try_nb!(self.udp_socket.recv_from(bufw));
+            let (count, client_ip) = try_nb!(self.udp_socket.recv_from(&mut bufw));
             unsafe { bufw.set_len(count) };
             client_ip
         };
-        let buf = Rc::clone(&self.buf);
-        Ok(Async::Ready(Some((buf, client_ip))))
+        Ok(Async::Ready(Some((self.buf.clone(), client_ip))))
     }
 }

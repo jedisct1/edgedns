@@ -65,7 +65,7 @@ impl UdpAcceptor {
 
     fn fut_process_query(
         &mut self,
-        packet: Rc<Vec<u8>>,
+        packet: Vec<u8>,
         client_addr: SocketAddr,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         self.varz.client_queries_udp.inc();
@@ -79,13 +79,12 @@ impl UdpAcceptor {
         let packet = {
             let hooks_arc = self.hooks_arc.read();
             if hooks_arc.enabled(Stage::Recv) {
-                let packet = (*packet).clone(); // XXX - Remove that clone()
                 match hooks_arc.apply_clientside(&mut session_state, packet, Stage::Recv) {
                     Ok((action, packet)) => match action {
                         Action::Drop => {
                             return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
                         }
-                        Action::Pass | Action::Lookup => Rc::new(packet),
+                        Action::Pass | Action::Lookup => packet,
                     },
                     Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
                 }

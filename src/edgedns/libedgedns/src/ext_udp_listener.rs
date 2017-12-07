@@ -219,7 +219,7 @@ impl ExtUdpListener {
 
     fn fut_process_ext_socket(
         &mut self,
-        packet: Rc<Vec<u8>>,
+        packet: Vec<u8>,
         client_addr: SocketAddr,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("received on an external socket {:?}", packet);
@@ -239,7 +239,7 @@ impl ExtUdpListener {
             }
             Ok(normalized_question) => normalized_question,
         };
-        let mut packet = (*packet).clone();
+        let mut packet = packet.to_owned();
         let ttl = match self.clamped_ttl(&mut packet) {
             Err(e) => {
                 info!("Unable to compute a TTL for caching a response: {}", e);
