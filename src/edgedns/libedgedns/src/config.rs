@@ -14,7 +14,7 @@ use toml;
 #[derive(Clone, Debug)]
 pub struct Config {
     pub decrement_ttl: bool,
-    pub upstream_servers: Vec<String>,
+    pub upstream_servers_str: Vec<String>,
     pub lbmode: LoadBalancingMode,
     pub upstream_max_failure_duration: Duration,
     pub cache_size: usize,
@@ -82,7 +82,7 @@ impl Config {
             }
         };
 
-        let upstream_servers = config_upstream
+        let upstream_servers_str = config_upstream
             .and_then(|x| x.get("servers"))
             .expect("upstream.servers is required")
             .as_array()
@@ -277,7 +277,7 @@ impl Config {
 
         Ok(Config {
             decrement_ttl,
-            upstream_servers,
+            upstream_servers_str,
             lbmode,
             upstream_max_failure_duration,
             cache_size,
