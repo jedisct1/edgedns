@@ -13,6 +13,7 @@
 use super::EdgeDNSContext;
 use cache::Cache;
 use client_query::*;
+use config::Config;
 use dns;
 use futures::Sink;
 use futures::future::{self, Future};
@@ -33,6 +34,7 @@ use varz::Varz;
 use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 struct UdpAcceptor {
+    config: Rc<Config>,
     net_udp_socket: net::UdpSocket,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
@@ -41,6 +43,7 @@ struct UdpAcceptor {
 }
 
 pub struct UdpAcceptorCore {
+    config: Rc<Config>,
     net_udp_socket: net::UdpSocket,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
@@ -52,6 +55,7 @@ pub struct UdpAcceptorCore {
 impl UdpAcceptor {
     fn new(udp_acceptor_core: &UdpAcceptorCore) -> Self {
         UdpAcceptor {
+            config: udp_acceptor_core.config.clone(),
             net_udp_socket: udp_acceptor_core
                 .net_udp_socket
                 .try_clone()
@@ -103,6 +107,7 @@ impl UdpAcceptor {
         let custom_hash = (0u64, 0u64);
         let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         let client_query = ClientQuery::udp(
+            Vec::new(),
             client_addr,
             normalized_question,
             Arc::clone(&self.varz),
@@ -163,6 +168,7 @@ impl UdpAcceptorCore {
         service_ready_tx: mpsc::SyncSender<u8>,
     ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
+        let config = edgedns_context.config.clone();
         let cache = edgedns_context.cache.clone();
         let varz = Arc::clone(&edgedns_context.varz);
         let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
@@ -172,6 +178,7 @@ impl UdpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let udp_acceptor_core = UdpAcceptorCore {
+                    config: Rc::new(config),
                     net_udp_socket,
                     cache,
                     resolver_tx,

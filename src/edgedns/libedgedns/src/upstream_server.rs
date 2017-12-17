@@ -19,6 +19,11 @@ use varz::Varz;
 const RTT_DECAY: f64 = 0.125;
 const RTT_DEV_DECAY: f64 = 0.25;
 
+#[derive(Clone, Copy, Debug)]
+pub struct UpstreamServerForQuery {
+    pub socket_addr: SocketAddr,
+}
+
 pub struct UpstreamServer {
     pub remote_addr: String,
     pub socket_addr: SocketAddr,

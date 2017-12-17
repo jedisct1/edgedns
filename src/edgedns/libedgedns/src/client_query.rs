@@ -13,6 +13,7 @@ use parking_lot::RwLock;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
+use upstream_server::UpstreamServerForQuery;
 use varz::Varz;
 
 #[derive(Clone, Debug)]
@@ -29,6 +30,7 @@ pub enum ClientQueryProtocol {
 
 #[derive(Clone)]
 pub struct ClientQuery {
+    pub upstream_servers_for_query: Vec<UpstreamServerForQuery>,
     pub proto: ClientQueryProtocol,
     pub client_addr: Option<SocketAddr>,
     pub tcpclient_tx: Option<Sender<ResolverResponse>>,
@@ -42,6 +44,7 @@ pub struct ClientQuery {
 
 impl ClientQuery {
     pub fn udp(
+        upstream_servers_for_query: Vec<UpstreamServerForQuery>,
         client_addr: SocketAddr,
         normalized_question: NormalizedQuestion,
         varz: Arc<Varz>,
@@ -50,6 +53,7 @@ impl ClientQuery {
         custom_hash: (u64, u64),
     ) -> Self {
         ClientQuery {
+            upstream_servers_for_query,
             proto: ClientQueryProtocol::UDP,
             client_addr: Some(client_addr),
             tcpclient_tx: None,
@@ -63,6 +67,7 @@ impl ClientQuery {
     }
 
     pub fn tcp(
+        upstream_servers_for_query: Vec<UpstreamServerForQuery>,
         tcpclient_tx: Sender<ResolverResponse>,
         normalized_question: NormalizedQuestion,
         varz: &Arc<Varz>,
@@ -71,6 +76,7 @@ impl ClientQuery {
         custom_hash: (u64, u64),
     ) -> Self {
         ClientQuery {
+            upstream_servers_for_query,
             proto: ClientQueryProtocol::TCP,
             client_addr: None,
             tcpclient_tx: Some(tcpclient_tx),

@@ -8,6 +8,7 @@ use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use bytes::BufMut;
 use cache::Cache;
 use client_query::*;
+use config::Config;
 use dns::{self, NormalizedQuestion};
 use futures::Sink;
 use futures::future::{self, Future};
@@ -31,6 +32,7 @@ use tokio_timer::{wheel, Timer};
 use varz::Varz;
 
 struct TcpAcceptor {
+    config: Rc<Config>,
     timer: Timer,
     handle: Handle,
     net_tcp_listener: net::TcpListener,
@@ -42,6 +44,7 @@ struct TcpAcceptor {
 }
 
 pub struct TcpAcceptorCore {
+    config: Rc<Config>,
     timer: Timer,
     handle: Handle,
     net_tcp_listener: net::TcpListener,
@@ -85,6 +88,7 @@ impl TcpClientQuery {
         let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
+            Vec::new(),
             tcpclient_tx,
             normalized_question,
             &Arc::clone(&self.varz),
@@ -128,6 +132,7 @@ impl TcpClientQuery {
 impl TcpAcceptor {
     fn new(tcp_acceptor_core: &TcpAcceptorCore) -> Self {
         TcpAcceptor {
+            config: tcp_acceptor_core.config.clone(),
             timer: tcp_acceptor_core.timer.clone(),
             handle: tcp_acceptor_core.handle.clone(),
             net_tcp_listener: tcp_acceptor_core
@@ -249,6 +254,7 @@ impl TcpAcceptorCore {
         service_ready_tx: mpsc::SyncSender<u8>,
     ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_tcp_listener = edgedns_context.tcp_listener.try_clone()?;
+        let config = edgedns_context.config.clone();
         let cache = edgedns_context.cache.clone();
         let varz = Arc::clone(&edgedns_context.varz);
         let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
@@ -262,6 +268,7 @@ impl TcpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let tcp_acceptor_core = TcpAcceptorCore {
+                    config: Rc::new(config),
                     timer,
                     handle: event_loop.handle(),
                     net_tcp_listener,
