@@ -29,10 +29,11 @@ use tokio_core::reactor::{Core, Handle};
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::io::{read_exact, write_all, ReadHalf, WriteHalf};
 use tokio_timer::{wheel, Timer};
+use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
 struct TcpAcceptor {
-    config: Rc<Config>,
+    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     timer: Timer,
     handle: Handle,
     net_tcp_listener: net::TcpListener,
@@ -131,8 +132,17 @@ impl TcpClientQuery {
 
 impl TcpAcceptor {
     fn new(tcp_acceptor_core: &TcpAcceptorCore) -> Self {
+        let config = &tcp_acceptor_core.config;
+        let default_upstream_servers_for_query = config
+            .upstream_servers_str
+            .iter()
+            .map(|s| {
+                UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s)
+                    .expect("Invalid upstream server address"))
+            })
+            .collect();
         TcpAcceptor {
-            config: tcp_acceptor_core.config.clone(),
+            default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
             timer: tcp_acceptor_core.timer.clone(),
             handle: tcp_acceptor_core.handle.clone(),
             net_tcp_listener: tcp_acceptor_core

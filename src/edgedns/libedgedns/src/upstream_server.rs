@@ -24,6 +24,14 @@ pub struct UpstreamServerForQuery {
     pub socket_addr: SocketAddr,
 }
 
+impl UpstreamServerForQuery {
+    pub fn from_upstream_server(upstream_server: &UpstreamServer) -> UpstreamServerForQuery {
+        UpstreamServerForQuery {
+            socket_addr: upstream_server.socket_addr,
+        }
+    }
+}
+
 pub struct UpstreamServer {
     pub remote_addr: String,
     pub socket_addr: SocketAddr,

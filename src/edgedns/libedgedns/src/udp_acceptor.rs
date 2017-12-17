@@ -29,12 +29,13 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use tokio_core::reactor::{Core, Handle};
 use udp_stream::*;
+use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
 use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 struct UdpAcceptor {
-    config: Rc<Config>,
+    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     net_udp_socket: net::UdpSocket,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
@@ -54,8 +55,17 @@ pub struct UdpAcceptorCore {
 
 impl UdpAcceptor {
     fn new(udp_acceptor_core: &UdpAcceptorCore) -> Self {
+        let config = &udp_acceptor_core.config;
+        let default_upstream_servers_for_query = config
+            .upstream_servers_str
+            .iter()
+            .map(|s| {
+                UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s)
+                    .expect("Invalid upstream server address"))
+            })
+            .collect();
         UdpAcceptor {
-            config: udp_acceptor_core.config.clone(),
+            default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
             net_udp_socket: udp_acceptor_core
                 .net_udp_socket
                 .try_clone()
