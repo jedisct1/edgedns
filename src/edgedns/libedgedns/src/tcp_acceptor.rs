@@ -58,6 +58,7 @@ pub struct TcpAcceptorCore {
 }
 
 struct TcpClientQuery {
+    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     timer: Timer,
     wh: WriteHalf<TcpStream>,
     handle: Handle,
@@ -70,6 +71,9 @@ struct TcpClientQuery {
 impl TcpClientQuery {
     pub fn new(tcp_acceptor: &TcpAcceptor, wh: WriteHalf<TcpStream>) -> Self {
         TcpClientQuery {
+            default_upstream_servers_for_query: tcp_acceptor
+                .default_upstream_servers_for_query
+                .clone(),
             timer: tcp_acceptor.timer.clone(),
             wh: wh,
             handle: tcp_acceptor.handle.clone(),
@@ -89,7 +93,7 @@ impl TcpClientQuery {
         let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
-            Vec::new(),
+            (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */
             tcpclient_tx,
             normalized_question,
             &Arc::clone(&self.varz),
