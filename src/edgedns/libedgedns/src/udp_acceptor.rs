@@ -117,7 +117,7 @@ impl UdpAcceptor {
         let custom_hash = (0u64, 0u64);
         let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         let client_query = ClientQuery::udp(
-            (*self.default_upstream_servers_for_query).clone(), // XXX - we may want to use an Rc<> everywhere
+            (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */
             client_addr,
             normalized_question,
             Arc::clone(&self.varz),
