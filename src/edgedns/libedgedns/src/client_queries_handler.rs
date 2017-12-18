@@ -24,8 +24,10 @@ use pending_query::{PendingQueries, PendingQuery, PendingQueryKey};
 use rand;
 use rand::distributions::{IndependentSample, Range};
 use resolver::{LoadBalancingMode, ResolverCore};
+use std::collections::HashMap;
 use std::io;
 use std::net;
+use std::net::SocketAddr;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
@@ -33,7 +35,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::time;
 use tokio_core::reactor::Handle;
 use tokio_timer::{wheel, Timer};
-use upstream_server::UpstreamServer;
+use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
 pub struct ClientQueriesHandler {
@@ -43,7 +45,7 @@ pub struct ClientQueriesHandler {
     net_udp_socket: net::UdpSocket,
     net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
     pending_queries: PendingQueries,
-    upstream_servers_arc: Arc<RwLock<Vec<UpstreamServer>>>,
+    upstream_servers_arc: Arc<RwLock<HashMap<SocketAddr, UpstreamServer>>>,
     upstream_servers_live_arc: Arc<RwLock<Vec<usize>>>,
     waiting_clients_count: Rc<AtomicUsize>,
     jumphasher: JumpHasher,
@@ -176,33 +178,30 @@ impl ClientQueriesHandler {
     fn maybe_send_probe_to_offline_servers(
         &self,
         query_packet: &[u8],
-        upstream_servers: &mut Vec<UpstreamServer>,
-        upstream_servers_live: &Vec<usize>,
+        upstream_servers_for_query: &Vec<UpstreamServerForQuery>,
+        upstream_servers: &mut HashMap<SocketAddr, UpstreamServer>,
         net_ext_udp_socket: &net::UdpSocket,
-    ) -> Result<Option<usize>, io::Error> {
-        if upstream_servers_live.len() == upstream_servers.len() {
+    ) -> Result<Option<SocketAddr>, io::Error> {
+        if upstream_servers_for_query.is_empty() {
             return Ok(None);
         }
-        let offline_servers: Vec<_> = upstream_servers
+        let offline_servers: Vec<_> = upstream_servers_for_query
             .iter()
             .enumerate()
-            .filter_map(|(idx, upstream_server)| {
-                if upstream_server.offline {
-                    Some(idx)
-                } else {
-                    None
+            .filter_map(|(idx, upstream_server_for_query)| {
+                match upstream_servers.get(&upstream_server_for_query.socket_addr) {
+                    None => None,
+                    Some(&upstream_server) => Some(upstream_server),
                 }
             })
             .collect();
         if offline_servers.is_empty() {
-            warn!("Inconsistency between the live servers map and offline status");
             return Ok(None);
         }
         let mut rng = rand::thread_rng();
         let random_offline_server_range = Range::new(0usize, offline_servers.len());
-        let random_offline_server_idx =
+        let random_offline_server =
             offline_servers[random_offline_server_range.ind_sample(&mut rng)];
-        let random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
             if last_probe_ts.elapsed_since_recent()
                 < Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
@@ -214,7 +213,7 @@ impl ClientQueriesHandler {
         random_offline_server.last_probe_ts = Some(Instant::recent());
         net_ext_udp_socket
             .send_to(query_packet, &random_offline_server.socket_addr)
-            .map(|_| Some(random_offline_server_idx))
+            .map(|_| Some(random_offline_server.socket_addr))
     }
 
     fn fut_process_client_query(
@@ -238,7 +237,6 @@ impl ClientQueriesHandler {
         let (query_packet, normalized_question_minimal, upstream_server_idx, net_ext_udp_socket) =
             match normalized_question.new_pending_query(
                 &upstream_servers,
-                &self.upstream_servers_live_arc.read(),
                 &self.net_ext_udp_sockets_rc,
                 &self.jumphasher,
                 false,
@@ -247,17 +245,27 @@ impl ClientQueriesHandler {
                 Err(_) => return Box::new(future::ok(())),
                 Ok(res) => res,
             };
-        let probe_idx = self.maybe_send_probe_to_offline_servers(
+        let probe_socket_addr = self.maybe_send_probe_to_offline_servers(
             &query_packet,
+            &client_query.upstream_servers_for_query,
             &mut upstream_servers,
-            &self.upstream_servers_live_arc.read(),
             net_ext_udp_socket,
         );
-        let upstream_server = &mut upstream_servers[upstream_server_idx];
+        let upstream_server_for_query =
+            &client_query.upstream_servers_for_query[upstream_server_idx];
+        let upstream_server = match upstream_servers.get(&upstream_server_for_query.socket_addr) {
+            None => {
+                warn!(
+                    "Requested backend {:?} hasn't been configured",
+                    upstream_server_for_query.socket_addr
+                );
+                return Box::new(future::ok(()));
+            }
+            Some(upstream_server) => upstream_server,
+        };
         let (done_tx, done_rx) = oneshot::channel();
         let mut pending_query = PendingQuery::new(
             normalized_question_minimal,
-            upstream_server,
             upstream_server_idx,
             net_ext_udp_socket,
             client_query,
@@ -265,12 +273,12 @@ impl ClientQueriesHandler {
         );
         debug_assert_eq!(pending_query.client_queries.len(), 1);
         self.waiting_clients_count.fetch_add(1, Relaxed);
-        if let Ok(Some(probe_idx)) = probe_idx {
-            pending_query.probed_upstream_server_idx = Some(probe_idx);
+        if let Ok(Some(probe_socket_addr)) = probe_socket_addr {
+            pending_query.probed_socket_addr = Some(probe_socket_addr);
         }
         debug!(
             "Sending {:?} to {:?}",
-            pending_query.normalized_question_minimal, upstream_server.socket_addr
+            pending_query.normalized_question_minimal, upstream_server_for_query.socket_addr
         );
         self.varz.inflight_queries.inc();
         upstream_server.prepare_send(&self.config);
@@ -298,22 +306,28 @@ impl ClientQueriesHandler {
         let normalized_question = normalized_question.clone();
         let handle = self.handle.clone();
         let net_ext_udp_sockets_rc = Rc::clone(&self.net_ext_udp_sockets_rc);
+        let upstream_server_for_query = upstream_server_for_query.clone();
+        let upstream_servers_for_query = &client_query.upstream_servers_for_query.clone();
         let fut = timeout
             .map(|_| {})
             .map_err(|_| io::Error::last_os_error())
             .or_else(move |_| {
                 {
                     let mut upstream_servers = upstream_servers_arc.write();
-                    {
-                        let upstream_server = &mut upstream_servers[upstream_server_idx];
-                        upstream_server.pending_queries_count =
-                            upstream_server.pending_queries_count.saturating_sub(1);
-                        upstream_server.record_failure(&config, &handle, &net_ext_udp_sockets_rc);
+                    match upstream_servers.get(&upstream_server_for_query.socket_addr) {
+                        None => {}
+                        Some(upstream_server) => {
+                            upstream_server.pending_queries_count =
+                                upstream_server.pending_queries_count.saturating_sub(1);
+                            upstream_server.record_failure(
+                                &config,
+                                &handle,
+                                &net_ext_udp_sockets_rc,
+                            );
+                        }
                     }
-                    *upstream_servers_live_arc.write() =
-                        UpstreamServer::live_servers(&mut upstream_servers);
                 }
-                retry_query.fut_retry_query(&normalized_question)
+                retry_query.fut_retry_query(&normalized_question, upstream_servers_for_query)
             });
         Box::new(fut)
     }
@@ -321,6 +335,7 @@ impl ClientQueriesHandler {
     fn fut_retry_query(
         &self,
         normalized_question: &NormalizedQuestion,
+        upstream_servers_for_query: &Vec<UpstreamServerForQuery>,
     ) -> Box<Future<Item = (), Error = io::Error>> {
         debug!("timeout");
         let mut map = self.pending_queries.map_arc.write();
@@ -332,51 +347,72 @@ impl ClientQueriesHandler {
             None => return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>,
             Some(pending_query) => pending_query,
         };
-        let mut upstream_servers = self.upstream_servers_arc.write();
         let upstream_server_idx = pending_query.upstream_server_idx;
-        upstream_servers[upstream_server_idx].pending_queries_count = upstream_servers
-            [upstream_server_idx]
-            .pending_queries_count
-            .saturating_sub(1);
-        debug!(
-            "Decrementing the number of pending queries for upstream {}: {}",
-            upstream_server_idx, upstream_servers[upstream_server_idx].pending_queries_count
-        );
-
-        let nq = normalized_question.new_pending_query(
-            &upstream_servers,
-            &self.upstream_servers_live_arc.read(),
-            &self.net_ext_udp_sockets_rc,
-            &self.jumphasher,
-            true,
-            self.config.lbmode,
-        );
-        let (query_packet, normalized_question_minimal, upstream_server_idx, net_ext_udp_socket) =
+        let upstream_server_for_query = upstream_servers_for_query[upstream_server_idx];
+        let nq = {
+            let mut upstream_servers = self.upstream_servers_arc.write();
+            let upstream_server = match upstream_servers.get(&upstream_server_for_query.socket_addr)
+            {
+                None => {
+                    warn!(
+                        "Requested backend {:?} hasn't been configured",
+                        upstream_server_for_query.socket_addr
+                    );
+                    return Box::new(future::ok(()));
+                }
+                Some(upstream_server) => upstream_server,
+            };
+            upstream_server.pending_queries_count.saturating_sub(1);
+            debug!(
+                "Decrementing the number of pending queries for upstream {}: {}",
+                upstream_server_idx, upstream_server.pending_queries_count
+            );
+            let nq = normalized_question.new_pending_query(
+                &upstream_servers,
+                &self.net_ext_udp_sockets_rc,
+                &self.jumphasher,
+                true,
+                self.config.lbmode,
+            );
             match nq {
                 Ok(x) => x,
                 Err(_) => {
                     return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>
                 }
+            }
+        };
+        let (query_packet, normalized_question_minimal, upstream_server_idx, net_ext_udp_socket) =
+            nq;
+        let upstream_server_for_query = &upstream_servers_for_query[upstream_server_idx];
+        {
+            let mut upstream_servers = self.upstream_servers_arc.write();
+            let upstream_server = match upstream_servers.get(&upstream_server_for_query.socket_addr)
+            {
+                None => {
+                    warn!(
+                        "Requested backend {:?} hasn't been configured",
+                        upstream_server_for_query.socket_addr
+                    );
+                    return Box::new(future::ok(()));
+                }
+                Some(upstream_server) => upstream_server,
             };
-        let upstream_server = &mut upstream_servers[upstream_server_idx];
-
-        debug!(
-            "new attempt with upstream server: {:?}",
-            upstream_server.socket_addr
-        );
+            upstream_server.pending_queries_count =
+                upstream_server.pending_queries_count.saturating_add(1);
+            debug!(
+                "New attempt: upstream server {} queries count: {}",
+                upstream_server_idx, upstream_server.pending_queries_count
+            );
+        }
         let (done_tx, done_rx) = oneshot::channel();
         pending_query.normalized_question_minimal = normalized_question_minimal;
         pending_query.local_port = net_ext_udp_socket.local_addr().unwrap().port();
         pending_query.ts = Instant::recent();
         pending_query.upstream_server_idx = upstream_server_idx;
         pending_query.done_tx = done_tx;
-        let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
-        upstream_server.pending_queries_count =
-            upstream_server.pending_queries_count.saturating_add(1);
-        debug!(
-            "New attempt: upstream server {} queries count: {}",
-            upstream_server_idx, upstream_server.pending_queries_count
-        );
+        let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server_for_query.socket_addr);
+
+        let upstream_server_for_query = upstream_servers_for_query[upstream_server_idx];
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(
             done_rx,
@@ -391,31 +427,33 @@ impl ClientQueriesHandler {
         let varz = Arc::clone(&self.varz);
         let net_ext_udp_sockets_rc = Rc::clone(&self.net_ext_udp_sockets_rc);
         let mut retry_query = self.clone();
+
         let fut = timeout
             .map(|_| {})
             .map_err(|_| io::Error::last_os_error())
             .or_else(move |_| {
                 debug!("retry failed as well");
                 varz.upstream_timeout.inc();
-                {
-                    let mut upstream_servers = upstream_servers_arc.write();
-                    upstream_servers[upstream_server_idx].pending_queries_count = upstream_servers
-                        [upstream_server_idx]
-                        .pending_queries_count
-                        .saturating_sub(1);
-                    debug!(
-                        "Failed new attempt: upstream server {} queries count: {}",
-                        upstream_server_idx,
-                        upstream_servers[upstream_server_idx].pending_queries_count
-                    );
-                    upstream_servers[upstream_server_idx].record_failure(
-                        &config,
-                        &handle,
-                        &net_ext_udp_sockets_rc,
-                    );
-                    *upstream_servers_live_arc.write() =
-                        UpstreamServer::live_servers(&mut upstream_servers);
-                }
+                let mut upstream_servers = upstream_servers_arc.write();
+                match upstream_servers.get(&upstream_server_for_query.socket_addr) {
+                    None => {
+                        warn!(
+                            "Requested backend {:?} hasn't been configured",
+                            upstream_server_for_query.socket_addr
+                        );
+                        return Box::new(future::ok(()))
+                            as Box<Future<Item = (), Error = io::Error>>;
+                    }
+                    Some(upstream_server) => {
+                        upstream_server.pending_queries_count =
+                            upstream_server.pending_queries_count.saturating_sub(1);
+                        debug!(
+                            "Failed new attempt: upstream server {} queries count: {}",
+                            upstream_server_idx, upstream_server.pending_queries_count
+                        );
+                        upstream_server.record_failure(&config, &handle, &net_ext_udp_sockets_rc);
+                    }
+                };
                 let mut map = map_arc.write();
                 if let Some(pending_query) = map.remove(&key) {
                     varz.inflight_queries.dec();
@@ -427,6 +465,7 @@ impl ClientQueriesHandler {
                 }
                 Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>
             });
+
         debug!("retrying...");
         Box::new(fut) as Box<Future<Item = (), Error = io::Error>>
     }
@@ -436,8 +475,7 @@ impl ClientQueriesHandler {
 impl NormalizedQuestion {
     fn pick_upstream(
         &self,
-        upstream_servers: &Vec<UpstreamServer>,
-        upstream_servers_live: &Vec<usize>,
+        upstream_servers: &HashMap<SocketAddr, UpstreamServer>,
         jumphasher: &JumpHasher,
         is_retry: bool,
         lbmode: LoadBalancingMode,
@@ -474,8 +512,7 @@ impl NormalizedQuestion {
 
     fn new_pending_query<'t>(
         &self,
-        upstream_servers: &Vec<UpstreamServer>,
-        upstream_servers_live: &Vec<usize>,
+        upstream_servers: &HashMap<SocketAddr, UpstreamServer>,
         net_ext_udp_sockets: &'t Vec<net::UdpSocket>,
         jumphasher: &JumpHasher,
         is_retry: bool,
@@ -491,16 +528,11 @@ impl NormalizedQuestion {
     > {
         let (query_packet, normalized_question_minimal) =
             dns::build_query_packet(self, false).expect("Unable to build a new query packet");
-        let upstream_server_idx = match self.pick_upstream(
-            upstream_servers,
-            upstream_servers_live,
-            jumphasher,
-            is_retry,
-            lbmode,
-        ) {
-            Err(e) => return Err(e),
-            Ok(upstream_server_idx) => upstream_server_idx,
-        };
+        let upstream_server_idx =
+            match self.pick_upstream(upstream_servers, jumphasher, is_retry, lbmode) {
+                Err(e) => return Err(e),
+                Ok(upstream_server_idx) => upstream_server_idx,
+            };
         let mut rng = rand::thread_rng();
         let random_token_range = Range::new(0usize, net_ext_udp_sockets.len());
         let random_token = random_token_range.ind_sample(&mut rng);

@@ -44,6 +44,14 @@ pub struct UpstreamServer {
     pub rtt_dev_est: f64,
 }
 
+impl PartialEq for UpstreamServer {
+    fn eq(&self, other: &UpstreamServer) -> bool {
+        self.socket_addr == other.socket_addr
+    }
+}
+
+impl Eq for UpstreamServer {}
+
 impl UpstreamServer {
     pub fn new(remote_addr: &str) -> Result<UpstreamServer, &'static str> {
         let socket_addr = match remote_addr.parse() {

@@ -11,7 +11,7 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
-use upstream_server::UpstreamServer;
+use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
@@ -35,7 +35,7 @@ pub struct PendingQuery {
     pub client_queries: Vec<ClientQuery>,
     pub ts: Instant,
     pub upstream_server_idx: usize,
-    pub probed_upstream_server_idx: Option<usize>,
+    pub probed_socket_addr: Option<SocketAddr>,
     pub done_tx: oneshot::Sender<()>,
     pub varz: Arc<Varz>,
     pub custom_hash: (u64, u64),
@@ -44,7 +44,6 @@ pub struct PendingQuery {
 impl PendingQuery {
     pub fn new(
         normalized_question_minimal: NormalizedQuestionMinimal,
-        upstream_server: &UpstreamServer,
         upstream_server_idx: usize,
         net_ext_udp_socket: &net::UdpSocket,
         client_query: &ClientQuery,

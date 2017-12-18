@@ -49,7 +49,7 @@ pub struct ResolverCore {
     pub net_udp_socket: net::UdpSocket,
     pub net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
     pub pending_queries: PendingQueries,
-    pub upstream_servers_arc: Arc<RwLock<Vec<UpstreamServer>>>,
+    pub upstream_servers_arc: Arc<RwLock<HashMap<SocketAddr, UpstreamServer>>>,
     pub upstream_servers_live_arc: Arc<RwLock<Vec<usize>>>,
     pub waiting_clients_count: Rc<AtomicUsize>,
     pub cache: Cache,
