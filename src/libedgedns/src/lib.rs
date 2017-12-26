@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 #![cfg_attr(feature = "clippy", allow(identity_op, ptr_arg, collapsible_if, let_and_return))]
-#![feature(conservative_impl_trait)]
+#![feature(conservative_impl_trait, nll)]
 #![allow(dead_code, unused_imports, unused_variables)]
 
 extern crate base64;
