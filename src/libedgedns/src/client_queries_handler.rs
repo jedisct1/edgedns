@@ -199,7 +199,7 @@ impl ClientQueriesHandler {
         let random_offline_server_range = Range::new(0usize, offline_servers.len());
         let random_offline_server_idx =
             offline_servers[random_offline_server_range.ind_sample(&mut rng)];
-        let mut random_offline_server = &mut upstream_servers[random_offline_server_idx];
+        let random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
             if last_probe_ts.elapsed_since_recent() <
                 Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
@@ -247,7 +247,7 @@ impl ClientQueriesHandler {
             &self.upstream_servers_live_arc.read(),
             net_ext_udp_socket,
         );
-        let mut upstream_server = &mut upstream_servers[upstream_server_idx];
+        let upstream_server = &mut upstream_servers[upstream_server_idx];
         let (done_tx, done_rx) = oneshot::channel();
         let mut pending_query = PendingQuery::new(
             normalized_question_minimal,
@@ -299,7 +299,7 @@ impl ClientQueriesHandler {
                 {
                     let mut upstream_servers = upstream_servers_arc.write();
                     {
-                        let mut upstream_server = &mut upstream_servers[upstream_server_idx];
+                        let upstream_server = &mut upstream_servers[upstream_server_idx];
                         upstream_server.pending_queries_count =
                             upstream_server.pending_queries_count.saturating_sub(1);
                         upstream_server.record_failure(&config, &handle, &net_ext_udp_sockets_rc);
@@ -319,7 +319,7 @@ impl ClientQueriesHandler {
         debug!("timeout");
         let mut map = self.pending_queries.map_arc.write();
         let key = normalized_question.key();
-        let mut pending_query = match map.get_mut(&key) {
+        let pending_query = match map.get_mut(&key) {
             None => return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>,
             Some(pending_query) => pending_query,
         };

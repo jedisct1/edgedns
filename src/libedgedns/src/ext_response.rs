@@ -125,7 +125,7 @@ impl ExtResponse {
                 ));
             }
         } else {
-            let mut upstream_server = &mut upstream_servers[pending_query.upstream_server_idx];
+            let upstream_server = &mut upstream_servers[pending_query.upstream_server_idx];
             upstream_server.pending_queries_count =
                 upstream_server.pending_queries_count.saturating_sub(1);
             upstream_server.record_rtt(pending_query.ts.elapsed_since_recent(), &self.varz);
@@ -201,7 +201,7 @@ impl ExtResponse {
 
     fn dispatch_client_queries(
         &self,
-        mut packet: &mut [u8],
+        packet: &mut [u8],
         client_queries: &Vec<ClientQuery>,
     ) -> Result<(), &'static str> {
         self.varz.upstream_received.inc();
