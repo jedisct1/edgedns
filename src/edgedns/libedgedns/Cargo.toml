@@ -6,7 +6,7 @@ publish = false
 
 [features]
 webservice = ["hyper"]
-nightly = ["log/nightly", "prometheus/nightly"]
+nightly = ["prometheus/nightly"]
 
 [[bin]]
 name = "edgedns"
@@ -49,6 +49,7 @@ tokio-io = "*"
 tokio-timer = "*"
 tokio-uds = "*"
 toml = "*"
+unicase = "*"
 
 [build-dependencies]
 prost-build = "*"

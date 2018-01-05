@@ -5,7 +5,7 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
 webservice = ["libedgedns/webservice"]
-nightly = ["libedgedns/nightly", "clap/nightly", "log/nightly"]
+nightly = ["libedgedns/nightly", "clap/nightly"]
 clippy = ["libedgedns/clippy"]
 
 default = ["nightly", "webservice"]

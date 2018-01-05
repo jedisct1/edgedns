@@ -81,7 +81,7 @@ impl UdpAcceptor {
         &mut self,
         packet: Vec<u8>,
         client_addr: SocketAddr,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> impl Future<Item = (), Error = io::Error> {
         self.varz.client_queries_udp.inc();
         let count = packet.len();
         if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {

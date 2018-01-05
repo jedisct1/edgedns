@@ -20,7 +20,6 @@ use log_dnstap;
 use net_helpers::*;
 use nix::sys::socket::{bind, setsockopt, sockopt, InetAddr, SockAddr};
 use parking_lot::RwLock;
-use pending_query::{PendingQueries, PendingQuery};
 use std::collections::HashMap;
 use std::io;
 use std::io::Cursor;
@@ -48,9 +47,7 @@ pub struct ResolverCore {
     pub dnstap_sender: Option<log_dnstap::Sender>,
     pub net_udp_socket: net::UdpSocket,
     pub net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
-    pub pending_queries: PendingQueries,
     pub upstream_servers_arc: Arc<RwLock<HashMap<SocketAddr, UpstreamServer>>>,
-    pub upstream_servers_live_arc: Arc<RwLock<Vec<usize>>>,
     pub waiting_clients_count: Rc<AtomicUsize>,
     pub cache: Cache,
     pub varz: Arc<Varz>,
@@ -69,7 +66,6 @@ impl ResolverCore {
             .expect("Unable to clone the UDP listening socket");
         let (resolver_tx, resolver_rx): (Sender<ClientQuery>, Receiver<ClientQuery>) =
             channel(edgedns_context.config.max_active_queries);
-        let pending_queries = PendingQueries::new();
         let mut net_ext_udp_sockets: Vec<net::UdpSocket> = Vec::new();
         let ports = if config.udp_ports > 65_535 - 1024 {
             65_535 - 1024
@@ -87,13 +83,15 @@ impl ResolverCore {
         if net_ext_udp_sockets.is_empty() {
             panic!("Couldn't bind any ports");
         }
-        let upstream_servers: Vec<UpstreamServer> = config
+        let mut upstream_servers = HashMap::new();
+        for upstream_server in config
             .upstream_servers_str
             .iter()
             .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
-            .collect();
-        let upstream_servers_live: Vec<usize> = (0..config.upstream_servers_str.len()).collect();
-        let upstream_servers_live_arc = Arc::new(RwLock::new(upstream_servers_live));
+        {
+            let remote_addr = upstream_server.remote_addr;
+            upstream_servers.insert(remote_addr, upstream_server);
+        }
         let upstream_servers_arc = Arc::new(RwLock::new(upstream_servers));
         if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
@@ -116,9 +114,7 @@ impl ResolverCore {
                     dnstap_sender: dnstap_sender,
                     net_udp_socket: net_udp_socket,
                     net_ext_udp_sockets_rc: Rc::new(net_ext_udp_sockets),
-                    pending_queries: pending_queries,
                     upstream_servers_arc: upstream_servers_arc,
-                    upstream_servers_live_arc: upstream_servers_live_arc,
                     waiting_clients_count: Rc::new(AtomicUsize::new(0)),
                     cache: cache,
                     varz: varz,
@@ -133,8 +129,6 @@ impl ResolverCore {
                         &resolver_core,
                         net_ext_udp_socket.local_addr().unwrap().port(),
                     );
-                    let stream = ext_udp_listener.fut_process_stream(&handle, net_ext_udp_socket);
-                    handle.spawn(stream.map_err(|_| {}).map(|_| {}));
                 }
                 let client_queries_handler = ClientQueriesHandler::new(&resolver_core);
                 let stream = client_queries_handler.fut_process_stream(&handle, resolver_rx);

@@ -4,5 +4,5 @@ fn main() {
     prost_build::compile_protos(
         &["../../edgedns-cli/edgedns-cli.proto"],
         &["../../edgedns-cli/"],
-    ).unwrap();
+    ).expect("Unable to generate the protobuf definitions");
 }

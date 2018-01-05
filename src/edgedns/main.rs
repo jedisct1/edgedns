@@ -1,6 +1,6 @@
 //! Import all the required crates, instanciate the main components and start
 //! the service.
-#![feature(conservative_impl_trait)]
+#![feature(conservative_impl_trait, universal_impl_trait, nll)]
 #![allow(dead_code, unused_imports, unused_variables)]
 
 extern crate clap;

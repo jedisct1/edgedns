@@ -13,7 +13,6 @@ use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::Arc;
 use tokio_core::reactor::Handle;
-use upstream_probe::UpstreamProbe;
 use varz::Varz;
 
 const RTT_DECAY: f64 = 0.125;
@@ -21,20 +20,19 @@ const RTT_DEV_DECAY: f64 = 0.25;
 
 #[derive(Clone, Copy, Debug)]
 pub struct UpstreamServerForQuery {
-    pub socket_addr: SocketAddr,
+    pub remote_addr: SocketAddr,
 }
 
 impl UpstreamServerForQuery {
     pub fn from_upstream_server(upstream_server: &UpstreamServer) -> UpstreamServerForQuery {
         UpstreamServerForQuery {
-            socket_addr: upstream_server.socket_addr,
+            remote_addr: upstream_server.remote_addr,
         }
     }
 }
 
 pub struct UpstreamServer {
-    pub remote_addr: String,
-    pub socket_addr: SocketAddr,
+    pub remote_addr: SocketAddr,
     pub pending_queries_count: u64,
     pub failures: u32,
     pub last_successful_response_instant: Instant,
@@ -46,21 +44,20 @@ pub struct UpstreamServer {
 
 impl PartialEq for UpstreamServer {
     fn eq(&self, other: &UpstreamServer) -> bool {
-        self.socket_addr == other.socket_addr
+        self.remote_addr == other.remote_addr
     }
 }
 
 impl Eq for UpstreamServer {}
 
 impl UpstreamServer {
-    pub fn new(remote_addr: &str) -> Result<UpstreamServer, &'static str> {
-        let socket_addr = match remote_addr.parse() {
+    pub fn new(remote_addr_s: &str) -> Result<UpstreamServer, &'static str> {
+        let remote_addr = match remote_addr_s.parse() {
             Err(_) => return Err("Unable to parse an upstream resolver address"),
-            Ok(socket_addr) => socket_addr,
+            Ok(remote_addr) => remote_addr,
         };
         let upstream_server = UpstreamServer {
-            remote_addr: remote_addr.to_owned(),
-            socket_addr: socket_addr,
+            remote_addr: remote_addr,
             pending_queries_count: 0,
             failures: 0,
             last_successful_response_instant: Instant::now(),
@@ -107,7 +104,7 @@ impl UpstreamServer {
         self.offline = true;
         warn!(
             "Too many failures from resolver {}, putting offline",
-            self.remote_addr
+            self.remote_addr.ip()
         );
     }
 
@@ -120,7 +117,7 @@ impl UpstreamServer {
             return;
         }
         self.reset_state();
-        warn!("Marking {} as live again", self.socket_addr);
+        warn!("Marking {} as live again", self.remote_addr);
     }
 
     #[inline]
@@ -161,7 +158,7 @@ impl UpstreamServer {
         };
         debug!(
             "Upstream {} timeout_ms_est={} (rtt_est: {} rtt_dev_est: {})",
-            self.remote_addr,
+            self.remote_addr.ip(),
             timeout,
             self.rtt_est.unwrap_or(-1.0),
             self.rtt_dev_est
