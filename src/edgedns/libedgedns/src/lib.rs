@@ -16,6 +16,10 @@ extern crate coarsetime;
 extern crate dnssector;
 extern crate dnstap;
 #[macro_use]
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
+#[macro_use]
 extern crate futures;
 extern crate glob;
 extern crate jumphash;
@@ -42,6 +46,8 @@ extern crate tokio_io;
 extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate toml;
+#[macro_use]
+extern crate xfailure;
 
 #[cfg(feature = "webservice")]
 extern crate hyper;
@@ -56,13 +62,15 @@ mod client_query;
 mod client_queries_handler;
 mod config;
 pub mod dns;
+mod errors;
 mod ext_udp_listener;
+mod globals;
 mod hooks;
 mod log_dnstap;
 mod net_helpers;
 mod pending_query;
+mod query_router;
 mod resolver;
-use std::io;
 mod tcp_acceptor;
 mod tcp_arbitrator;
 mod udp_acceptor;
@@ -82,6 +90,7 @@ use net_helpers::*;
 use parking_lot::RwLock;
 use privdrop::PrivDrop;
 use resolver::*;
+use std::io;
 use std::net;
 use std::sync::Arc;
 use std::sync::mpsc;
@@ -124,7 +133,7 @@ pub struct EdgeDNSContext {
     pub udp_socket: net::UdpSocket,
     pub tcp_listener: net::TcpListener,
     pub cache: Cache,
-    pub varz: Arc<Varz>,
+    pub varz: Varz,
     pub hooks_arc: Arc<RwLock<Hooks>>,
     pub tcp_arbitrator: TcpArbitrator,
     pub dnstap_sender: Option<log_dnstap::Sender>,
@@ -170,7 +179,7 @@ impl EdgeDNS {
         let ct = coarsetime::Updater::new(CLOCK_RESOLUTION)
             .start()
             .expect("Unable to spawn the internal timer");
-        let varz = Arc::new(Varz::new());
+        let varz = varz::new();
         let hooks_basedir = config.hooks_basedir.as_ref().map(|x| x.as_str());
         let hooks_arc = Arc::new(RwLock::new(Hooks::new(hooks_basedir)));
         let cache = Cache::new(config.clone());

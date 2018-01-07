@@ -5,10 +5,11 @@
 
 use coarsetime::Instant;
 use prometheus::{Counter, Gauge, Histogram};
+use std::sync::Arc;
 
 pub struct StartInstant(pub Instant);
 
-pub struct Varz {
+pub struct Inner {
     pub start_instant: StartInstant,
     pub uptime: Gauge,
     pub cache_frequent_len: Gauge,
@@ -32,9 +33,15 @@ pub struct Varz {
     pub upstream_response_sizes: Histogram,
 }
 
-impl Varz {
-    pub fn new() -> Varz {
-        Varz {
+pub type Varz = Arc<Inner>;
+
+pub fn new() -> Varz {
+    Arc::new(Inner::new())
+}
+
+impl Inner {
+    pub fn new() -> Inner {
+        Inner {
             start_instant: StartInstant::default(),
             uptime: register_gauge!(opts!(
                 "edgedns_uptime",
@@ -149,7 +156,7 @@ impl Varz {
     }
 }
 
-impl Default for Varz {
+impl Default for Inner {
     fn default() -> Self {
         Self::new()
     }

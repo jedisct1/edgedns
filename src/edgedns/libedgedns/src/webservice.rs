@@ -17,7 +17,7 @@ use super::EdgeDNSContext;
 
 #[derive(Clone)]
 pub struct WebService {
-    varz: Arc<Varz>,
+    varz: Varz,
 }
 
 impl Service for WebService {

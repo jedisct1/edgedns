@@ -39,7 +39,7 @@ struct TcpAcceptor {
     net_tcp_listener: net::TcpListener,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
-    varz: Arc<Varz>,
+    varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
     tcp_arbitrator: TcpArbitrator,
 }
@@ -51,7 +51,7 @@ pub struct TcpAcceptorCore {
     net_tcp_listener: net::TcpListener,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
-    varz: Arc<Varz>,
+    varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
     tcp_arbitrator: TcpArbitrator,
@@ -64,16 +64,16 @@ struct TcpClientQuery {
     handle: Handle,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
-    varz: Arc<Varz>,
+    varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
 }
 
 impl TcpClientQuery {
     pub fn new(tcp_acceptor: &TcpAcceptor, wh: WriteHalf<TcpStream>) -> Self {
         TcpClientQuery {
-            default_upstream_servers_for_query: tcp_acceptor
-                .default_upstream_servers_for_query
-                .clone(),
+            default_upstream_servers_for_query: Rc::clone(
+                &tcp_acceptor.default_upstream_servers_for_query,
+            ),
             timer: tcp_acceptor.timer.clone(),
             wh: wh,
             handle: tcp_acceptor.handle.clone(),

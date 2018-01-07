@@ -36,7 +36,7 @@ pub struct ClientQuery {
     pub tcpclient_tx: Option<Sender<ResolverResponse>>,
     pub normalized_question: NormalizedQuestion,
     pub ts: Instant,
-    pub varz: Arc<Varz>,
+    pub varz: Varz,
     pub hooks_arc: Arc<RwLock<Hooks>>,
     pub session_state: SessionState,
     pub custom_hash: (u64, u64),
@@ -47,7 +47,7 @@ impl ClientQuery {
         upstream_servers_for_query: Vec<UpstreamServerForQuery>,
         client_addr: SocketAddr,
         normalized_question: NormalizedQuestion,
-        varz: Arc<Varz>,
+        varz: Varz,
         hooks_arc: Arc<RwLock<Hooks>>,
         session_state: SessionState,
         custom_hash: (u64, u64),
@@ -70,7 +70,7 @@ impl ClientQuery {
         upstream_servers_for_query: Vec<UpstreamServerForQuery>,
         tcpclient_tx: Sender<ResolverResponse>,
         normalized_question: NormalizedQuestion,
-        varz: &Arc<Varz>,
+        varz: &Varz,
         hooks_arc: &Arc<RwLock<Hooks>>,
         session_state: SessionState,
         custom_hash: (u64, u64),
@@ -94,20 +94,20 @@ impl ClientQuery {
         packet: &mut [u8],
         net_udp_socket: Option<&net::UdpSocket>,
     ) -> Box<Future<Item = (), Error = io::Error>> {
-        let packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
-        let hooks_arc = self.hooks_arc.read();
-        let mut packet = if hooks_arc.enabled(Stage::Deliver) {
-            match hooks_arc.apply_clientside(
-                &mut self.session_state.clone(),
-                packet,
-                Stage::Deliver,
-            ) {
-                Ok((_action, packet)) => packet,
-                Err(e) => return Box::new(future::err(io::Error::last_os_error())),
-            }
-        } else {
-            packet
-        };
+        let mut packet = packet.to_vec(); // XXX - TODO: Turns this back into a &mut [u8]
+                                          //        let hooks_arc = self.hooks_arc.read();
+                                          //        let mut packet = if hooks_arc.enabled(Stage::Deliver) {
+                                          //            match hooks_arc.apply_clientside(
+                                          //                &mut self.session_state.clone(),
+                                          //                packet,
+                                          //                Stage::Deliver,
+                                          //            ) {
+                                          //                Ok((_action, packet)) => packet,
+                                          //                Err(e) => return Box::new(future::err(io::Error::last_os_error())),
+                                          //            }
+                                          //        } else {
+                                          //            packet
+                                          //        };
         let normalized_question = &self.normalized_question;
         let packet_len = packet.len();
         let mut refused_packet;
@@ -122,7 +122,7 @@ impl ClientQuery {
         };
         let tc_packet;
         let packet = if self.proto == ClientQueryProtocol::UDP
-            && packet.len() > normalized_question.payload_size as usize
+            && packet.len() > normalized_question.max_payload as usize
         {
             tc_packet = dns::build_tc_packet(normalized_question).unwrap();
             tc_packet.as_ref()

@@ -3,6 +3,7 @@
 //! This provides a consistent interface with TCP sockets.
 
 use super::DNS_MAX_UDP_SIZE;
+use failure;
 use futures::{Async, Poll, Stream};
 use net::SocketAddr;
 use std::io;
@@ -33,7 +34,7 @@ impl UdpStream {
 
 impl Stream for UdpStream {
     type Item = (Vec<u8>, SocketAddr);
-    type Error = io::Error;
+    type Error = failure::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         let client_ip = {

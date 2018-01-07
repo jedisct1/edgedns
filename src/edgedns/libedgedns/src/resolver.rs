@@ -50,7 +50,7 @@ pub struct ResolverCore {
     pub upstream_servers_arc: Arc<RwLock<HashMap<SocketAddr, UpstreamServer>>>,
     pub waiting_clients_count: Rc<AtomicUsize>,
     pub cache: Cache,
-    pub varz: Arc<Varz>,
+    pub varz: Varz,
     pub decrement_ttl: bool,
     pub lbmode: LoadBalancingMode,
     pub upstream_max_failure_duration: Duration,

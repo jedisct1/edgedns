@@ -47,7 +47,7 @@ pub struct ClientQueriesHandler {
     waiting_clients_count: Rc<AtomicUsize>,
     jumphasher: JumpHasher,
     timer: Timer,
-    varz: Arc<Varz>,
+    varz: Varz,
 }
 
 impl Clone for ClientQueriesHandler {

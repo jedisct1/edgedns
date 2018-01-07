@@ -1,6 +1,9 @@
 //! Helpers for parsing DNS packets, modifying properties, and building
 //! common responses.
 
+use dnssector::ParsedPacket;
+use errors::*;
+use failure;
 use rand::random;
 use std::fmt;
 use std::io::Write;
@@ -29,12 +32,11 @@ pub const DNS_TYPE_TXT: u16 = 16;
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct NormalizedQuestion {
     pub qname: Vec<u8>,
-    pub tid: u16,
-    pub flags: u16,
-    pub payload_size: u16,
     pub qtype: u16,
     pub qclass: u16,
-    pub labels_count: u16,
+    pub tid: u16,
+    pub flags: u32,
+    pub max_payload: u16,
     pub dnssec: bool,
 }
 
@@ -369,6 +371,24 @@ impl fmt::Display for NormalizedQuestion {
 }
 
 impl NormalizedQuestion {
+    pub fn from_parsed_packet(
+        parsed_packet: &ParsedPacket,
+    ) -> Result<NormalizedQuestion, failure::Error> {
+        let (qname, qtype, qclass) = match parsed_packet.question() {
+            None => return Err(DNSError::InvalidPacket.into()),
+            Some((qname, qtype, qclass)) => (qname, qtype, qclass),
+        };
+        Ok(NormalizedQuestion {
+            qname,
+            qtype,
+            qclass,
+            tid: parsed_packet.tid(),
+            flags: parsed_packet.flags(),
+            max_payload: parsed_packet.max_payload() as u16,
+            dnssec: parsed_packet.dnssec(),
+        })
+    }
+
     pub fn key(&self) -> NormalizedQuestionKey {
         let dnssec = if self.qname.is_empty() {
             true
@@ -445,14 +465,13 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
         Err(e) => return Err(e),
     };
     let mut normalized_question = NormalizedQuestion {
-        tid: tid(packet),
-        flags: flags(packet),
-        payload_size: DNS_UDP_NOEDNS0_MAX_SIZE,
-        labels_count: question.labels_count,
-        dnssec: false,
         qname: question.qname.to_owned(),
         qtype: question.qtype,
         qclass: question.qclass,
+        tid: tid(packet),
+        flags: flags(packet) as u32,
+        max_payload: DNS_UDP_NOEDNS0_MAX_SIZE,
+        dnssec: false,
     };
     if is_question {
         if ancount(packet) != 0 || nscount(packet) != 0 {
@@ -461,7 +480,7 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
         if let Some(edns0) = parse_edns0(packet) {
             normalized_question.dnssec = edns0.dnssec;
             if edns0.payload_size > DNS_UDP_NOEDNS0_MAX_SIZE {
-                normalized_question.payload_size = edns0.payload_size;
+                normalized_question.max_payload = edns0.payload_size;
             }
         }
     } else {

@@ -15,13 +15,18 @@ use cache::Cache;
 use client_query::*;
 use config::Config;
 use dns;
+use dnssector::DNSSector;
+use errors::*;
+use failure;
 use futures::Sink;
 use futures::future::{self, Future};
 use futures::oneshot;
 use futures::stream::Stream;
 use futures::sync::mpsc::Sender;
+use globals::Globals;
 use hooks::{Action, Hooks, SessionState, Stage};
 use parking_lot::RwLock;
+use query_router::*;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
@@ -39,7 +44,7 @@ struct UdpAcceptor {
     net_udp_socket: net::UdpSocket,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
-    varz: Arc<Varz>,
+    varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
 }
 
@@ -48,7 +53,7 @@ pub struct UdpAcceptorCore {
     net_udp_socket: net::UdpSocket,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
-    varz: Arc<Varz>,
+    varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
 }
@@ -81,7 +86,7 @@ impl UdpAcceptor {
         &mut self,
         packet: Vec<u8>,
         client_addr: SocketAddr,
-    ) -> impl Future<Item = (), Error = io::Error> {
+    ) -> impl Future<Item = (), Error = failure::Error> {
         self.varz.client_queries_udp.inc();
         let count = packet.len();
         if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
@@ -89,64 +94,83 @@ impl UdpAcceptor {
             self.varz.client_queries_errors.inc();
             return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
         }
-        let mut session_state = SessionState::default();
-        let packet = {
-            let hooks_arc = self.hooks_arc.read();
-            if hooks_arc.enabled(Stage::Recv) {
-                match hooks_arc.apply_clientside(&mut session_state, packet, Stage::Recv) {
-                    Ok((action, packet)) => match action {
-                        Action::Drop => {
-                            return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
-                        }
-                        Action::Pass | Action::Lookup => packet,
-                    },
-                    Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
-                }
-            } else {
-                packet
-            }
+        let dns_sector = match DNSSector::new(packet) {
+            Ok(dns_sector) => dns_sector,
+            Err(e) => return Box::new(future::err(e)),
         };
-        let normalized_question = match dns::normalize(&packet, true) {
-            Ok(normalized_question) => normalized_question,
-            Err(e) => {
-                debug!("Error while parsing the question: {}", e);
-                self.varz.client_queries_errors.inc();
-                return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
-            }
+        let parsed_packet = match dns_sector.parse() {
+            Ok(parsed_packet) => parsed_packet,
+            Err(e) => return Box::new(future::err(e)),
         };
-        let custom_hash = (0u64, 0u64);
-        let cache_entry = self.cache.get2(&normalized_question, custom_hash);
-        let client_query = ClientQuery::udp(
-            (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */
-            client_addr,
-            normalized_question,
-            Arc::clone(&self.varz),
-            Arc::clone(&self.hooks_arc),
-            session_state,
-            custom_hash,
-        );
-        if let Some(mut cache_entry) = cache_entry {
-            if !cache_entry.is_expired() {
-                self.varz.client_queries_cached.inc();
-                return client_query
-                    .response_send(&mut cache_entry.packet, Some(&self.net_udp_socket));
-            }
-            debug!("expired");
-            self.varz.client_queries_expired.inc();
-        }
-        debug!("Sending query to the resolver");
-        let fut_resolver_query = self.resolver_tx
-            .clone()
-            .send(client_query)
-            .map_err(|_| io::Error::last_os_error())
-            .map(move |_| {});
-        Box::new(fut_resolver_query) as Box<Future<Item = _, Error = _>>
+        let globals = Globals {
+            cache: self.cache.clone(),
+            varz: Arc::clone(&self.varz),
+            hooks_arc: Arc::clone(&self.hooks_arc),
+        };
+        let query_router = QueryRouter::create(parsed_packet, &globals);
+
+        Box::new(future::ok(()))
+
+        //         let packet = parsed_packet.into_packet();
+        //         let mut session_state = SessionState::default();
+        //         let packet = {
+        //         let hooks_arc = self.hooks_arc.read();
+        //         if hooks_arc.enabled(Stage::Recv) {
+        //         match hooks_arc.apply_clientside(&mut session_state, packet, Stage::Recv) {
+        //         Ok((action, packet)) => match action {
+        //         Action::Drop => {
+        //         return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
+        //         }
+        //         Action::Pass | Action::Lookup => packet,
+        //         },
+        //         Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
+        // }
+        // } else {
+        // packet
+        // }
+        // };
+        // let normalized_question = match dns::normalize(&packet, true) {
+        // Ok(normalized_question) => normalized_question,
+        // Err(e) => {
+        // debug!("Error while parsing the question: {}", e);
+        // self.varz.client_queries_errors.inc();
+        // return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
+        // }
+        // };
+        // let custom_hash = (0u64, 0u64);
+        // let cache_entry = self.cache.get2(&normalized_question, custom_hash);
+        // let client_query = ClientQuery::udp(
+        // (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */
+        // client_addr,
+        // normalized_question,
+        // Arc::clone(&self.varz),
+        // Arc::clone(&self.hooks_arc),
+        // session_state,
+        // custom_hash,
+        // );
+        // if let Some(mut cache_entry) = cache_entry {
+        // if !cache_entry.is_expired() {
+        // self.varz.client_queries_cached.inc();
+        // return client_query
+        // .response_send(&mut cache_entry.packet, Some(&self.net_udp_socket));
+        // }
+        // debug!("expired");
+        // self.varz.client_queries_expired.inc();
+        // }
+        // debug!("Sending query to the resolver");
+        // let fut_resolver_query = self.resolver_tx
+        // .clone()
+        // .send(client_query)
+        // .map_err(|_| io::Error::last_os_error())
+        // .map(move |_| {});
+        // Box::new(fut_resolver_query) as Box<Future<Item = _, Error = _>>
+        // 
     }
 
     fn fut_process_stream<'a>(
         mut self,
         handle: &Handle,
-    ) -> impl Future<Item = (), Error = io::Error> + 'a {
+    ) -> impl Future<Item = (), Error = failure::Error> + 'a {
         UdpStream::from_net_udp_socket(
             self.net_udp_socket
                 .try_clone()
@@ -154,7 +178,6 @@ impl UdpAcceptor {
             handle,
         ).expect("Cannot create a UDP stream")
             .for_each(move |(packet, client_addr)| self.fut_process_query(packet, client_addr))
-            .map_err(|_| io::Error::last_os_error())
     }
 }
 

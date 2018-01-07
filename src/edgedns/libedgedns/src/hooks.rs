@@ -250,43 +250,27 @@ impl Hooks {
     pub fn apply_clientside(
         &self,
         session_state: &mut SessionState,
-        packet: Vec<u8>,
+        parsed_packet: &mut ParsedPacket,
         stage: Stage,
-    ) -> Result<(Action, Vec<u8>), &'static str> {
+    ) -> Result<Action, &'static str> {
         if !self.enabled(stage) {
-            return Ok((Action::Pass, packet));
+            return Ok(Action::Pass);
         }
-        let ds = match DNSSector::new(packet) {
-            Ok(ds) => ds,
-            Err(e) => {
-                warn!("Cannot parse packet: {}", e);
-                return Err("Cannot parse packet");
-            }
-        };
-        let mut parsed_packet = match ds.parse() {
-            Ok(parsed_packet) => parsed_packet,
-            Err(e) => {
-                warn!("Invalid packet: {}", e);
-                return Err("Invalid packet");
-            }
-        };
 
         // master service hooks
         let service = self.services
             .get(&self.master_service_id)
             .expect("Nonexistent master service");
-        let action = self.apply_for_service(service, session_state, &mut parsed_packet, stage);
+        let action = self.apply_for_service(service, session_state, parsed_packet, stage);
         if action != Action::Pass {
-            let packet = parsed_packet.into_packet();
-            return Ok((action, packet));
+            return Ok(action);
         }
 
         // service_id hooks
         let service = {
             let service_id = &session_state.inner.read().service_id;
             if service_id.is_none() {
-                let packet = parsed_packet.into_packet();
-                return Ok((action, packet));
+                return Ok(action);
             }
             let service_id = service_id.as_ref().unwrap();
             match self.services.get(service_id) {
@@ -295,16 +279,13 @@ impl Hooks {
                         "service_id={:?} but no loaded shared library with that id",
                         service_id
                     );
-                    let packet = parsed_packet.into_packet();
-                    return Ok((action, packet));
+                    return Ok(action);
                 }
                 Some(service) => service,
             }
         };
-        let action = self.apply_for_service(service, session_state, &mut parsed_packet, stage);
-
-        let packet = parsed_packet.into_packet();
-        Ok((action, packet))
+        let action = self.apply_for_service(service, session_state, parsed_packet, stage);
+        Ok(action)
     }
 
     pub fn apply_serverside(

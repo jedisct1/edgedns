@@ -128,7 +128,7 @@ impl UpstreamServer {
         }
     }
 
-    pub fn record_rtt(&mut self, rtt: Duration, varz: &Arc<Varz>) {
+    pub fn record_rtt(&mut self, rtt: Duration, varz: &Varz) {
         let rtt = rtt.as_f64();
         let rtt_est = Self::ewma(self.rtt_est, rtt, RTT_DECAY);
         self.rtt_est = Some(rtt_est);

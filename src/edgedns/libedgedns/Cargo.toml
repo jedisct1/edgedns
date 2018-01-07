@@ -23,6 +23,8 @@ coarsetime = "*"
 dnstap = "*"
 dnssector = {git = "https://github.com/jedisct1/dnssector"}
 env_logger = "*"
+failure = "*"
+failure_derive = "*"
 futures = "*"
 glob = "*"
 hyper = {version = "*", optional = true}
@@ -50,6 +52,7 @@ tokio-timer = "*"
 tokio-uds = "*"
 toml = "*"
 unicase = "*"
+xfailure = "*"
 
 [build-dependencies]
 prost-build = "*"
