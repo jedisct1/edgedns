@@ -6,7 +6,7 @@ use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE, MAX_TCP_IDLE_MS};
 use super::EdgeDNSContext;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use bytes::BufMut;
-use cache::Cache;
+use cache::{Cache, CacheKey};
 use client_query::*;
 use config::Config;
 use dns::{self, NormalizedQuestion};
@@ -90,7 +90,12 @@ impl TcpClientQuery {
         custom_hash: (u64, u64),
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
-        let cache_entry = self.cache.get2(&normalized_question, custom_hash);
+        let normalized_question_key = normalized_question.key();
+        let cache_key = CacheKey {
+            normalized_question_key,
+            custom_hash,
+        };
+        let cache_entry = self.cache.get2(&cache_key);
         let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
             (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */

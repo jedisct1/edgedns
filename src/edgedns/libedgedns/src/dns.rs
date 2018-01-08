@@ -202,26 +202,27 @@ pub fn set_arcount(packet: &mut [u8], value: u16) {
     packet[11] = value as u8;
 }
 
-pub fn overwrite_qname(packet: &mut [u8], qname: &[u8]) {
+pub fn overwrite_qname(packet: &mut [u8], qname: &[u8]) -> Result<(), failure::Error> {
     let packet_len = packet.len();
     debug_assert!(packet_len >= DNS_OFFSET_QUESTION);
     if packet_len <= DNS_OFFSET_QUESTION {
-        return;
+        return Err(DNSError::InvalidPacket.into());
     }
     debug_assert_eq!(qdcount(packet), 1);
     if qdcount(packet) < 1 {
-        return;
+        return Err(DNSError::InternalError.into());
     }
     let qname_len = qname.len();
     if packet_len <= DNS_OFFSET_QUESTION {
-        return;
+        return Err(DNSError::InternalError.into());
     }
     let mut to = &mut packet[DNS_OFFSET_QUESTION..];
     if to.len() <= qname_len {
-        return;
+        return Err(DNSError::InternalError.into());
     }
     assert_eq!(to[qname_len], 0);
     let _ = to.write(qname).unwrap();
+    Ok(())
 }
 
 pub struct QuestionRR<'t> {
@@ -372,11 +373,11 @@ impl fmt::Display for NormalizedQuestion {
 
 impl NormalizedQuestion {
     pub fn from_parsed_packet(
-        parsed_packet: &ParsedPacket,
+        parsed_packet: &mut ParsedPacket,
     ) -> Result<NormalizedQuestion, failure::Error> {
-        let (qname, qtype, qclass) = match parsed_packet.question() {
+        let (qname, qtype, qclass) = match parsed_packet.question_raw() {
             None => return Err(DNSError::InvalidPacket.into()),
-            Some((qname, qtype, qclass)) => (qname, qtype, qclass),
+            Some((qname, qtype, qclass)) => (qname.to_vec(), qtype, qclass),
         };
         Ok(NormalizedQuestion {
             qname,
@@ -410,6 +411,15 @@ impl NormalizedQuestion {
             qtype: self.qtype,
             qclass: self.qclass,
         }
+    }
+}
+
+pub fn strip_trailing_zero(qname: &[u8]) -> &[u8] {
+    let qname_len = qname.len();
+    if qname_len > 0 && qname[qname_len - 1] == 0 {
+        &qname[..qname_len - 1]
+    } else {
+        qname
     }
 }
 
@@ -612,7 +622,9 @@ pub fn set_ttl(packet: &mut [u8], ttl: u32) -> Result<(), &'static str> {
     Ok(())
 }
 
-pub fn build_tc_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u8>, &'static str> {
+pub fn build_tc_packet(
+    normalized_question: &NormalizedQuestion,
+) -> Result<Vec<u8>, failure::Error> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -633,7 +645,7 @@ pub fn build_tc_packet(normalized_question: &NormalizedQuestion) -> Result<Vec<u
 
 pub fn build_servfail_packet(
     normalized_question: &NormalizedQuestion,
-) -> Result<Vec<u8>, &'static str> {
+) -> Result<Vec<u8>, failure::Error> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -654,7 +666,7 @@ pub fn build_servfail_packet(
 
 pub fn build_refused_packet(
     normalized_question: &NormalizedQuestion,
-) -> Result<Vec<u8>, &'static str> {
+) -> Result<Vec<u8>, failure::Error> {
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -674,30 +686,29 @@ pub fn build_refused_packet(
 }
 
 pub fn build_nxdomain_packet(
-    normalized_question: &NormalizedQuestion,
-) -> Result<Vec<u8>, &'static str> {
-    let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
+    normalized_question_key: &NormalizedQuestionKey,
+) -> Result<Vec<u8>, failure::Error> {
+    let capacity = DNS_HEADER_SIZE + normalized_question_key.qname_lc.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
     set_rcode(&mut packet, DNS_RCODE_NXDOMAIN);
-    set_tid(&mut packet, normalized_question.tid);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question.qname);
+    packet.extend_from_slice(&normalized_question_key.qname_lc);
     packet.push(0);
 
-    packet.push((normalized_question.qtype >> 8) as u8);
-    packet.push(normalized_question.qtype as u8);
-    packet.push((normalized_question.qclass >> 8) as u8);
-    packet.push(normalized_question.qclass as u8);
+    packet.push((normalized_question_key.qtype >> 8) as u8);
+    packet.push(normalized_question_key.qtype as u8);
+    packet.push((normalized_question_key.qclass >> 8) as u8);
+    packet.push(normalized_question_key.qclass as u8);
     Ok(packet)
 }
 
 pub fn build_any_packet(
     normalized_question: &NormalizedQuestion,
     ttl: u32,
-) -> Result<Vec<u8>, &'static str> {
+) -> Result<Vec<u8>, failure::Error> {
     let hinfo_cpu = b"draft-ietf-dnsop-refuse-any";
     let hinfo_rdata = b"";
     let rdata_len = 1 + hinfo_cpu.len() + 1 + hinfo_rdata.len();
@@ -745,7 +756,7 @@ pub fn build_any_packet(
 pub fn build_version_packet(
     normalized_question: &NormalizedQuestion,
     ttl: u32,
-) -> Result<Vec<u8>, &'static str> {
+) -> Result<Vec<u8>, failure::Error> {
     let txt = b"EdgeDNS";
     let rdata_len = 1 + txt.len();
     let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
@@ -788,7 +799,7 @@ pub fn build_version_packet(
     Ok(packet)
 }
 
-pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, &'static str> {
+pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, failure::Error> {
     let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
@@ -808,7 +819,7 @@ pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, &'static str> {
 pub fn build_query_packet(
     normalized_question: &NormalizedQuestion,
     force_dnssec: bool,
-) -> Result<(Vec<u8>, NormalizedQuestionMinimal), &'static str> {
+) -> Result<(Vec<u8>, NormalizedQuestionMinimal), failure::Error> {
     let mut qname = qname_lc(&normalized_question.qname);
     let qname_len = qname.len();
     let force_dnssec = if qname_len == 0 { true } else { force_dnssec };

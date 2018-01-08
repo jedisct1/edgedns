@@ -40,6 +40,7 @@ use varz::Varz;
 use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 struct UdpAcceptor {
+    config: Rc<Config>,
     default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     net_udp_socket: net::UdpSocket,
     resolver_tx: Sender<ClientQuery>,
@@ -70,6 +71,7 @@ impl UdpAcceptor {
             })
             .collect();
         UdpAcceptor {
+            config: udp_acceptor_core.config.clone(),
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
             net_udp_socket: udp_acceptor_core
                 .net_udp_socket
@@ -103,40 +105,16 @@ impl UdpAcceptor {
             Err(e) => return Box::new(future::err(e)),
         };
         let globals = Globals {
+            config: Arc::new(self.config.as_ref().clone()),
             cache: self.cache.clone(),
             varz: Arc::clone(&self.varz),
             hooks_arc: Arc::clone(&self.hooks_arc),
         };
-        let query_router = QueryRouter::create(parsed_packet, &globals);
+        let query_router =
+            QueryRouter::create(Rc::new(globals), parsed_packet, ClientQueryProtocol::UDP);
 
         Box::new(future::ok(()))
 
-        //         let packet = parsed_packet.into_packet();
-        //         let mut session_state = SessionState::default();
-        //         let packet = {
-        //         let hooks_arc = self.hooks_arc.read();
-        //         if hooks_arc.enabled(Stage::Recv) {
-        //         match hooks_arc.apply_clientside(&mut session_state, packet, Stage::Recv) {
-        //         Ok((action, packet)) => match action {
-        //         Action::Drop => {
-        //         return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>
-        //         }
-        //         Action::Pass | Action::Lookup => packet,
-        //         },
-        //         Err(e) => return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>,
-        // }
-        // } else {
-        // packet
-        // }
-        // };
-        // let normalized_question = match dns::normalize(&packet, true) {
-        // Ok(normalized_question) => normalized_question,
-        // Err(e) => {
-        // debug!("Error while parsing the question: {}", e);
-        // self.varz.client_queries_errors.inc();
-        // return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
-        // }
-        // };
         // let custom_hash = (0u64, 0u64);
         // let cache_entry = self.cache.get2(&normalized_question, custom_hash);
         // let client_query = ClientQuery::udp(

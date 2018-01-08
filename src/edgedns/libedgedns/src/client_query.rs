@@ -128,7 +128,7 @@ impl ClientQuery {
             tc_packet.as_ref()
         } else {
             dns::set_tid(&mut packet, normalized_question.tid);
-            dns::overwrite_qname(&mut packet, &normalized_question.qname);
+            let _ = dns::overwrite_qname(&mut packet, &normalized_question.qname);
             packet
         };
         match self.proto {
