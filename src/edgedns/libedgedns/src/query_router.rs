@@ -8,11 +8,13 @@ use dnssector::*;
 use errors::*;
 use failure;
 use futures::{future, Future};
+use futures::sync::mpsc::Sender;
 use globals::*;
 use hooks;
 use hooks::*;
 use std::ptr;
 use std::rc::Rc;
+use upstream_server::*;
 
 pub struct Answer {
     packet: Vec<u8>,
@@ -174,6 +176,12 @@ impl QueryRouter {
                 }
             }
         }
+
+        let upstream_servers_str = &self.globals.config.upstream_servers_str;
+        let upstream_servers: Vec<UpstreamServer> = upstream_servers_str
+            .iter()
+            .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
+            .collect();
 
         let packet = Vec::new();
         let answer = Answer::from(packet);

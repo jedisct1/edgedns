@@ -13,7 +13,7 @@ use clap::{App, Arg};
 use libedgedns::{Config, EdgeDNS};
 
 fn main() {
-    env_logger::init().expect("Failed to init logger");
+    env_logger::init();
 
     let matches = App::new("EdgeDNS")
         .version("0.2.1")
