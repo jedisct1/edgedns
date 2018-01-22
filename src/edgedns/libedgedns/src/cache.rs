@@ -138,7 +138,7 @@ impl Cache {
     /// possible incompatibilities with RFC 8020, and for speed.
     /// This might be revisited later.
     pub fn get2(&mut self, cache_key: &CacheKey) -> Option<CacheEntry> {
-        let cache_entry = self.get(&cache_key);
+        let cache_entry = self.get(cache_key);
         if let Some(mut cache_entry) = cache_entry {
             if self.config.decrement_ttl {
                 let now = Instant::recent();
