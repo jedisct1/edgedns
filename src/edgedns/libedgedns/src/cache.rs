@@ -151,7 +151,7 @@ impl Cache {
         }
         if !cache_key.normalized_question_key.dnssec {
             let qname_lc = &cache_key.normalized_question_key.qname_lc;
-            if let Some(qname_shifted) = dns::qname_shift(&qname_lc) {
+            if let Some(qname_shifted) = dns::qname_shift(qname_lc) {
                 let qname_lc_shifted = qname_shifted;
                 let normalized_question_key = NormalizedQuestionKey {
                     qname_lc: qname_lc_shifted.to_owned(),
