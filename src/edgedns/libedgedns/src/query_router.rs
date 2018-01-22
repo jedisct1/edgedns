@@ -119,7 +119,7 @@ impl QueryRouter {
                 BigEndian::write_u16(&mut packet, packet_len as u16);
             }
         }
-        return Ok(packet);
+        Ok(packet)
     }
 
     pub fn create(
@@ -141,7 +141,7 @@ impl QueryRouter {
                 PacketOrFuture::Packet(packet)
             }
             Ok(AnswerOrFuture::Future(future)) => PacketOrFuture::Future(future),
-            Err(e) => return PacketOrFuture::Future(Box::new(future::err(e))),
+            Err(e) => PacketOrFuture::Future(Box::new(future::err(e)))
         }
     }
 
