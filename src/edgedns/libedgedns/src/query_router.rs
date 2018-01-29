@@ -141,7 +141,7 @@ impl QueryRouter {
                 PacketOrFuture::Packet(packet)
             }
             Ok(AnswerOrFuture::Future(future)) => PacketOrFuture::Future(future),
-            Err(e) => PacketOrFuture::Future(Box::new(future::err(e)))
+            Err(e) => PacketOrFuture::Future(Box::new(future::err(e))),
         }
     }
 

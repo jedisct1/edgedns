@@ -65,10 +65,9 @@ impl UdpAcceptor {
         let default_upstream_servers_for_query = config
             .upstream_servers_str
             .iter()
-            .map(|s| {
-                UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s)
-                    .expect("Invalid upstream server address"))
-            })
+            .map(
+                |s| UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s).expect("Invalid upstream server address")),
+            )
             .collect();
         UdpAcceptor {
             config: udp_acceptor_core.config.clone(),

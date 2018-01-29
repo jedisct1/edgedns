@@ -145,10 +145,9 @@ impl TcpAcceptor {
         let default_upstream_servers_for_query = config
             .upstream_servers_str
             .iter()
-            .map(|s| {
-                UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s)
-                    .expect("Invalid upstream server address"))
-            })
+            .map(
+                |s| UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s).expect("Invalid upstream server address")),
+            )
             .collect();
         TcpAcceptor {
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
