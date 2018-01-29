@@ -111,8 +111,14 @@ impl UdpAcceptor {
         };
         let query_router =
             QueryRouter::create(Rc::new(globals), parsed_packet, ClientQueryProtocol::UDP);
-
-        Box::new(future::ok(()))
+        let fut = match query_router {
+            PacketOrFuture::Packet(packet) => {
+                let _ = self.net_udp_socket.send_to(&packet, client_addr);
+                return Box::new(future::ok(()));
+            }
+            PacketOrFuture::Future(fut) => fut,
+        };
+        fut
 
         // let custom_hash = (0u64, 0u64);
         // let cache_entry = self.cache.get2(&normalized_question, custom_hash);
