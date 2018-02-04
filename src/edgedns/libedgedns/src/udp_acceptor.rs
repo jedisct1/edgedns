@@ -127,41 +127,13 @@ impl UdpAcceptor {
             PacketOrFuture::Future(fut) => fut,
         };
         fut
-
-        // let custom_hash = (0u64, 0u64);
-        // let cache_entry = self.cache.get2(&normalized_question, custom_hash);
-        // let client_query = ClientQuery::udp(
-        // (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */
-        // client_addr,
-        // normalized_question,
-        // Arc::clone(&self.varz),
-        // Arc::clone(&self.hooks_arc),
-        // session_state,
-        // custom_hash,
-        // );
-        // if let Some(mut cache_entry) = cache_entry {
-        // if !cache_entry.is_expired() {
-        // self.varz.client_queries_cached.inc();
-        // return client_query
-        // .response_send(&mut cache_entry.packet, Some(&self.net_udp_socket));
-        // }
-        // debug!("expired");
-        // self.varz.client_queries_expired.inc();
-        // }
-        // debug!("Sending query to the resolver");
-        // let fut_resolver_query = self.resolver_tx
-        // .clone()
-        // .send(client_query)
-        // .map_err(|_| io::Error::last_os_error())
-        // .map(move |_| {});
-        // Box::new(fut_resolver_query) as Box<Future<Item = _, Error = _>>
-        // 
     }
 
     fn fut_process_stream<'a>(
         self,
         handle: &Handle,
     ) -> impl Future<Item = (), Error = failure::Error> + 'a {
+        let handle_inner = handle.clone();
         UdpStream::from_net_udp_socket(
             self.net_udp_socket
                 .try_clone()
@@ -169,8 +141,9 @@ impl UdpAcceptor {
             handle,
         ).expect("Cannot create a UDP stream")
             .for_each(move |(packet, client_addr)| {
-                self.fut_process_query(packet, client_addr)
-                    .or_else(|_| Ok(()))
+                let fut = self.fut_process_query(packet, client_addr).map_err(|_| {});
+                handle_inner.spawn(fut);
+                future::ok(())
             })
     }
 }

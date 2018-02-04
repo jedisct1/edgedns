@@ -108,6 +108,7 @@ impl ClientQueriesHandler {
         client_query: &ClientQuery,
     ) -> impl Future<Item = (), Error = io::Error> {
         debug!("Incoming client query");
+        client_query.task.notify();
         future::ok(())
     }
 }

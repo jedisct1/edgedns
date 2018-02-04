@@ -11,6 +11,7 @@ use failure;
 use futures::{future, Future};
 use futures::Sink;
 use futures::sync::mpsc::Sender;
+use futures::task::{self, Task};
 use hooks::{Hooks, SessionState, Stage};
 use parking_lot::RwLock;
 use std::io;
@@ -33,17 +34,26 @@ pub enum ClientQueryProtocol {
 
 #[derive(Clone)]
 pub struct ClientQuery {
+    pub normalized_question: NormalizedQuestion,
     pub proto: ClientQueryProtocol,
     pub ts: Instant,
     pub session_state: SessionState,
+    pub task: Task,
 }
 
 impl ClientQuery {
-    pub fn udp2(
-        parsed_packet: &ParsedPacket,
-        session_state: &mut SessionState,
-    ) -> Result<(), failure::Error> {
-        return Err(DNSError::Unimplemented.into());
+    pub fn udp(
+        parsed_packet: &mut ParsedPacket,
+        session_state: SessionState,
+    ) -> Result<ClientQuery, failure::Error> {
+        let normalized_question = NormalizedQuestion::from_parsed_packet(parsed_packet)?;
+        Ok(ClientQuery {
+            normalized_question,
+            proto: ClientQueryProtocol::UDP,
+            ts: Instant::recent(),
+            session_state,
+            task: task::current(),
+        })
     }
 
     pub fn tcp(
@@ -53,9 +63,11 @@ impl ClientQuery {
         custom_hash: (u64, u64),
     ) -> Self {
         ClientQuery {
+            normalized_question,
             proto: ClientQueryProtocol::TCP,
             ts: Instant::recent(),
             session_state,
+            task: task::current(),
         }
     }
 }

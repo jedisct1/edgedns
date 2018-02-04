@@ -8,7 +8,11 @@ use dnssector::*;
 use errors::*;
 use failure;
 use futures::{future, Future};
+use futures::Async;
+use futures::Sink;
+use futures::prelude::*;
 use futures::sync::mpsc::Sender;
+use futures::task;
 use globals::*;
 use hooks;
 use hooks::*;
@@ -54,7 +58,7 @@ pub enum AnswerOrFuture {
 
 pub struct QueryRouter {
     globals: Rc<Globals>,
-    session_state: SessionState,
+    session_state: Option<SessionState>,
 }
 
 impl QueryRouter {
@@ -138,7 +142,7 @@ impl QueryRouter {
     ) -> PacketOrFuture {
         let mut query_router = QueryRouter {
             globals,
-            session_state,
+            session_state: Some(session_state),
         };
         match query_router.create_answer(&mut parsed_packet) {
             Ok(AnswerOrFuture::Answer(answer)) => {
@@ -169,7 +173,11 @@ impl QueryRouter {
         let hooks_arc = self.globals.hooks_arc.read();
         if hooks_arc.enabled(Stage::Recv) {
             let action = hooks_arc
-                .apply_clientside(&mut self.session_state, parsed_packet, Stage::Recv)
+                .apply_clientside(
+                    self.session_state.as_mut().unwrap(),
+                    parsed_packet,
+                    Stage::Recv,
+                )
                 .map_err(|e| DNSError::HookError(e))?;
             if action != hooks::Action::Pass {
                 return Err(DNSError::Unimplemented.into());
@@ -189,14 +197,28 @@ impl QueryRouter {
             }
         }
 
-        let client_query = ClientQuery::udp2(&parsed_packet, &mut self.session_state)?;
+        let client_query =
+            ClientQuery::udp(&mut parsed_packet, self.session_state.take().unwrap())?;
+        let client_query_fut = ClientQueryFut {};
 
-        let _ = self.globals.resolver_tx;
-        {
-            let packet = Vec::new();
-            let answer = Answer::from(packet);
-            return Ok(AnswerOrFuture::Answer(answer));
-        }
+        let fut_send = self.globals
+            .resolver_tx
+            .clone()
+            .send(client_query)
+            .map_err(|_| DNSError::InternalError.into());
+        let client_query_fut = fut_send.and_then(|_| client_query_fut);
+
+        return Ok(AnswerOrFuture::Future(Box::new(client_query_fut)));
+    }
+}
+
+struct ClientQueryFut {}
+
+impl Future for ClientQueryFut {
+    type Item = ();
+    type Error = failure::Error;
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        Ok(Async::NotReady)
     }
 }
 
