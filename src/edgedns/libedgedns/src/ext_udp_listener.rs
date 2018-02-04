@@ -17,8 +17,7 @@ use super::{DNS_QUERY_MIN_SIZE, FAILURE_TTL};
 use cache::{Cache, CacheKey};
 use client_query::ClientQuery;
 use config::Config;
-use dns::{min_ttl, normalize, rcode, set_ttl, tid, NormalizedQuestionKey,
-          NormalizedQuestionMinimal, DNS_RCODE_SERVFAIL};
+use dns::{min_ttl, rcode, set_ttl, tid, NormalizedQuestionKey, DNS_RCODE_SERVFAIL};
 use futures::Future;
 use futures::Stream;
 use futures::future;

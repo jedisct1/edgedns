@@ -98,11 +98,8 @@ impl TcpClientQuery {
         let cache_entry = self.cache.get2(&cache_key);
         let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
-            (*self.default_upstream_servers_for_query).clone(), /* XXX - we may want to use an Rc<> everywhere */
             tcpclient_tx,
             normalized_question,
-            &Arc::clone(&self.varz),
-            &Arc::clone(&self.hooks_arc),
             session_state,
             custom_hash,
         );
@@ -124,15 +121,6 @@ impl TcpClientQuery {
                     .map(|_| {})
                     .map_err(|_| {})
             });
-        if let Some(mut cache_entry) = cache_entry {
-            if !cache_entry.is_expired() {
-                self.varz.client_queries_cached.inc();
-                self.handle.spawn(fut.map_err(|_| {}));
-                return client_query.response_send(&mut cache_entry.packet, None);
-            }
-            debug!("expired");
-            self.varz.client_queries_expired.inc();
-        }
         let fut_send = self.resolver_tx.send(client_query).map_err(|_| {});
         let futs = fut.join(fut_send);
         Box::new(futs.map(|_| {}).map_err(|_| io::Error::last_os_error()))
@@ -198,35 +186,37 @@ impl TcpAcceptor {
             fut_expected_len.and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
         let varz = Arc::clone(&self.varz);
         let tcp_client_query = TcpClientQuery::new(self, wh);
-        let fut_packet = fut_packet_read.and_then(move |(rh, packet)| {
-            let normalized_question = match dns::normalize(&packet, true) {
-                Ok(normalized_question) => normalized_question,
-                Err(e) => {
-                    debug!("Error while parsing the question: {}", e);
-                    varz.client_queries_errors.inc();
-                    return Box::new(future::err(io::Error::new(
-                        io::ErrorKind::InvalidInput,
-                        "Suspicious query",
-                    ))) as Box<Future<Item = _, Error = _>>;
-                }
-            };
-            let custom_hash = (0u64, 0u64);
-            tcp_client_query.fut_process_query(normalized_question, custom_hash)
-        });
-        let fut_timeout = self.timer
-            .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
-        let mut tcp_arbitrator = self.tcp_arbitrator.clone();
-        let fut_with_timeout = fut_timeout.then(move |_| {
-            debug!("Closing TCP connection with session index {}", session_idx);
-            tcp_arbitrator.delete_session(session_idx);
-            future::ok(())
-        });
-        let fut_session_rx = session_rx.map(|_| {});
-        let fut = fut_session_rx
-            .select(fut_with_timeout)
-            .map(|_| {})
-            .map_err(|_| io::Error::last_os_error());
-        Box::new(fut) as Box<Future<Item = _, Error = _>>
+        // let fut_packet = fut_packet_read.and_then(move |(rh, packet)| {
+        // let normalized_question = match dns::normalize(&packet, true) {
+        // Ok(normalized_question) => normalized_question,
+        // Err(e) => {
+        // debug!("Error while parsing the question: {}", e);
+        // varz.client_queries_errors.inc();
+        // return Box::new(future::err(io::Error::new(
+        // io::ErrorKind::InvalidInput,
+        // "Suspicious query",
+        // ))) as Box<Future<Item = _, Error = _>>;
+        // }
+        // };
+        // let custom_hash = (0u64, 0u64);
+        // tcp_client_query.fut_process_query(normalized_question, custom_hash)
+        // });
+        // let fut_timeout = self.timer
+        // .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
+        // let mut tcp_arbitrator = self.tcp_arbitrator.clone();
+        // let fut_with_timeout = fut_timeout.then(move |_| {
+        // debug!("Closing TCP connection with session index {}", session_idx);
+        // tcp_arbitrator.delete_session(session_idx);
+        // future::ok(())
+        // });
+        // let fut_session_rx = session_rx.map(|_| {});
+        // let fut = fut_session_rx
+        // .select(fut_with_timeout)
+        // .map(|_| {})
+        // .map_err(|_| io::Error::last_os_error());
+        // Box::new(fut) as Box<Future<Item = _, Error = _>>
+        // 
+        Box::new(future::ok(()))
     }
 
     fn fut_process_stream<'a>(

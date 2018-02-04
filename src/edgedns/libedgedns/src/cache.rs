@@ -171,10 +171,14 @@ impl Cache {
                         && dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN
                     {
                         debug!("Shifted query returned NXDOMAIN");
+                        let normalized_question_key = &cache_key.normalized_question_key;
                         return Some(CacheEntry {
                             expiration: shifted_cache_entry.expiration,
-                            packet: dns::build_nxdomain_packet(&cache_key.normalized_question_key)
-                                .unwrap(),
+                            packet: dns::build_nxdomain_packet(
+                                &normalized_question_key.qname_lc,
+                                normalized_question_key.qtype,
+                                normalized_question_key.qclass,
+                            ).unwrap(),
                         });
                     }
                 }

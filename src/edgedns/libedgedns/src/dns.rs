@@ -29,14 +29,11 @@ pub const DNS_TYPE_OPT: u16 = 41;
 pub const DNS_TYPE_SOA: u16 = 6;
 pub const DNS_TYPE_TXT: u16 = 16;
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NormalizedQuestion {
-    pub qname: Vec<u8>,
+    pub qname_lc: Vec<u8>,
     pub qtype: u16,
     pub qclass: u16,
-    pub tid: u16,
-    pub flags: u32,
-    pub max_payload: u16,
     pub dnssec: bool,
 }
 
@@ -46,14 +43,6 @@ pub struct NormalizedQuestionKey {
     pub qtype: u16,
     pub qclass: u16,
     pub dnssec: bool,
-}
-
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct NormalizedQuestionMinimal {
-    pub qname: Vec<u8>,
-    pub tid: u16,
-    pub qtype: u16,
-    pub qclass: u16,
 }
 
 #[inline]
@@ -349,12 +338,12 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
 
 impl fmt::Display for NormalizedQuestion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let qname = &self.qname;
-        let qname_len = qname.len();
-        let mut res = Vec::with_capacity(qname_len);
+        let qname_lc = &self.qname_lc;
+        let qname_lc_len = qname_lc.len();
+        let mut res = Vec::with_capacity(qname_lc_len);
         let mut offset: usize = 0;
-        while offset < qname_len {
-            let label_len = qname[offset] as usize;
+        while offset < qname_lc_len {
+            let label_len = qname_lc[offset] as usize;
             assert_eq!(label_len, 0);
             if label_len & 0xc0 == 0xc0 {
                 res.push(b'&');
@@ -362,7 +351,7 @@ impl fmt::Display for NormalizedQuestion {
                 continue;
             }
             offset += 1;
-            res.extend_from_slice(&qname[offset..offset + label_len]);
+            res.extend_from_slice(&qname_lc[offset..offset + label_len]);
             res.push(b'.');
             offset += label_len;
         }
@@ -375,39 +364,27 @@ impl NormalizedQuestion {
     pub fn from_parsed_packet(
         parsed_packet: &mut ParsedPacket,
     ) -> Result<NormalizedQuestion, failure::Error> {
-        let (qname, qtype, qclass) = match parsed_packet.question_raw() {
+        let (qname_lc, qtype, qclass) = match parsed_packet.question_raw() {
             None => return Err(DNSError::InvalidPacket.into()),
-            Some((qname, qtype, qclass)) => (qname.to_vec(), qtype, qclass),
+            Some((qname, qtype, qclass)) => (qname_lc(qname), qtype, qclass),
         };
         Ok(NormalizedQuestion {
-            qname,
+            qname_lc,
             qtype,
             qclass,
-            tid: parsed_packet.tid(),
-            flags: parsed_packet.flags(),
-            max_payload: parsed_packet.max_payload() as u16,
             dnssec: parsed_packet.dnssec(),
         })
     }
 
     pub fn key(&self) -> NormalizedQuestionKey {
-        let dnssec = if self.qname.is_empty() {
+        let dnssec = if self.qname_lc.is_empty() {
             true
         } else {
             self.dnssec
         };
         NormalizedQuestionKey {
             dnssec: dnssec,
-            qname_lc: qname_lc(&self.qname),
-            qtype: self.qtype,
-            qclass: self.qclass,
-        }
-    }
-
-    pub fn minimal(&self) -> NormalizedQuestionMinimal {
-        NormalizedQuestionMinimal {
-            qname: self.qname.clone(),
-            tid: self.tid,
+            qname_lc: self.qname_lc.clone(),
             qtype: self.qtype,
             qclass: self.qclass,
         }
@@ -457,49 +434,6 @@ pub fn qname_shift(qname: &[u8]) -> Option<&[u8]> {
         return None;
     }
     Some(&qname[1 + label_len as usize..])
-}
-
-pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion, &'static str> {
-    let packet_len = packet.len();
-    if packet_len < DNS_QUERY_MIN_SIZE {
-        return Err("Short packet");
-    }
-    if is_question == qr(packet) {
-        return Err("Invalid flags");
-    }
-    if qdcount(packet) != 1 {
-        return Err("Unsupported number of questions");
-    }
-    let question = match question(packet) {
-        Ok(question) => question,
-        Err(e) => return Err(e),
-    };
-    let mut normalized_question = NormalizedQuestion {
-        qname: question.qname.to_owned(),
-        qtype: question.qtype,
-        qclass: question.qclass,
-        tid: tid(packet),
-        flags: flags(packet) as u32,
-        max_payload: DNS_UDP_NOEDNS0_MAX_SIZE,
-        dnssec: false,
-    };
-    if is_question {
-        if ancount(packet) != 0 || nscount(packet) != 0 {
-            return Err("Extra sections found in a question");
-        }
-        if let Some(edns0) = parse_edns0(packet) {
-            normalized_question.dnssec = edns0.dnssec;
-            if edns0.payload_size > DNS_UDP_NOEDNS0_MAX_SIZE {
-                normalized_question.max_payload = edns0.payload_size;
-            }
-        }
-    } else {
-        let qname_len = normalized_question.qname.len();
-        if qname_len == 0 || normalized_question.qname[qname_len - 1] & 0x20 == 0 {
-            normalized_question.dnssec = true;
-        }
-    }
-    Ok(normalized_question)
 }
 
 pub fn min_ttl(
@@ -623,110 +557,124 @@ pub fn set_ttl(packet: &mut [u8], ttl: u32) -> Result<(), &'static str> {
 }
 
 pub fn build_tc_packet(
-    normalized_question: &NormalizedQuestion,
+    qname: &[u8],
+    qtype: u16,
+    qclass: u16,
+    tid: u16,
 ) -> Result<Vec<u8>, failure::Error> {
-    let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
-    set_tid(&mut packet, normalized_question.tid);
+    set_tid(&mut packet, tid);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_tc(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question.qname);
+    packet.extend_from_slice(qname);
     packet.push(0);
 
-    packet.push((normalized_question.qtype >> 8) as u8);
-    packet.push(normalized_question.qtype as u8);
-    packet.push((normalized_question.qclass >> 8) as u8);
-    packet.push(normalized_question.qclass as u8);
+    packet.push((qtype >> 8) as u8);
+    packet.push(qtype as u8);
+    packet.push((qclass >> 8) as u8);
+    packet.push(qclass as u8);
     Ok(packet)
 }
 
 pub fn build_servfail_packet(
-    normalized_question: &NormalizedQuestion,
+    qname: &[u8],
+    qtype: u16,
+    qclass: u16,
+    tid: u16,
 ) -> Result<Vec<u8>, failure::Error> {
-    let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
     set_rcode(&mut packet, DNS_RCODE_SERVFAIL);
-    set_tid(&mut packet, normalized_question.tid);
+    set_tid(&mut packet, tid);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question.qname);
+    packet.extend_from_slice(&qname);
     packet.push(0);
 
-    packet.push((normalized_question.qtype >> 8) as u8);
-    packet.push(normalized_question.qtype as u8);
-    packet.push((normalized_question.qclass >> 8) as u8);
-    packet.push(normalized_question.qclass as u8);
+    packet.push((qtype >> 8) as u8);
+    packet.push(qtype as u8);
+    packet.push((qclass >> 8) as u8);
+    packet.push(qclass as u8);
     Ok(packet)
 }
 
 pub fn build_refused_packet(
-    normalized_question: &NormalizedQuestion,
+    qname: &[u8],
+    qtype: u16,
+    qclass: u16,
+    tid: u16,
 ) -> Result<Vec<u8>, failure::Error> {
-    let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
     set_rcode(&mut packet, DNS_RCODE_REFUSED);
-    set_tid(&mut packet, normalized_question.tid);
+    set_tid(&mut packet, tid);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question.qname);
+    packet.extend_from_slice(qname);
     packet.push(0);
 
-    packet.push((normalized_question.qtype >> 8) as u8);
-    packet.push(normalized_question.qtype as u8);
-    packet.push((normalized_question.qclass >> 8) as u8);
-    packet.push(normalized_question.qclass as u8);
+    packet.push((qtype >> 8) as u8);
+    packet.push(qtype as u8);
+    packet.push((qclass >> 8) as u8);
+    packet.push(qclass as u8);
     Ok(packet)
 }
 
 pub fn build_nxdomain_packet(
-    normalized_question_key: &NormalizedQuestionKey,
+    qname: &[u8],
+    qtype: u16,
+    qclass: u16,
 ) -> Result<Vec<u8>, failure::Error> {
-    let capacity = DNS_HEADER_SIZE + normalized_question_key.qname_lc.len() + 1;
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
     set_rcode(&mut packet, DNS_RCODE_NXDOMAIN);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question_key.qname_lc);
+    packet.extend_from_slice(qname);
     packet.push(0);
 
-    packet.push((normalized_question_key.qtype >> 8) as u8);
-    packet.push(normalized_question_key.qtype as u8);
-    packet.push((normalized_question_key.qclass >> 8) as u8);
-    packet.push(normalized_question_key.qclass as u8);
+    packet.push((qtype >> 8) as u8);
+    packet.push(qtype as u8);
+    packet.push((qclass >> 8) as u8);
+    packet.push(qclass as u8);
     Ok(packet)
 }
 
 pub fn build_any_packet(
-    normalized_question: &NormalizedQuestion,
+    qname: &[u8],
+    qtype: u16,
+    qclass: u16,
+    tid: u16,
     ttl: u32,
 ) -> Result<Vec<u8>, failure::Error> {
     let hinfo_cpu = b"draft-ietf-dnsop-refuse-any";
     let hinfo_rdata = b"";
     let rdata_len = 1 + hinfo_cpu.len() + 1 + hinfo_rdata.len();
-    let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
-    set_tid(&mut packet, normalized_question.tid);
+    set_tid(&mut packet, tid);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
     set_ancount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question.qname);
+    packet.extend_from_slice(qname);
     packet.push(0);
 
-    packet.push((normalized_question.qtype >> 8) as u8);
-    packet.push(normalized_question.qtype as u8);
-    packet.push((normalized_question.qclass >> 8) as u8);
-    packet.push(normalized_question.qclass as u8);
+    packet.push((qtype >> 8) as u8);
+    packet.push(qtype as u8);
+    packet.push((qclass >> 8) as u8);
+    packet.push(qclass as u8);
 
     packet.push(0xc0 + (DNS_HEADER_SIZE >> 8) as u8);
     packet.push(DNS_HEADER_SIZE as u8);
@@ -734,8 +682,8 @@ pub fn build_any_packet(
     packet.push((DNS_TYPE_HINFO >> 8) as u8);
     packet.push(DNS_TYPE_HINFO as u8);
 
-    packet.push((normalized_question.qclass >> 8) as u8);
-    packet.push(normalized_question.qclass as u8);
+    packet.push((qclass >> 8) as u8);
+    packet.push(qclass as u8);
 
     packet.push((ttl >> 24) as u8);
     packet.push((ttl >> 16) as u8);
@@ -754,24 +702,27 @@ pub fn build_any_packet(
 }
 
 pub fn build_version_packet(
-    normalized_question: &NormalizedQuestion,
+    qname: &[u8],
+    qtype: u16,
+    qclass: u16,
+    tid: u16,
     ttl: u32,
 ) -> Result<Vec<u8>, failure::Error> {
     let txt = b"EdgeDNS";
     let rdata_len = 1 + txt.len();
-    let capacity = DNS_HEADER_SIZE + normalized_question.qname.len() + 1;
+    let capacity = DNS_HEADER_SIZE + qname.len() + 1;
     let mut packet = Vec::with_capacity(capacity);
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
-    set_tid(&mut packet, normalized_question.tid);
+    set_tid(&mut packet, tid);
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
     set_ancount(&mut packet, 1);
-    packet.extend_from_slice(&normalized_question.qname);
+    packet.extend_from_slice(qname);
     packet.push(0);
 
-    debug_assert_eq!(normalized_question.qtype, DNS_TYPE_TXT);
-    debug_assert_eq!(normalized_question.qclass, DNS_CLASS_CH);
+    debug_assert_eq!(qtype, DNS_TYPE_TXT);
+    debug_assert_eq!(qclass, DNS_CLASS_CH);
     packet.push((DNS_TYPE_TXT >> 8) as u8);
     packet.push(DNS_TYPE_TXT as u8);
     packet.push((DNS_CLASS_CH >> 8) as u8);
@@ -819,8 +770,8 @@ pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, failure::Error> {
 pub fn build_query_packet(
     normalized_question: &NormalizedQuestion,
     force_dnssec: bool,
-) -> Result<(Vec<u8>, NormalizedQuestionMinimal), failure::Error> {
-    let mut qname = qname_lc(&normalized_question.qname);
+) -> Result<Vec<u8>, failure::Error> {
+    let mut qname = normalized_question.qname_lc.clone();
     let qname_len = qname.len();
     let force_dnssec = if qname_len == 0 { true } else { force_dnssec };
     if force_dnssec || normalized_question.dnssec {
@@ -856,14 +807,7 @@ pub fn build_query_packet(
         [0u8; 6]
     };
     packet.extend_from_slice(&edns_rcode_rdlen); // EDNS rcode + rdlen
-
-    let normalized_question_minimal = NormalizedQuestionMinimal {
-        qname: qname,
-        tid: tid,
-        qtype: normalized_question.qtype,
-        qclass: normalized_question.qclass,
-    };
-    Ok((packet, normalized_question_minimal))
+    Ok(packet)
 }
 
 pub fn qname_encode(name: &str) -> Result<Vec<u8>, &'static str> {

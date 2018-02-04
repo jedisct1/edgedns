@@ -18,6 +18,7 @@ use std::mem;
 use std::path::PathBuf;
 use std::ptr;
 use std::sync::Arc;
+use upstream_server::UpstreamServerForQuery;
 
 const MASTER_SERVICE_LIBRARY_NAME: &str = "master";
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -32,7 +33,7 @@ pub struct SessionStateInner {
     pub service_id: Option<Vec<u8>>,
     pub env_str: Trie<Vec<u8>, Vec<u8>>,
     pub env_i64: Trie<Vec<u8>, i64>,
-    pub hash_state: SipHasher13,
+    pub upstream_servers_for_query: Vec<UpstreamServerForQuery>,
 }
 
 #[derive(Clone, Debug, Default)]

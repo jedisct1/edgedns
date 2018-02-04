@@ -84,7 +84,7 @@ impl UdpAcceptor {
     }
 
     fn fut_process_query(
-        &mut self,
+        &self,
         packet: Vec<u8>,
         client_addr: SocketAddr,
     ) -> impl Future<Item = (), Error = failure::Error> {
@@ -108,9 +108,17 @@ impl UdpAcceptor {
             cache: self.cache.clone(),
             varz: Arc::clone(&self.varz),
             hooks_arc: Arc::clone(&self.hooks_arc),
+            resolver_tx: self.resolver_tx.clone(),
         };
-        let query_router =
-            QueryRouter::create(Rc::new(globals), parsed_packet, ClientQueryProtocol::UDP);
+        let session_state = SessionState::default();
+        session_state.inner.write().upstream_servers_for_query =
+            self.default_upstream_servers_for_query.as_ref().clone(); // XXX - Remove clone()
+        let query_router = QueryRouter::create(
+            Rc::new(globals),
+            parsed_packet,
+            ClientQueryProtocol::UDP,
+            session_state,
+        );
         let fut = match query_router {
             PacketOrFuture::Packet(packet) => {
                 let _ = self.net_udp_socket.send_to(&packet, client_addr);
@@ -151,7 +159,7 @@ impl UdpAcceptor {
     }
 
     fn fut_process_stream<'a>(
-        mut self,
+        self,
         handle: &Handle,
     ) -> impl Future<Item = (), Error = failure::Error> + 'a {
         UdpStream::from_net_udp_socket(
@@ -160,7 +168,10 @@ impl UdpAcceptor {
                 .expect("Unable to clone UDP socket"),
             handle,
         ).expect("Cannot create a UDP stream")
-            .for_each(move |(packet, client_addr)| self.fut_process_query(packet, client_addr))
+            .for_each(move |(packet, client_addr)| {
+                self.fut_process_query(packet, client_addr)
+                    .or_else(|_| Ok(()))
+            })
     }
 }
 

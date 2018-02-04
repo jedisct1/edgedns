@@ -12,7 +12,7 @@ use cache::Cache;
 use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
-use dns::{self, NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal};
+use dns::{self, NormalizedQuestion, NormalizedQuestionKey};
 use futures::Future;
 use futures::Stream;
 use futures::future;

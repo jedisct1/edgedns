@@ -1,5 +1,7 @@
 use cache::Cache;
+use client_query::ClientQuery;
 use config::Config;
+use futures::sync::mpsc::Sender;
 use hooks::Hooks;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -11,4 +13,5 @@ pub struct Globals {
     pub cache: Cache,
     pub varz: Varz,
     pub hooks_arc: Arc<RwLock<Hooks>>,
+    pub resolver_tx: Sender<ClientQuery>,
 }

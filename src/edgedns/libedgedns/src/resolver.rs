@@ -10,7 +10,7 @@ use client_queries_handler::ClientQueriesHandler;
 use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
-use dns::{NormalizedQuestionKey, NormalizedQuestionMinimal};
+use dns::NormalizedQuestionKey;
 use ext_udp_listener::ExtUdpListener;
 use futures::Future;
 use futures::sync::mpsc::{channel, Receiver, Sender};

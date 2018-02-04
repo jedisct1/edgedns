@@ -1,7 +1,7 @@
 use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_RESPONSE_MIN_SIZE};
 use byteorder::{BigEndian, ByteOrder};
 use cache::*;
-use client_query::ClientQueryProtocol;
+use client_query::*;
 use dns;
 use dns::*;
 use dnssector::*;
@@ -54,6 +54,7 @@ pub enum AnswerOrFuture {
 
 pub struct QueryRouter {
     globals: Rc<Globals>,
+    session_state: SessionState,
 }
 
 impl QueryRouter {
@@ -80,6 +81,8 @@ impl QueryRouter {
             dns::overwrite_qname(&mut packet, original_qname)?;
         }
 
+        let tid = parsed_packet.tid();
+
         let packet_len = packet.len();
         if packet.len() < DNS_RESPONSE_MIN_SIZE
             || (protocol == ClientQueryProtocol::UDP && packet_len > DNS_MAX_UDP_SIZE)
@@ -89,7 +92,12 @@ impl QueryRouter {
                 Ok(normalized_question) => normalized_question,
                 Err(_) => xbail!(DNSError::InvalidPacket),
             };
-            packet = dns::build_refused_packet(&normalized_question)?;
+            let (qtype, qclass) = parsed_packet.qtype_qclass().ok_or(DNSError::Unexpected)?;
+            let original_qname = match parsed_packet.question_raw() {
+                Some((original_qname, ..)) => original_qname,
+                None => xbail!(DNSError::Unexpected),
+            };
+            packet = dns::build_refused_packet(original_qname, qtype, qclass, tid)?;
         }
 
         match protocol {
@@ -98,12 +106,12 @@ impl QueryRouter {
                     && (packet_len > DNS_MAX_UDP_SIZE as usize
                         || packet_len > parsed_packet.max_payload()) =>
             {
-                let normalized_question =
-                    match NormalizedQuestion::from_parsed_packet(parsed_packet) {
-                        Ok(normalized_question) => normalized_question,
-                        Err(_) => xbail!(DNSError::InvalidPacket),
-                    };
-                packet = dns::build_tc_packet(&normalized_question)?;
+                let (qtype, qclass) = parsed_packet.qtype_qclass().ok_or(DNSError::Unexpected)?;
+                let original_qname = match parsed_packet.question_raw() {
+                    Some((original_qname, ..)) => original_qname,
+                    None => xbail!(DNSError::Unexpected),
+                };
+                packet = dns::build_tc_packet(original_qname, qtype, qclass, tid)?;
             }
             ClientQueryProtocol::UDP => debug_assert!(packet_len <= DNS_MAX_UDP_SIZE),
 
@@ -126,8 +134,12 @@ impl QueryRouter {
         globals: Rc<Globals>,
         mut parsed_packet: ParsedPacket,
         protocol: ClientQueryProtocol,
+        session_state: SessionState,
     ) -> PacketOrFuture {
-        let mut query_router = QueryRouter { globals };
+        let mut query_router = QueryRouter {
+            globals,
+            session_state,
+        };
         match query_router.create_answer(&mut parsed_packet) {
             Ok(AnswerOrFuture::Answer(answer)) => {
                 let packet = match query_router.rewrite_according_to_original_query(
@@ -153,11 +165,11 @@ impl QueryRouter {
             Some(answer) => return Ok(AnswerOrFuture::Answer(answer)),
             None => {}
         };
-        let mut session_state = SessionState::default();
+
         let hooks_arc = self.globals.hooks_arc.read();
         if hooks_arc.enabled(Stage::Recv) {
             let action = hooks_arc
-                .apply_clientside(&mut session_state, parsed_packet, Stage::Recv)
+                .apply_clientside(&mut self.session_state, parsed_packet, Stage::Recv)
                 .map_err(|e| DNSError::HookError(e))?;
             if action != hooks::Action::Pass {
                 return Err(DNSError::Unimplemented.into());
@@ -177,15 +189,14 @@ impl QueryRouter {
             }
         }
 
-        let upstream_servers_str = &self.globals.config.upstream_servers_str;
-        let upstream_servers: Vec<UpstreamServer> = upstream_servers_str
-            .iter()
-            .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
-            .collect();
+        let client_query = ClientQuery::udp2(&parsed_packet, &mut self.session_state)?;
 
-        let packet = Vec::new();
-        let answer = Answer::from(packet);
-        Ok(AnswerOrFuture::Answer(answer))
+        let _ = self.globals.resolver_tx;
+        {
+            let packet = Vec::new();
+            let answer = Answer::from(packet);
+            return Ok(AnswerOrFuture::Answer(answer));
+        }
     }
 }
 
@@ -196,16 +207,18 @@ impl SpecialQueries {
         globals: &Globals,
         parsed_packet: &mut ParsedPacket,
     ) -> Option<Answer> {
+        let tid = parsed_packet.tid();
         let (qtype, qclass) = parsed_packet.qtype_qclass()?;
 
         if qclass == dns::DNS_CLASS_IN && qtype == dns::DNS_TYPE_ANY {
             debug!("ANY query");
-            let normalized_question = match NormalizedQuestion::from_parsed_packet(parsed_packet) {
-                Ok(normalized_question) => normalized_question,
-                Err(_) => return None,
+            let original_qname = match parsed_packet.question_raw() {
+                Some((original_qname, ..)) => original_qname,
+                None => return None,
             };
             let packet =
-                dns::build_any_packet(&normalized_question, globals.config.max_ttl).unwrap();
+                dns::build_any_packet(&original_qname, qtype, qclass, tid, globals.config.max_ttl)
+                    .unwrap();
             let mut answer = Answer::from(packet);
             answer.special = true;
             return Some(answer);
@@ -213,12 +226,17 @@ impl SpecialQueries {
 
         if qclass == dns::DNS_CLASS_CH && qtype == dns::DNS_TYPE_TXT {
             debug!("CHAOS TXT");
-            let normalized_question = match NormalizedQuestion::from_parsed_packet(parsed_packet) {
-                Ok(normalized_question) => normalized_question,
-                Err(_) => return None,
+            let original_qname = match parsed_packet.question_raw() {
+                Some((original_qname, ..)) => original_qname,
+                None => return None,
             };
-            let packet =
-                dns::build_version_packet(&normalized_question, globals.config.max_ttl).unwrap();
+            let packet = dns::build_version_packet(
+                &original_qname,
+                qtype,
+                qclass,
+                tid,
+                globals.config.max_ttl,
+            ).unwrap();
             let mut answer = Answer::from(packet);
             answer.special = true;
             return Some(answer);
@@ -226,11 +244,11 @@ impl SpecialQueries {
 
         if qclass != dns::DNS_CLASS_IN {
             debug!("!IN class");
-            let normalized_question = match NormalizedQuestion::from_parsed_packet(parsed_packet) {
-                Ok(normalized_question) => normalized_question,
-                Err(_) => return None,
+            let original_qname = match parsed_packet.question_raw() {
+                Some((original_qname, ..)) => original_qname,
+                None => return None,
             };
-            let packet = dns::build_refused_packet(&normalized_question).unwrap();
+            let packet = dns::build_refused_packet(&original_qname, qtype, qclass, tid).unwrap();
             let mut answer = Answer::from(packet);
             answer.special = true;
             return Some(answer);
