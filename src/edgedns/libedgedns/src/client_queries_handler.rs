@@ -42,15 +42,15 @@ pub struct WaitingClients {
     client_queries: Vec<ClientQuery>,
 }
 
-#[derive(Clone, Default)]
-pub struct PendingQueries {
-    inner: Arc<RwLock<HashMap<UpstreamQuestion, WaitingClients>>>,
-}
-
 #[derive(Default)]
 pub struct PendingQueriesInner {
     waiting_clients: HashMap<UpstreamQuestion, WaitingClients>,
     local_question_to_waiting_client: HashMap<LocalUpstreamQuestion, UpstreamQuestion>,
+}
+
+#[derive(Clone, Default)]
+pub struct PendingQueries {
+    inner: Arc<RwLock<PendingQueriesInner>>,
 }
 
 pub struct ClientQueriesHandler {
@@ -121,6 +121,21 @@ impl ClientQueriesHandler {
         client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = io::Error> {
         let pending_queries = self.pending_queries.inner.write();
+        let normalized_question = &client_query.normalized_question;
+        let custom_hash = (0u64, 0u64);
+        let local_upstream_question = LocalUpstreamQuestion {
+            qname_lc: normalized_question.qname_lc.clone(), // XXX - maybe make qname_lc a Rc
+            qtype: normalized_question.qtype,
+            qclass: normalized_question.qclass,
+            custom_hash,
+        };
+        if pending_queries
+            .local_question_to_waiting_client
+            .get(&local_upstream_question)
+            .is_some()
+        {
+            debug!("Already in-flight")
+        }
         debug!("Incoming client query");
         let response = ResolverResponse {
             packet: vec![],
