@@ -11,6 +11,7 @@ use failure;
 use futures::{future, Future};
 use futures::Sink;
 use futures::sync::mpsc::Sender;
+use futures::sync::oneshot;
 use futures::task::{self, Task};
 use hooks::{Hooks, SessionState, Stage};
 use parking_lot::RwLock;
@@ -32,8 +33,8 @@ pub enum ClientQueryProtocol {
     TCP,
 }
 
-#[derive(Clone)]
 pub struct ClientQuery {
+    pub response_tx: oneshot::Sender<ResolverResponse>,
     pub normalized_question: NormalizedQuestion,
     pub proto: ClientQueryProtocol,
     pub ts: Instant,
@@ -43,6 +44,7 @@ pub struct ClientQuery {
 
 impl ClientQuery {
     pub fn udp(
+        response_tx: oneshot::Sender<ResolverResponse>,
         parsed_packet: &mut ParsedPacket,
         session_state: SessionState,
     ) -> Result<ClientQuery, failure::Error> {
@@ -53,11 +55,12 @@ impl ClientQuery {
             ts: Instant::recent(),
             session_state,
             task: task::current(),
+            response_tx,
         })
     }
 
     pub fn tcp(
-        tcpclient_tx: Sender<ResolverResponse>,
+        response_tx: oneshot::Sender<ResolverResponse>,
         normalized_question: NormalizedQuestion,
         session_state: SessionState,
         custom_hash: (u64, u64),
@@ -68,6 +71,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             session_state,
             task: task::current(),
+            response_tx,
         }
     }
 }

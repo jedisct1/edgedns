@@ -6,7 +6,7 @@
 
 use super::EdgeDNSContext;
 use cache::Cache;
-use client_queries_handler::ClientQueriesHandler;
+use client_queries_handler::{ClientQueriesHandler, PendingQueries};
 use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
@@ -47,14 +47,12 @@ pub struct ResolverCore {
     pub dnstap_sender: Option<log_dnstap::Sender>,
     pub net_udp_socket: net::UdpSocket,
     pub net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
-    pub upstream_servers_arc: Arc<RwLock<HashMap<SocketAddr, UpstreamServer>>>,
-    pub waiting_clients_count: Rc<AtomicUsize>,
     pub cache: Cache,
     pub varz: Varz,
     pub decrement_ttl: bool,
     pub lbmode: LoadBalancingMode,
-    pub upstream_max_failure_duration: Duration,
     pub jumphasher: JumpHasher,
+    pub pending_queries: PendingQueries,
 }
 
 impl ResolverCore {
@@ -83,16 +81,6 @@ impl ResolverCore {
         if net_ext_udp_sockets.is_empty() {
             panic!("Couldn't bind any ports");
         }
-        let mut upstream_servers = HashMap::new();
-        for upstream_server in config
-            .upstream_servers_str
-            .iter()
-            .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
-        {
-            let remote_addr = upstream_server.remote_addr;
-            upstream_servers.insert(remote_addr, upstream_server);
-        }
-        let upstream_servers_arc = Arc::new(RwLock::new(upstream_servers));
         if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
         }
@@ -100,9 +88,9 @@ impl ResolverCore {
         let dnstap_sender = edgedns_context.dnstap_sender.clone();
         let cache = edgedns_context.cache.clone();
         let varz = Arc::clone(&edgedns_context.varz);
+        let pending_queries = edgedns_context.pending_queries.clone();
         let decrement_ttl = config.decrement_ttl;
         let lbmode = config.lbmode;
-        let upstream_max_failure_duration = config.upstream_max_failure_duration;
         thread::Builder::new()
             .name("resolver".to_string())
             .spawn(move || {
@@ -111,17 +99,15 @@ impl ResolverCore {
                 let resolver_core = ResolverCore {
                     config: Rc::new(config),
                     handle: handle.clone(),
-                    dnstap_sender: dnstap_sender,
-                    net_udp_socket: net_udp_socket,
+                    dnstap_sender,
+                    net_udp_socket,
                     net_ext_udp_sockets_rc: Rc::new(net_ext_udp_sockets),
-                    upstream_servers_arc: upstream_servers_arc,
-                    waiting_clients_count: Rc::new(AtomicUsize::new(0)),
-                    cache: cache,
-                    varz: varz,
+                    cache,
+                    varz,
                     decrement_ttl: decrement_ttl,
-                    lbmode: lbmode,
-                    upstream_max_failure_duration: upstream_max_failure_duration,
+                    lbmode,
                     jumphasher: JumpHasher::default(),
+                    pending_queries,
                 };
                 info!("Registering UDP ports...");
                 for net_ext_udp_socket in &*resolver_core.net_ext_udp_sockets_rc {

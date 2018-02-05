@@ -14,6 +14,7 @@ use futures::Sink;
 use futures::future::{self, Future};
 use futures::stream::Stream;
 use futures::sync::mpsc::{channel, Sender};
+use futures::sync::oneshot;
 use hooks::{Hooks, SessionState};
 use parking_lot::RwLock;
 use std::cell::RefCell;
@@ -89,7 +90,7 @@ impl TcpClientQuery {
         normalized_question: NormalizedQuestion,
         custom_hash: (u64, u64),
     ) -> Box<Future<Item = (), Error = io::Error>> {
-        let (tcpclient_tx, tcpclient_rx) = channel(1);
+        let (tcpclient_tx, tcpclient_rx) = oneshot::channel();
         let normalized_question_key = normalized_question.key();
         let cache_key = CacheKey {
             normalized_question_key,
@@ -104,23 +105,12 @@ impl TcpClientQuery {
             custom_hash,
         );
         let wh_cell = RefCell::new(self.wh);
-        let fut = tcpclient_rx
-            .into_future()
-            .map_err(|_| {})
-            .map(|(resolver_response, _)| resolver_response)
-            .and_then(move |resolver_response| match resolver_response {
-                None => {
-                    warn!("No resolver response - TX part of the channel closed");
-                    future::err(())
-                }
-                Some(resolver_response) => future::ok(resolver_response),
-            })
-            .and_then(|resolver_response| {
-                let wh = wh_cell.into_inner();
-                write_all(wh, resolver_response.packet)
-                    .map(|_| {})
-                    .map_err(|_| {})
-            });
+        let fut = tcpclient_rx.map_err(|_| {}).and_then(|resolver_response| {
+            let wh = wh_cell.into_inner();
+            write_all(wh, resolver_response.packet)
+                .map(|_| {})
+                .map_err(|_| {})
+        });
         let fut_send = self.resolver_tx.send(client_query).map_err(|_| {});
         let futs = fut.join(fut_send);
         Box::new(futs.map(|_| {}).map_err(|_| io::Error::last_os_error()))

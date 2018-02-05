@@ -7,6 +7,7 @@ use failure;
 use rand::random;
 use std::fmt;
 use std::io::Write;
+use std::net::SocketAddr;
 
 use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
@@ -43,6 +44,24 @@ pub struct NormalizedQuestionKey {
     pub qtype: u16,
     pub qclass: u16,
     pub dnssec: bool,
+}
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct UpstreamQuestion {
+    pub qname_lc: Vec<u8>,
+    pub qtype: u16,
+    pub qclass: u16,
+    pub local_port: u16,
+    pub tid: u16,
+    pub server_addr: SocketAddr,
+}
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct LocalUpstreamQuestion {
+    pub qname_lc: Vec<u8>,
+    pub qtype: u16,
+    pub qclass: u16,
+    pub custom_hash: (u64, u64),
 }
 
 #[inline]

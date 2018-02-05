@@ -68,7 +68,6 @@ mod globals;
 mod hooks;
 mod log_dnstap;
 mod net_helpers;
-mod pending_query;
 mod query_router;
 mod resolver;
 mod tcp_acceptor;
@@ -83,6 +82,7 @@ mod webservice;
 
 use cache::Cache;
 use cli_listener::CLIListener;
+use client_queries_handler::PendingQueries;
 pub use config::Config;
 use hooks::Hooks;
 use log_dnstap::LogDNSTap;
@@ -138,6 +138,7 @@ pub struct EdgeDNSContext {
     pub hooks_arc: Arc<RwLock<Hooks>>,
     pub tcp_arbitrator: TcpArbitrator,
     pub dnstap_sender: Option<log_dnstap::Sender>,
+    pub pending_queries: PendingQueries,
 }
 
 pub struct EdgeDNS;
@@ -195,6 +196,7 @@ impl EdgeDNS {
         } else {
             (None, None)
         };
+        let pending_queries = PendingQueries::default();
         let tcp_arbitrator = TcpArbitrator::with_capacity(config.max_tcp_clients);
         let edgedns_context = EdgeDNSContext {
             config: config.clone(),
@@ -206,6 +208,7 @@ impl EdgeDNS {
             hooks_arc,
             tcp_arbitrator,
             dnstap_sender,
+            pending_queries,
         };
         let resolver_tx =
             ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");

@@ -12,6 +12,7 @@ use futures::Async;
 use futures::Sink;
 use futures::prelude::*;
 use futures::sync::mpsc::Sender;
+use futures::sync::oneshot;
 use futures::task;
 use globals::*;
 use hooks;
@@ -196,29 +197,29 @@ impl QueryRouter {
                 }
             }
         }
-
-        let client_query =
-            ClientQuery::udp(&mut parsed_packet, self.session_state.take().unwrap())?;
-        let client_query_fut = ClientQueryFut {};
+        let (response_tx, response_rx) = oneshot::channel();
+        let client_query = ClientQuery::udp(
+            response_tx,
+            &mut parsed_packet,
+            self.session_state.take().unwrap(),
+        )?;
 
         let fut_send = self.globals
             .resolver_tx
             .clone()
             .send(client_query)
             .map_err(|_| DNSError::InternalError.into());
+
+        let client_query_fut = response_rx
+            .map_err(|e| DNSError::InternalError.into())
+            .and_then(|x| {
+                println!("XXX {:?}", x);
+                future::ok(())
+            });
+
         let client_query_fut = fut_send.and_then(|_| client_query_fut);
 
         return Ok(AnswerOrFuture::Future(Box::new(client_query_fut)));
-    }
-}
-
-struct ClientQueryFut {}
-
-impl Future for ClientQueryFut {
-    type Item = ();
-    type Error = failure::Error;
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        Ok(Async::NotReady)
     }
 }
 

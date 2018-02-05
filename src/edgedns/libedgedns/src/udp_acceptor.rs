@@ -12,6 +12,7 @@
 
 use super::EdgeDNSContext;
 use cache::Cache;
+use client_queries_handler::PendingQueries;
 use client_query::*;
 use config::Config;
 use dns;
@@ -47,6 +48,7 @@ struct UdpAcceptor {
     cache: Cache,
     varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
+    pending_queries: PendingQueries,
 }
 
 pub struct UdpAcceptorCore {
@@ -56,6 +58,7 @@ pub struct UdpAcceptorCore {
     cache: Cache,
     varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
+    pending_queries: PendingQueries,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
 }
 
@@ -80,6 +83,7 @@ impl UdpAcceptor {
             cache: udp_acceptor_core.cache.clone(),
             varz: Arc::clone(&udp_acceptor_core.varz),
             hooks_arc: Arc::clone(&udp_acceptor_core.hooks_arc),
+            pending_queries: udp_acceptor_core.pending_queries.clone(),
         }
     }
 
@@ -109,6 +113,7 @@ impl UdpAcceptor {
             varz: Arc::clone(&self.varz),
             hooks_arc: Arc::clone(&self.hooks_arc),
             resolver_tx: self.resolver_tx.clone(),
+            pending_queries: self.pending_queries.clone(),
         };
         let session_state = SessionState::default();
         session_state.inner.write().upstream_servers_for_query =
@@ -172,6 +177,7 @@ impl UdpAcceptorCore {
         let cache = edgedns_context.cache.clone();
         let varz = Arc::clone(&edgedns_context.varz);
         let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
+        let pending_queries = edgedns_context.pending_queries.clone();
 
         let udp_acceptor_th = thread::Builder::new()
             .name("udp_acceptor".to_string())
@@ -185,6 +191,7 @@ impl UdpAcceptorCore {
                     service_ready_tx: Some(service_ready_tx),
                     varz,
                     hooks_arc,
+                    pending_queries,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core

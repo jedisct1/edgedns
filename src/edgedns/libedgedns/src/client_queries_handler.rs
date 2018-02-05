@@ -9,10 +9,11 @@
 
 use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use cache::Cache;
-use client_query::ClientQuery;
+use client_query::{ClientQuery, ResolverResponse};
 use coarsetime::{Duration, Instant};
 use config::Config;
-use dns::{self, NormalizedQuestion, NormalizedQuestionKey};
+use dns;
+use dns::*;
 use futures::Future;
 use futures::Stream;
 use futures::future;
@@ -37,17 +38,31 @@ use tokio_timer::{wheel, Timer};
 use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
+pub struct WaitingClients {
+    client_queries: Vec<ClientQuery>,
+}
+
+#[derive(Clone, Default)]
+pub struct PendingQueries {
+    inner: Arc<RwLock<HashMap<UpstreamQuestion, WaitingClients>>>,
+}
+
+#[derive(Default)]
+pub struct PendingQueriesInner {
+    waiting_clients: HashMap<UpstreamQuestion, WaitingClients>,
+    local_question_to_waiting_client: HashMap<LocalUpstreamQuestion, UpstreamQuestion>,
+}
+
 pub struct ClientQueriesHandler {
     cache: Cache,
     config: Rc<Config>,
     handle: Handle,
     net_udp_socket: net::UdpSocket,
     net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
-    upstream_servers_arc: Arc<RwLock<HashMap<SocketAddr, UpstreamServer>>>,
-    waiting_clients_count: Rc<AtomicUsize>,
     jumphasher: JumpHasher,
     timer: Timer,
     varz: Varz,
+    pending_queries: PendingQueries,
 }
 
 impl Clone for ClientQueriesHandler {
@@ -58,11 +73,10 @@ impl Clone for ClientQueriesHandler {
             handle: self.handle.clone(),
             net_udp_socket: self.net_udp_socket.try_clone().unwrap(),
             net_ext_udp_sockets_rc: Rc::clone(&self.net_ext_udp_sockets_rc),
-            upstream_servers_arc: Arc::clone(&self.upstream_servers_arc),
-            waiting_clients_count: Rc::clone(&self.waiting_clients_count),
             jumphasher: self.jumphasher,
             timer: self.timer.clone(),
             varz: Arc::clone(&self.varz),
+            pending_queries: self.pending_queries.clone(),
         }
     }
 }
@@ -78,11 +92,10 @@ impl ClientQueriesHandler {
             handle: resolver_core.handle.clone(),
             net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),
             net_ext_udp_sockets_rc: Rc::clone(&resolver_core.net_ext_udp_sockets_rc),
-            upstream_servers_arc: Arc::clone(&resolver_core.upstream_servers_arc),
-            waiting_clients_count: Rc::clone(&resolver_core.waiting_clients_count),
             jumphasher: resolver_core.jumphasher,
             timer: timer,
             varz: Arc::clone(&resolver_core.varz),
+            pending_queries: resolver_core.pending_queries.clone(),
         }
     }
 
@@ -95,7 +108,7 @@ impl ClientQueriesHandler {
         let mut self_inner = self.clone();
         let fut_client_query = resolver_rx.for_each(move |client_query| {
             let fut = self_inner
-                .fut_process_client_query(&client_query)
+                .fut_process_client_query(client_query)
                 .map_err(|_| {});
             handle.spawn(fut);
             future::ok(())
@@ -105,10 +118,15 @@ impl ClientQueriesHandler {
 
     fn fut_process_client_query(
         &mut self,
-        client_query: &ClientQuery,
+        client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = io::Error> {
+        let pending_queries = self.pending_queries.inner.write();
         debug!("Incoming client query");
-        client_query.task.notify();
+        let response = ResolverResponse {
+            packet: vec![],
+            dnssec: false,
+        };
+        let _ = client_query.response_tx.send(response);
         future::ok(())
     }
 }
