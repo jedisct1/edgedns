@@ -120,7 +120,6 @@ impl ClientQueriesHandler {
         &mut self,
         client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = io::Error> {
-        let pending_queries = self.pending_queries.inner.write();
         let normalized_question = &client_query.normalized_question;
         let custom_hash = (0u64, 0u64);
         let local_upstream_question = LocalUpstreamQuestion {
@@ -129,13 +128,21 @@ impl ClientQueriesHandler {
             qclass: normalized_question.qclass,
             custom_hash,
         };
-        if pending_queries
+        let mut pending_queries = self.pending_queries.inner.write();
+        let upstream_question = pending_queries
             .local_question_to_waiting_client
             .get(&local_upstream_question)
-            .is_some()
-        {
-            debug!("Already in-flight")
+            .cloned();
+        if let Some(upstream_question) = upstream_question {
+            debug!("Already in-flight");
+            let waiting_clients = pending_queries
+                .waiting_clients
+                .get_mut(&upstream_question)
+                .expect("No waiting clients, but existing local question");
+            waiting_clients.client_queries.push(client_query);
+            return future::ok(());
         }
+
         debug!("Incoming client query");
         let response = ResolverResponse {
             packet: vec![],
