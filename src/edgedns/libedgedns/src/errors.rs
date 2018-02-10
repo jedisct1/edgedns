@@ -21,4 +21,6 @@ pub enum DNSError {
     Unimplemented,
     #[fail(display = "{}", _0)]
     Io(#[cause] io::Error),
+    #[fail(display = "no servers available for this query")]
+    NoServers,
 }

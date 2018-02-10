@@ -34,7 +34,7 @@ pub enum ClientQueryProtocol {
 }
 
 pub struct ClientQuery {
-    pub response_tx: oneshot::Sender<ResolverResponse>,
+    pub response_tx: Option<oneshot::Sender<ResolverResponse>>,
     pub normalized_question: NormalizedQuestion,
     pub proto: ClientQueryProtocol,
     pub ts: Instant,
@@ -55,7 +55,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             session_state,
             task: task::current(),
-            response_tx,
+            response_tx: Some(response_tx),
         })
     }
 
@@ -71,7 +71,7 @@ impl ClientQuery {
             ts: Instant::recent(),
             session_state,
             task: task::current(),
-            response_tx,
+            response_tx: Some(response_tx),
         }
     }
 }

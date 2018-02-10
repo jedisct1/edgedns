@@ -18,6 +18,8 @@ use cache::{Cache, CacheKey};
 use client_query::ClientQuery;
 use config::Config;
 use dns::{min_ttl, rcode, set_ttl, tid, NormalizedQuestionKey, DNS_RCODE_SERVFAIL};
+use errors::*;
+use failure;
 use futures::Future;
 use futures::Stream;
 use futures::future;
@@ -36,15 +38,40 @@ use upstream_server::UpstreamServer;
 use varz::Varz;
 
 pub struct ExtUdpListener {
+    handle: Handle,
     local_port: u16,
-    net_udp_socket: net::UdpSocket,
 }
 
 impl ExtUdpListener {
-    pub fn new(resolver_core: &ResolverCore, local_port: u16) -> Self {
+    pub fn new(resolver_core: &ResolverCore, net_ext_udp_socket: &net::UdpSocket) -> Self {
+        debug!(
+            "New ext UDP listener spawned on port {}",
+            net_ext_udp_socket.local_addr().unwrap().port()
+        );
         ExtUdpListener {
-            local_port: local_port,
-            net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),
+            handle: resolver_core.handle.clone(),
+            local_port: net_ext_udp_socket.local_addr().unwrap().port(),
         }
+    }
+
+    pub fn fut_process_stream(
+        mut self,
+        net_ext_udp_socket: net::UdpSocket,
+    ) -> impl Future<Item = (), Error = failure::Error> {
+        let fut_ext_socket = UdpStream::from_net_udp_socket(net_ext_udp_socket, &self.handle)
+            .expect("Cannot create a UDP stream")
+            .for_each(move |(packet, client_addr)| {
+                self.fut_process_ext_socket(packet, client_addr)
+            });
+        fut_ext_socket
+    }
+
+    fn fut_process_ext_socket(
+        &mut self,
+        packet: Vec<u8>,
+        client_addr: SocketAddr,
+    ) -> impl Future<Item = (), Error = failure::Error> {
+        println!("Something received on port {}", self.local_port);
+        future::err(DNSError::Unimplemented.into())
     }
 }

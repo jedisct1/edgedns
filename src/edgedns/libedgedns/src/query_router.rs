@@ -203,7 +203,6 @@ impl QueryRouter {
             &mut parsed_packet,
             self.session_state.take().unwrap(),
         )?;
-
         let fut_send = self.globals
             .resolver_tx
             .clone()

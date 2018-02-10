@@ -789,7 +789,7 @@ pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, failure::Error> {
 pub fn build_query_packet(
     normalized_question: &NormalizedQuestion,
     force_dnssec: bool,
-) -> Result<Vec<u8>, failure::Error> {
+) -> Result<Vec<u8>, DNSError> {
     let mut qname = normalized_question.qname_lc.clone();
     let qname_len = qname.len();
     let force_dnssec = if qname_len == 0 { true } else { force_dnssec };
