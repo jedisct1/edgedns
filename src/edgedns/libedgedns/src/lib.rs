@@ -210,14 +210,13 @@ impl EdgeDNS {
             dnstap_sender,
             pending_queries,
         };
-        let resolver_tx =
-            ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");
+        let globals = ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");
         let (service_ready_tx, service_ready_rx) = mpsc::sync_channel::<u8>(1);
         let mut tasks: Vec<thread::JoinHandle<()>> = Vec::new();
         for _ in 0..config.udp_acceptor_threads {
             let udp_acceptor = UdpAcceptorCore::spawn(
                 &edgedns_context,
-                resolver_tx.clone(),
+                globals.resolver_tx.clone(),
                 service_ready_tx.clone(),
             ).expect("Unable to spawn a UDP listener");
             tasks.push(udp_acceptor);
@@ -226,7 +225,7 @@ impl EdgeDNS {
         for _ in 0..config.tcp_acceptor_threads {
             let tcp_listener = TcpAcceptorCore::spawn(
                 &edgedns_context,
-                resolver_tx.clone(),
+                globals.resolver_tx.clone(),
                 service_ready_tx.clone(),
             ).expect("Unable to spawn a TCP listener");
             tasks.push(tcp_listener);

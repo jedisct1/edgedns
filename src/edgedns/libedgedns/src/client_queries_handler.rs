@@ -20,6 +20,7 @@ use futures::Stream;
 use futures::future;
 use futures::sync::mpsc::Receiver;
 use futures::sync::oneshot;
+use globals::Globals;
 use jumphash::JumpHasher;
 use parking_lot::{Mutex, RwLock};
 use rand;
@@ -56,29 +57,23 @@ pub struct PendingQueries {
 }
 
 pub struct ClientQueriesHandler {
-    cache: Cache,
-    config: Rc<Config>,
+    globals: Globals,
     handle: Handle,
     net_udp_socket: net::UdpSocket,
     net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
     jumphasher: JumpHasher,
     timer: Timer,
-    varz: Varz,
-    pending_queries: PendingQueries,
 }
 
 impl Clone for ClientQueriesHandler {
     fn clone(&self) -> Self {
         ClientQueriesHandler {
-            cache: self.cache.clone(),
-            config: Rc::clone(&self.config),
+            globals: self.globals.clone(),
             handle: self.handle.clone(),
             net_udp_socket: self.net_udp_socket.try_clone().unwrap(),
             net_ext_udp_sockets_rc: Rc::clone(&self.net_ext_udp_sockets_rc),
             jumphasher: self.jumphasher,
             timer: self.timer.clone(),
-            varz: Arc::clone(&self.varz),
-            pending_queries: self.pending_queries.clone(),
         }
     }
 }
@@ -86,18 +81,15 @@ impl Clone for ClientQueriesHandler {
 impl ClientQueriesHandler {
     pub fn new(resolver_core: &ResolverCore) -> Self {
         let timer = wheel()
-            .max_capacity(resolver_core.config.max_active_queries)
+            .max_capacity(resolver_core.globals.config.max_active_queries)
             .build();
         ClientQueriesHandler {
-            cache: resolver_core.cache.clone(),
-            config: Rc::clone(&resolver_core.config),
+            globals: resolver_core.globals.clone(),
             handle: resolver_core.handle.clone(),
             net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),
             net_ext_udp_sockets_rc: Rc::clone(&resolver_core.net_ext_udp_sockets_rc),
             jumphasher: resolver_core.jumphasher,
             timer: timer,
-            varz: Arc::clone(&resolver_core.varz),
-            pending_queries: resolver_core.pending_queries.clone(),
         }
     }
 
@@ -130,7 +122,7 @@ impl ClientQueriesHandler {
             qclass: normalized_question.qclass,
             custom_hash,
         };
-        let mut pending_queries = self.pending_queries.inner.write();
+        let mut pending_queries = self.globals.pending_queries.inner.write();
         let upstream_question = pending_queries
             .local_question_to_waiting_client
             .get(&local_upstream_question)
@@ -194,7 +186,7 @@ impl ClientQueriesHandler {
             .waiting_clients
             .insert(upstream_question, waiting_clients.clone());
 
-        let pending_queries_inner = self.pending_queries.inner.clone();
+        let pending_queries_inner = self.globals.pending_queries.inner.clone();
         let (upstream_tx, upstream_rx): (
             oneshot::Sender<Vec<u8>>,
             oneshot::Receiver<Vec<u8>>,

@@ -23,6 +23,7 @@ use failure;
 use futures::Future;
 use futures::Stream;
 use futures::future;
+use globals::Globals;
 use log_dnstap;
 use parking_lot::RwLock;
 use resolver::ResolverCore;
@@ -38,6 +39,7 @@ use upstream_server::UpstreamServer;
 use varz::Varz;
 
 pub struct ExtUdpListener {
+    globals: Globals,
     handle: Handle,
     local_port: u16,
 }
@@ -49,6 +51,7 @@ impl ExtUdpListener {
             net_ext_udp_socket.local_addr().unwrap().port()
         );
         ExtUdpListener {
+            globals: resolver_core.globals.clone(),
             handle: resolver_core.handle.clone(),
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),
         }

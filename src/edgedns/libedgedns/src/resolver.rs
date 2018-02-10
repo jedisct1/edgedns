@@ -15,6 +15,7 @@ use ext_udp_listener::ExtUdpListener;
 use futures::Future;
 use futures::sync::mpsc::{channel, Receiver, Sender};
 use futures::sync::oneshot;
+use globals::Globals;
 use jumphash::JumpHasher;
 use log_dnstap;
 use net_helpers::*;
@@ -32,7 +33,6 @@ use std::sync::atomic::AtomicUsize;
 use std::thread;
 use tokio_core::reactor::{Core, Handle};
 use upstream_server::UpstreamServer;
-use varz::Varz;
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum LoadBalancingMode {
@@ -42,21 +42,18 @@ pub enum LoadBalancingMode {
 }
 
 pub struct ResolverCore {
-    pub config: Rc<Config>,
+    pub globals: Globals,
     pub handle: Handle,
     pub dnstap_sender: Option<log_dnstap::Sender>,
     pub net_udp_socket: net::UdpSocket,
     pub net_ext_udp_sockets_rc: Rc<Vec<net::UdpSocket>>,
-    pub cache: Cache,
-    pub varz: Varz,
     pub decrement_ttl: bool,
     pub lbmode: LoadBalancingMode,
     pub jumphasher: JumpHasher,
-    pub pending_queries: PendingQueries,
 }
 
 impl ResolverCore {
-    pub fn spawn(edgedns_context: &EdgeDNSContext) -> io::Result<Sender<ClientQuery>> {
+    pub fn spawn(edgedns_context: &EdgeDNSContext) -> io::Result<Globals> {
         let config = &edgedns_context.config;
         let net_udp_socket = edgedns_context
             .udp_socket
@@ -84,30 +81,32 @@ impl ResolverCore {
         if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
         }
-        let config = edgedns_context.config.clone();
+        let globals = Globals {
+            config: Arc::new(edgedns_context.config.clone()),
+            cache: edgedns_context.cache.clone(),
+            hooks_arc: Arc::clone(&edgedns_context.hooks_arc),
+            resolver_tx,
+            pending_queries: edgedns_context.pending_queries.clone(),
+            varz: edgedns_context.varz.clone(),
+        };
         let dnstap_sender = edgedns_context.dnstap_sender.clone();
-        let cache = edgedns_context.cache.clone();
-        let varz = Arc::clone(&edgedns_context.varz);
-        let pending_queries = edgedns_context.pending_queries.clone();
         let decrement_ttl = config.decrement_ttl;
         let lbmode = config.lbmode;
+        let globals_inner = globals.clone();
         thread::Builder::new()
             .name("resolver".to_string())
             .spawn(move || {
                 let mut event_loop = Core::new().expect("No event loop");
                 let handle = event_loop.handle();
                 let resolver_core = ResolverCore {
-                    config: Rc::new(config),
+                    globals: globals_inner,
                     handle: handle.clone(),
                     dnstap_sender,
                     net_udp_socket,
                     net_ext_udp_sockets_rc: Rc::new(net_ext_udp_sockets),
-                    cache,
-                    varz,
                     decrement_ttl: decrement_ttl,
                     lbmode,
                     jumphasher: JumpHasher::default(),
-                    pending_queries,
                 };
                 info!("Registering UDP ports...");
                 for net_ext_udp_socket in &*resolver_core.net_ext_udp_sockets_rc {
@@ -127,7 +126,7 @@ impl ResolverCore {
                 }
             })
             .unwrap();
-        Ok(resolver_tx)
+        Ok(globals)
     }
 }
 
