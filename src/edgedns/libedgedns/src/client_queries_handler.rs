@@ -42,18 +42,19 @@ use varz::Varz;
 
 #[derive(Default)]
 pub struct WaitingClients {
-    client_queries: Vec<ClientQuery>,
+    pub client_queries: Vec<ClientQuery>,
+    pub upstream_tx: Option<oneshot::Sender<Vec<u8>>>,
 }
 
 #[derive(Default)]
 pub struct PendingQueriesInner {
-    waiting_clients: HashMap<UpstreamQuestion, Arc<Mutex<WaitingClients>>>,
-    local_question_to_waiting_client: HashMap<LocalUpstreamQuestion, UpstreamQuestion>,
+    pub waiting_clients: HashMap<UpstreamQuestion, Arc<Mutex<WaitingClients>>>,
+    pub local_question_to_waiting_client: HashMap<LocalUpstreamQuestion, UpstreamQuestion>,
 }
 
 #[derive(Clone, Default)]
 pub struct PendingQueries {
-    inner: Arc<RwLock<PendingQueriesInner>>,
+    pub inner: Arc<RwLock<PendingQueriesInner>>,
 }
 
 pub struct ClientQueriesHandler {
@@ -138,7 +139,8 @@ impl ClientQueriesHandler {
         }
 
         debug!("Incoming client query");
-        let packet = match dns::build_query_packet(&client_query.normalized_question, false) {
+        let tid: u16 = rand::random();
+        let packet = match dns::build_query_packet(&client_query.normalized_question, tid, false) {
             Err(e) => return future::err(e),
             Ok(packet) => packet,
         };
@@ -165,7 +167,6 @@ impl ClientQueriesHandler {
         }
         debug!("Query sent to upstream");
 
-        let tid: u16 = rand::random();
         let upstream_question = UpstreamQuestion {
             qname_lc: local_upstream_question.qname_lc.clone(),
             qtype: local_upstream_question.qtype,
@@ -179,18 +180,21 @@ impl ClientQueriesHandler {
             .insert(local_upstream_question.clone(), upstream_question.clone()) // XXX - Make upstream_question a Rc
             .is_some();
         debug_assert!(!already_present);
-        let waiting_clients = Arc::new(Mutex::new(WaitingClients {
-            client_queries: vec![client_query],
-        }));
-        pending_queries
-            .waiting_clients
-            .insert(upstream_question, waiting_clients.clone());
 
         let pending_queries_inner = self.globals.pending_queries.inner.clone();
         let (upstream_tx, upstream_rx): (
             oneshot::Sender<Vec<u8>>,
             oneshot::Receiver<Vec<u8>>,
         ) = oneshot::channel();
+
+        let waiting_clients = Arc::new(Mutex::new(WaitingClients {
+            client_queries: vec![client_query],
+            upstream_tx: Some(upstream_tx),
+        }));
+        pending_queries
+            .waiting_clients
+            .insert(upstream_question, waiting_clients.clone());
+
         let fut = upstream_rx
             .map_err(|_| {})
             .and_then(move |upstream_response| {

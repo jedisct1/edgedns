@@ -211,9 +211,10 @@ impl QueryRouter {
 
         let client_query_fut = response_rx
             .map_err(|e| DNSError::InternalError.into())
-            .and_then(|x| {
-                println!("XXX {:?}", x);
-                future::ok(())
+            .and_then(|resolver_response| {
+                println!("XXX {:?}", resolver_response.packet);
+                let answer = Answer::from(resolver_response.packet);
+                 Ok(AnswerOrFuture::Answer(answer)).map(|_| ())
             });
 
         let client_query_fut = fut_send.and_then(|_| client_query_fut);

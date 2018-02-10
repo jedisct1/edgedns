@@ -9,7 +9,7 @@ use std::fmt;
 use std::io::Write;
 use std::net::SocketAddr;
 
-use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_QUERY_MIN_SIZE};
+use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_QUERY_MIN_SIZE, DNS_RESPONSE_MIN_SIZE};
 
 pub const DNS_CLASS_CH: u16 = 3;
 pub const DNS_CLASS_IN: u16 = 1;
@@ -62,6 +62,28 @@ pub struct LocalUpstreamQuestion {
     pub qtype: u16,
     pub qclass: u16,
     pub custom_hash: (u64, u64),
+}
+
+impl UpstreamQuestion {
+    pub fn from_packet(
+        packet: &[u8],
+        local_port: u16,
+        server_addr: &SocketAddr,
+    ) -> Result<UpstreamQuestion, DNSError> {
+        if packet.len() < DNS_RESPONSE_MIN_SIZE {
+            return Err(DNSError::InvalidPacket);
+        }
+        let question_rr = question(packet).map_err(|_| DNSError::InvalidPacket)?;
+        let upstream_question = UpstreamQuestion {
+            qname_lc: qname_lc(question_rr.qname),
+            qtype: question_rr.qtype,
+            qclass: question_rr.qclass,
+            local_port,
+            tid: tid(packet),
+            server_addr: server_addr.clone(),
+        };
+        Ok(upstream_question)
+    }
 }
 
 #[inline]
@@ -788,6 +810,7 @@ pub fn build_probe_packet(qname: &[u8]) -> Result<Vec<u8>, failure::Error> {
 
 pub fn build_query_packet(
     normalized_question: &NormalizedQuestion,
+    tid: u16,
     force_dnssec: bool,
 ) -> Result<Vec<u8>, DNSError> {
     let mut qname = normalized_question.qname_lc.clone();
@@ -800,7 +823,6 @@ pub fn build_query_packet(
     }
     let capacity = DNS_HEADER_SIZE + qname_len + 1 + 15;
     let mut packet = Vec::with_capacity(capacity);
-    let tid: u16 = random();
     packet.extend_from_slice(&[0u8; DNS_HEADER_SIZE]);
     set_tid(&mut packet, tid);
     set_rd(&mut packet, true);

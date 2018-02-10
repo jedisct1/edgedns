@@ -17,7 +17,8 @@ use super::{DNS_QUERY_MIN_SIZE, FAILURE_TTL};
 use cache::{Cache, CacheKey};
 use client_query::ClientQuery;
 use config::Config;
-use dns::{min_ttl, rcode, set_ttl, tid, NormalizedQuestionKey, DNS_RCODE_SERVFAIL};
+use dns::{min_ttl, rcode, set_ttl, tid, NormalizedQuestionKey, UpstreamQuestion,
+          DNS_RCODE_SERVFAIL};
 use errors::*;
 use failure;
 use futures::Future;
@@ -72,9 +73,20 @@ impl ExtUdpListener {
     fn fut_process_ext_socket(
         &mut self,
         packet: Vec<u8>,
-        client_addr: SocketAddr,
+        server_addr: SocketAddr,
     ) -> impl Future<Item = (), Error = failure::Error> {
         println!("Something received on port {}", self.local_port);
-        future::err(DNSError::Unimplemented.into())
+        let pending_queries = self.globals.pending_queries.inner.read();
+        let upstream_question =
+            match UpstreamQuestion::from_packet(&packet, self.local_port, &server_addr) {
+                Err(e) => return future::err(e.into()),
+                Ok(upstream_question) => upstream_question,
+            };
+        let mut waiting_clients = match pending_queries.waiting_clients.get(&upstream_question) {
+            None => return future::err(DNSError::SpuriousResponse.into()),
+            Some(waiting_clients) => waiting_clients.lock(),
+        };
+        waiting_clients.upstream_tx.take().unwrap().send(packet);
+        future::ok(())
     }
 }

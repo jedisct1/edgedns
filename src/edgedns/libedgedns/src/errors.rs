@@ -23,4 +23,6 @@ pub enum DNSError {
     Io(#[cause] io::Error),
     #[fail(display = "no servers available for this query")]
     NoServers,
+    #[fail(display = "response to a nonexistent question")]
+    SpuriousResponse,
 }
