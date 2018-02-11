@@ -125,14 +125,14 @@ impl ClientQueriesHandler {
             dnssec: normalized_question.dnssec,
             custom_hash,
         };
-        let mut pending_queries = self.globals.pending_queries.inner.write();
-        let upstream_question = pending_queries
+        let mut pending_queries_inner = self.globals.pending_queries.inner.write();
+        let upstream_question = pending_queries_inner
             .local_question_to_waiting_client
             .get(&local_upstream_question)
             .cloned();
         if let Some(upstream_question) = upstream_question {
             debug!("Already in-flight");
-            let mut waiting_clients = pending_queries
+            let mut waiting_clients = pending_queries_inner
                 .waiting_clients
                 .get_mut(&upstream_question)
                 .expect("No waiting clients, but existing local question");
@@ -177,13 +177,12 @@ impl ClientQueriesHandler {
             tid,
             server_addr: remote_addr,
         };
-        let already_present = pending_queries
+        let already_present = pending_queries_inner
             .local_question_to_waiting_client
             .insert(local_upstream_question.clone(), upstream_question.clone()) // XXX - Make upstream_question a Rc
             .is_some();
         debug_assert!(!already_present);
 
-        let pending_queries_inner = self.globals.pending_queries.inner.clone();
         let (upstream_tx, upstream_rx): (
             oneshot::Sender<Vec<u8>>,
             oneshot::Receiver<Vec<u8>>,
@@ -193,10 +192,12 @@ impl ClientQueriesHandler {
             client_queries: vec![client_query],
             upstream_tx: Some(upstream_tx),
         }));
-        pending_queries
+        pending_queries_inner
             .waiting_clients
             .insert(upstream_question, waiting_clients.clone());
 
+        let pending_queries = self.globals.pending_queries.clone();
+        let local_upstream_question_inner = local_upstream_question.clone();
         let mut cache_inner = self.globals.cache.clone();
         let (min_ttl, max_ttl, failure_ttl) = (
             self.globals.config.min_ttl,
@@ -220,10 +221,10 @@ impl ClientQueriesHandler {
                 }
                 waiting_clients.client_queries.clear();
 
-                let mut pending_queries = pending_queries_inner.write();
+                let mut pending_queries = pending_queries.inner.write();
                 let upstream_question = pending_queries
                     .local_question_to_waiting_client
-                    .remove(&local_upstream_question)
+                    .remove(&local_upstream_question_inner)
                     .expect("Local upstream question vanished");
                 pending_queries
                     .waiting_clients
@@ -233,8 +234,9 @@ impl ClientQueriesHandler {
                 if let Ok(ttl) = dns::min_ttl(&response.packet, min_ttl, max_ttl, failure_ttl) {
                     match dns::rcode(&response.packet) {
                         DNS_RCODE_NOERROR | DNS_RCODE_NXDOMAIN => {
-                            let cache_key =
-                                CacheKey::from_local_upstream_question(local_upstream_question);
+                            let cache_key = CacheKey::from_local_upstream_question(
+                                local_upstream_question_inner,
+                            );
                             cache_inner.insert(cache_key, response.packet, ttl);
                         }
                         _ => {}
@@ -242,7 +244,64 @@ impl ClientQueriesHandler {
                 }
                 future::ok(())
             });
-        self.handle.spawn(fut);
+
+        let mut pending_queries = self.globals.pending_queries.clone();
+        let fut_timeout = self.timer
+            .timeout(
+                fut,
+                time::Duration::from_millis(UPSTREAM_QUERY_MAX_TIMEOUT_MS),
+            )
+            .map_err(move |_| {
+                info!("Upstream timeout");
+                let upstream_question_waiting_clients =
+                    pending_queries.remove_from_local_upstream_question(&local_upstream_question);
+                if let Some((upstream_question, waiting_clients)) =
+                    upstream_question_waiting_clients
+                {
+                    let packet = match dns::build_servfail_packet(
+                        &upstream_question.qname_lc,
+                        upstream_question.qtype,
+                        upstream_question.qclass,
+                        upstream_question.tid,
+                    ) {
+                        Err(_) => return,
+                        Ok(packet) => packet,
+                    };
+                    let response = ResolverResponse {
+                        packet,
+                        dnssec: false,
+                    };
+                    let mut waiting_clients = waiting_clients.lock();
+                    for mut client_query in waiting_clients.client_queries.iter_mut() {
+                        let _ = client_query
+                            .response_tx
+                            .take()
+                            .unwrap()
+                            .send(response.clone());
+                    }
+                }
+            });
+
+        self.handle.spawn(fut_timeout);
         future::ok(())
+    }
+}
+
+impl PendingQueries {
+    pub fn remove_from_local_upstream_question(
+        &mut self,
+        local_upstream_question: &LocalUpstreamQuestion,
+    ) -> Option<(UpstreamQuestion, Arc<Mutex<WaitingClients>>)> {
+        let mut pending_queries = self.inner.write();
+        pending_queries
+            .local_question_to_waiting_client
+            .remove(&local_upstream_question)
+            .and_then(|upstream_question| {
+                let waiting_clients = pending_queries
+                    .waiting_clients
+                    .remove(&upstream_question)
+                    .unwrap_or(Arc::new(Mutex::new(WaitingClients::default())));
+                Some((upstream_question, waiting_clients))
+            })
     }
 }
