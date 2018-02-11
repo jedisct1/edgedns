@@ -66,6 +66,19 @@ pub struct LocalUpstreamQuestion {
     pub custom_hash: (u64, u64),
 }
 
+impl NormalizedQuestionKey {
+    pub fn from_normalized_question(
+        normalized_question: &NormalizedQuestion,
+    ) -> NormalizedQuestionKey {
+        NormalizedQuestionKey {
+            qname_lc: normalized_question.qname_lc.clone(),
+            qtype: normalized_question.qtype,
+            qclass: normalized_question.qclass,
+            dnssec: normalized_question.dnssec,
+        }
+    }
+}
+
 impl UpstreamQuestion {
     pub fn from_packet(
         packet: &[u8],

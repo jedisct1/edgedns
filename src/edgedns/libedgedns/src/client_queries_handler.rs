@@ -156,7 +156,11 @@ impl ClientQueriesHandler {
             if upstream_servers_for_query.is_empty() {
                 return future::err(DNSError::NoServers);
             }
-            let upstream_server_for_query = &upstream_servers_for_query[0];
+            let upstream_server_i = self.jumphasher.slot(
+                &NormalizedQuestionKey::from_normalized_question(&client_query.normalized_question),
+                upstream_servers_for_query.len() as u32,
+            ) as usize;
+            let upstream_server_for_query = &upstream_servers_for_query[upstream_server_i];
             let remote_addr = &upstream_server_for_query.remote_addr;
             remote_addr.clone()
         };
