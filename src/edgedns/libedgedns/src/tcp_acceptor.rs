@@ -10,6 +10,8 @@ use cache::{Cache, CacheKey};
 use client_query::*;
 use config::Config;
 use dns::{self, NormalizedQuestion};
+use errors::*;
+use failure;
 use futures::Sink;
 use futures::future::{self, Future};
 use futures::stream::Stream;
@@ -36,7 +38,6 @@ use varz::Varz;
 struct TcpAcceptor {
     default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     timer: Timer,
-    handle: Handle,
     net_tcp_listener: net::TcpListener,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
@@ -48,7 +49,6 @@ struct TcpAcceptor {
 pub struct TcpAcceptorCore {
     config: Rc<Config>,
     timer: Timer,
-    handle: Handle,
     net_tcp_listener: net::TcpListener,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
@@ -59,10 +59,8 @@ pub struct TcpAcceptorCore {
 }
 
 struct TcpClientQuery {
-    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     timer: Timer,
     wh: WriteHalf<TcpStream>,
-    handle: Handle,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Varz,
@@ -72,12 +70,8 @@ struct TcpClientQuery {
 impl TcpClientQuery {
     pub fn new(tcp_acceptor: &TcpAcceptor, wh: WriteHalf<TcpStream>) -> Self {
         TcpClientQuery {
-            default_upstream_servers_for_query: Rc::clone(
-                &tcp_acceptor.default_upstream_servers_for_query,
-            ),
             timer: tcp_acceptor.timer.clone(),
             wh: wh,
-            handle: tcp_acceptor.handle.clone(),
             resolver_tx: tcp_acceptor.resolver_tx.clone(),
             cache: tcp_acceptor.cache.clone(),
             varz: Arc::clone(&tcp_acceptor.varz),
@@ -85,31 +79,8 @@ impl TcpClientQuery {
         }
     }
 
-    fn fut_process_query(
-        mut self,
-        normalized_question: NormalizedQuestion,
-        custom_hash: (u64, u64),
-    ) -> Box<Future<Item = (), Error = io::Error>> {
-        let (tcpclient_tx, tcpclient_rx) = oneshot::channel();
-        let cache_key = CacheKey::from_normalized_question(&normalized_question, custom_hash);
-        let cache_entry = self.cache.get2(&cache_key);
-        let session_state = SessionState::default();
-        let client_query = ClientQuery::tcp(
-            tcpclient_tx,
-            normalized_question,
-            session_state,
-            custom_hash,
-        );
-        let wh_cell = RefCell::new(self.wh);
-        let fut = tcpclient_rx.map_err(|_| {}).and_then(|resolver_response| {
-            let wh = wh_cell.into_inner();
-            write_all(wh, resolver_response.packet)
-                .map(|_| {})
-                .map_err(|_| {})
-        });
-        let fut_send = self.resolver_tx.send(client_query).map_err(|_| {});
-        let futs = fut.join(fut_send);
-        Box::new(futs.map(|_| {}).map_err(|_| io::Error::last_os_error()))
+    fn fut_process_query(&self, packet: Vec<u8>) -> impl Future<Item = (), Error = failure::Error> {
+        Box::new(future::ok(()))
     }
 }
 
@@ -124,18 +95,17 @@ impl TcpAcceptor {
             )
             .collect();
         TcpAcceptor {
+            cache: tcp_acceptor_core.cache.clone(),
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
-            timer: tcp_acceptor_core.timer.clone(),
-            handle: tcp_acceptor_core.handle.clone(),
+            hooks_arc: Arc::clone(&tcp_acceptor_core.hooks_arc),
             net_tcp_listener: tcp_acceptor_core
                 .net_tcp_listener
                 .try_clone()
                 .expect("Couldn't clone a TCP socket"),
             resolver_tx: tcp_acceptor_core.resolver_tx.clone(),
-            cache: tcp_acceptor_core.cache.clone(),
-            varz: Arc::clone(&tcp_acceptor_core.varz),
-            hooks_arc: Arc::clone(&tcp_acceptor_core.hooks_arc),
             tcp_arbitrator: tcp_acceptor_core.tcp_arbitrator.clone(),
+            timer: tcp_acceptor_core.timer.clone(),
+            varz: Arc::clone(&tcp_acceptor_core.varz),
         }
     }
 
@@ -143,10 +113,14 @@ impl TcpAcceptor {
         &mut self,
         client: TcpStream,
         client_addr: SocketAddr,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
-        let (session_rx, session_idx) = match self.tcp_arbitrator.new_session(&client_addr) {
+    ) -> impl Future<Item = (), Error = failure::Error> {
+        let mut tcp_arbitrator = self.tcp_arbitrator.clone();
+        let (session_rx, session_idx) = match tcp_arbitrator.new_session(&client_addr) {
             Ok(r) => r,
-            Err(_) => return Box::new(future::err(io::Error::last_os_error())),
+            Err(_) => {
+                return Box::new(future::err(DNSError::TooBusy.into()))
+                    as Box<Future<Item = _, Error = _>>
+            }
         };
         debug!(
             "Incoming connection using TCP, session index {}",
@@ -155,60 +129,49 @@ impl TcpAcceptor {
         let varz = Arc::clone(&self.varz);
         varz.client_queries_tcp.inc();
         let (rh, wh) = client.split();
-        let fut_expected_len = read_exact(rh, vec![0u8; 2]).and_then(move |(rh, len_buf)| {
-            let expected_len = BigEndian::read_u16(&len_buf) as usize;
-            if expected_len < DNS_QUERY_MIN_SIZE || expected_len > DNS_QUERY_MAX_SIZE {
-                info!("Suspicious query length: {}", expected_len);
-                varz.client_queries_errors.inc();
-                return future::err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Suspicious query length",
-                ));
-            }
-            debug!("Expected length: {}", expected_len);
-            future::ok((rh, expected_len))
-        });
-        let fut_packet_read =
-            fut_expected_len.and_then(|(rh, expected_len)| read_exact(rh, vec![0u8; expected_len]));
         let varz = Arc::clone(&self.varz);
-        let tcp_client_query = TcpClientQuery::new(self, wh);
-        // let fut_packet = fut_packet_read.and_then(move |(rh, packet)| {
-        // let normalized_question = match dns::normalize(&packet, true) {
-        // Ok(normalized_question) => normalized_question,
-        // Err(e) => {
-        // debug!("Error while parsing the question: {}", e);
-        // varz.client_queries_errors.inc();
-        // return Box::new(future::err(io::Error::new(
-        // io::ErrorKind::InvalidInput,
-        // "Suspicious query",
-        // ))) as Box<Future<Item = _, Error = _>>;
-        // }
-        // };
-        // let custom_hash = (0u64, 0u64);
-        // tcp_client_query.fut_process_query(normalized_question, custom_hash)
-        // });
-        // let fut_timeout = self.timer
-        // .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
-        // let mut tcp_arbitrator = self.tcp_arbitrator.clone();
-        // let fut_with_timeout = fut_timeout.then(move |_| {
-        // debug!("Closing TCP connection with session index {}", session_idx);
-        // tcp_arbitrator.delete_session(session_idx);
-        // future::ok(())
-        // });
-        // let fut_session_rx = session_rx.map(|_| {});
-        // let fut = fut_session_rx
-        // .select(fut_with_timeout)
-        // .map(|_| {})
-        // .map_err(|_| io::Error::last_os_error());
-        // Box::new(fut) as Box<Future<Item = _, Error = _>>
-        // 
-        Box::new(future::ok(()))
+
+        let fut_expected_len = read_exact(rh, vec![0u8; 2])
+            .map_err(|e| DNSError::Io(e).into())
+            .and_then(move |(rh, len_buf)| {
+                let expected_len = BigEndian::read_u16(&len_buf) as usize;
+                if expected_len < DNS_QUERY_MIN_SIZE || expected_len > DNS_QUERY_MAX_SIZE {
+                    info!("Suspicious query length: {}", expected_len);
+                    varz.client_queries_errors.inc();
+                    return future::err(DNSError::InvalidPacket.into());
+                }
+                debug!("Expected length: {}", expected_len);
+                future::ok((rh, expected_len))
+            });
+        let fut_packet_read = fut_expected_len.and_then(move |(rh, expected_len)| {
+            read_exact(rh, vec![0u8; expected_len]).map_err(|e| DNSError::Io(e).into())
+        });
+        let tcp_client_query = TcpClientQuery::new(&self, wh);
+        let fut_packet = fut_packet_read
+            .and_then(move |(rh, packet)| tcp_client_query.fut_process_query(packet));
+        let mut tcp_arbitrator = self.tcp_arbitrator.clone();
+        let fut_timeout = self.timer
+            .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS))
+            .map(|_| {})
+            .map_err(|_: failure::Error| {});
+
+        let fut_with_timeout = fut_timeout.then(move |_| {
+            debug!("Closing TCP connection with session index {}", session_idx);
+            tcp_arbitrator.delete_session(session_idx);
+            future::ok(())
+        });
+        let fut_session_rx = session_rx.map(|_| {});
+        let fut = fut_session_rx
+            .select(fut_with_timeout)
+            .map(|_| {})
+            .map_err(|_| DNSError::Timeout.into());
+        Box::new(fut) as Box<Future<Item = _, Error = _>>
     }
 
-    fn fut_process_stream<'a>(
+    fn fut_process_stream(
         mut self,
         handle: &Handle,
-    ) -> impl Future<Item = (), Error = io::Error> + 'a {
+    ) -> impl Future<Item = (), Error = failure::Error> {
         let tcp_listener = TcpListener::from_listener(
             self.net_tcp_listener
                 .try_clone()
@@ -224,7 +187,7 @@ impl TcpAcceptor {
                 handle.spawn(fut_client.map_err(|_| {}));
                 Ok(())
             })
-            .map_err(|_| io::Error::last_os_error())
+            .map_err(|_| DNSError::Unexpected.into())
     }
 }
 
@@ -257,21 +220,21 @@ impl TcpAcceptorCore {
             .tick_duration(time::Duration::from_millis(MAX_TCP_IDLE_MS / 2))
             .max_timeout(time::Duration::from_millis(MAX_TCP_IDLE_MS))
             .build();
+
         let tcp_acceptor_th = thread::Builder::new()
             .name("tcp_acceptor".to_string())
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let tcp_acceptor_core = TcpAcceptorCore {
-                    config: Rc::new(config),
-                    timer,
-                    handle: event_loop.handle(),
-                    net_tcp_listener,
                     cache,
+                    config: Rc::new(config),
+                    hooks_arc,
+                    net_tcp_listener,
                     resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
-                    varz,
-                    hooks_arc,
                     tcp_arbitrator,
+                    timer,
+                    varz,
                 };
                 let tcp_acceptor = TcpAcceptor::new(&tcp_acceptor_core);
                 tcp_acceptor_core

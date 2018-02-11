@@ -76,15 +76,15 @@ impl UdpAcceptor {
             )
             .collect();
         UdpAcceptor {
+            cache: udp_acceptor_core.cache.clone(),
             config: udp_acceptor_core.config.clone(),
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
-            net_udp_socket: udp_acceptor_core.net_udp_socket.clone(),
-            resolver_tx: udp_acceptor_core.resolver_tx.clone(),
-            cache: udp_acceptor_core.cache.clone(),
-            varz: Arc::clone(&udp_acceptor_core.varz),
             hooks_arc: Arc::clone(&udp_acceptor_core.hooks_arc),
+            net_udp_socket: udp_acceptor_core.net_udp_socket.clone(),
             pending_queries: udp_acceptor_core.pending_queries.clone(),
+            resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             timer: udp_acceptor_core.timer.clone(),
+            varz: Arc::clone(&udp_acceptor_core.varz),
         }
     }
 
@@ -192,15 +192,15 @@ impl UdpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let udp_acceptor_core = UdpAcceptorCore {
-                    config: Rc::new(config),
-                    net_udp_socket: Rc::new(net_udp_socket),
                     cache,
+                    config: Rc::new(config),
+                    hooks_arc,
+                    net_udp_socket: Rc::new(net_udp_socket),
+                    pending_queries,
                     resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
-                    varz,
-                    hooks_arc,
-                    pending_queries,
                     timer,
+                    varz,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core

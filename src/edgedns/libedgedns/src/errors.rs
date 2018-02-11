@@ -27,4 +27,6 @@ pub enum DNSError {
     SpuriousResponse,
     #[fail(display = "timeout")]
     Timeout,
+    #[fail(display = "too busy")]
+    TooBusy,
 }
