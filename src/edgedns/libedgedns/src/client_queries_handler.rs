@@ -230,11 +230,10 @@ impl ClientQueriesHandler {
                     .remove(&upstream_question)
                     .expect("Waiting clients set vanished");
 
-                let cache_key = CacheKey::from_local_upstream_question(local_upstream_question);
-
-                let ttl = dns::min_ttl(&response.packet, min_ttl, max_ttl, failure_ttl)
-                    .unwrap_or(FAILURE_TTL);
-                cache_inner.insert(cache_key, response.packet, ttl);
+                if let Ok(ttl) = dns::min_ttl(&response.packet, min_ttl, max_ttl, failure_ttl) {
+                    let cache_key = CacheKey::from_local_upstream_question(local_upstream_question);
+                    cache_inner.insert(cache_key, response.packet, ttl);
+                }
                 future::ok(())
             });
         self.handle.spawn(fut);
