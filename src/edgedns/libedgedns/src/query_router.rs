@@ -17,7 +17,6 @@ use futures::task;
 use globals::*;
 use hooks;
 use hooks::*;
-use std::cell::RefCell;
 use std::ptr;
 use std::rc::Rc;
 use upstream_server::*;
@@ -147,12 +146,10 @@ impl QueryRouter {
             session_state: Some(session_state),
         };
         let aof = query_router.create_answer(&mut parsed_packet);
-        let parsed_packet = Rc::new(RefCell::new(parsed_packet));
-        let parsed_packet_inner = Rc::clone(&parsed_packet);
         match aof {
             Ok(AnswerOrFuture::Answer(answer)) => {
                 let packet = match query_router.rewrite_according_to_original_query(
-                    &mut parsed_packet_inner.borrow_mut(),
+                    &mut parsed_packet,
                     answer,
                     protocol,
                 ) {
@@ -164,11 +161,7 @@ impl QueryRouter {
             Ok(AnswerOrFuture::Future(future)) => {
                 let fut = future.and_then(move |answer| {
                     let packet = query_router
-                        .rewrite_according_to_original_query(
-                            &mut parsed_packet_inner.borrow_mut(),
-                            answer,
-                            protocol,
-                        )
+                        .rewrite_according_to_original_query(&mut parsed_packet, answer, protocol)
                         .expect("Unable to rewrite according to the original query");
                     future::ok(packet)
                 });

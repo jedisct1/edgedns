@@ -86,7 +86,7 @@ impl ExtUdpListener {
             None => return future::err(DNSError::SpuriousResponse.into()),
             Some(waiting_clients) => waiting_clients.lock(),
         };
-        waiting_clients.upstream_tx.take().unwrap().send(packet);
+        let _ = waiting_clients.upstream_tx.take().unwrap().send(packet);
         future::ok(())
     }
 }
