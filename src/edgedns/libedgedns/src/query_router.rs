@@ -17,6 +17,7 @@ use futures::task;
 use globals::*;
 use hooks;
 use hooks::*;
+use std::cell::RefCell;
 use std::ptr;
 use std::rc::Rc;
 use upstream_server::*;
@@ -69,10 +70,10 @@ impl QueryRouter {
         answer: Answer,
         protocol: ClientQueryProtocol,
     ) -> Result<Vec<u8>, failure::Error> {
-        if !answer.special && !parsed_packet.is_response() {
+        let mut packet = answer.packet;
+        if packet.len() < DNS_RESPONSE_MIN_SIZE || !dns::qr(&packet) {
             xbail!(DNSError::Unexpected);
         }
-        let mut packet = answer.packet;
         match answer.ttl {
             Some(ttl) => dns::set_ttl(&mut packet, ttl).map_err(|_| DNSError::InternalError)?,
             None => {}
@@ -145,10 +146,13 @@ impl QueryRouter {
             globals,
             session_state: Some(session_state),
         };
-        match query_router.create_answer(&mut parsed_packet) {
+        let aof = query_router.create_answer(&mut parsed_packet);
+        let parsed_packet = Rc::new(RefCell::new(parsed_packet));
+        let parsed_packet_inner = Rc::clone(&parsed_packet);
+        match aof {
             Ok(AnswerOrFuture::Answer(answer)) => {
                 let packet = match query_router.rewrite_according_to_original_query(
-                    &mut parsed_packet,
+                    &mut parsed_packet_inner.borrow_mut(),
                     answer,
                     protocol,
                 ) {
@@ -158,7 +162,17 @@ impl QueryRouter {
                 PacketOrFuture::Packet(packet)
             }
             Ok(AnswerOrFuture::Future(future)) => {
-                PacketOrFuture::Future(Box::new(future.map(|answer| answer.packet)))
+                let fut = future.and_then(move |answer| {
+                    let packet = query_router
+                        .rewrite_according_to_original_query(
+                            &mut parsed_packet_inner.borrow_mut(),
+                            answer,
+                            protocol,
+                        )
+                        .expect("Unable to rewrite according to the original query");
+                    future::ok(packet)
+                });
+                PacketOrFuture::Future(Box::new(fut))
             }
             Err(e) => PacketOrFuture::Future(Box::new(future::err(e))),
         }
@@ -214,7 +228,6 @@ impl QueryRouter {
         let client_query_fut = response_rx
             .map_err(|e| DNSError::InternalError.into())
             .and_then(|resolver_response| {
-                println!("XXX {:?}", resolver_response.packet);
                 let answer = Answer::from(resolver_response.packet);
                 Ok(answer)
             });

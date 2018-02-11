@@ -43,7 +43,7 @@ use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 struct UdpAcceptor {
     config: Rc<Config>,
     default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
-    net_udp_socket: net::UdpSocket,
+    net_udp_socket: Rc<net::UdpSocket>,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Varz,
@@ -53,7 +53,7 @@ struct UdpAcceptor {
 
 pub struct UdpAcceptorCore {
     config: Rc<Config>,
-    net_udp_socket: net::UdpSocket,
+    net_udp_socket: Rc<net::UdpSocket>,
     resolver_tx: Sender<ClientQuery>,
     cache: Cache,
     varz: Varz,
@@ -75,10 +75,7 @@ impl UdpAcceptor {
         UdpAcceptor {
             config: udp_acceptor_core.config.clone(),
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
-            net_udp_socket: udp_acceptor_core
-                .net_udp_socket
-                .try_clone()
-                .expect("Couldn't clone a UDP socket"),
+            net_udp_socket: udp_acceptor_core.net_udp_socket.clone(),
             resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             cache: udp_acceptor_core.cache.clone(),
             varz: Arc::clone(&udp_acceptor_core.varz),
@@ -124,7 +121,7 @@ impl UdpAcceptor {
             ClientQueryProtocol::UDP,
             session_state,
         );
-        let net_udp_socket_inner = self.net_udp_socket.try_clone().unwrap();
+        let net_udp_socket_inner = self.net_udp_socket.clone();
         let fut = match query_router {
             PacketOrFuture::Packet(packet) => {
                 let _ = self.net_udp_socket.send_to(&packet, client_addr);
@@ -188,7 +185,7 @@ impl UdpAcceptorCore {
                 let event_loop = Core::new().unwrap();
                 let udp_acceptor_core = UdpAcceptorCore {
                     config: Rc::new(config),
-                    net_udp_socket,
+                    net_udp_socket: Rc::new(net_udp_socket),
                     cache,
                     resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
