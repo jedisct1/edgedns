@@ -20,7 +20,7 @@ use clockpro_cache::*;
 use coarsetime::{Duration, Instant};
 use config::Config;
 use dns;
-use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
+use dns::{LocalUpstreamQuestion, NormalizedQuestion, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
 use dnssector::ParsedPacket;
 use errors::*;
 use failure;
@@ -29,30 +29,45 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct CacheKey {
-    pub normalized_question_key: NormalizedQuestionKey,
-    pub custom_hash: (u64, u64),
+    pub local_upstream_question: LocalUpstreamQuestion,
 }
 
 impl CacheKey {
     pub fn from_parsed_packet(
         parsed_packet: &mut ParsedPacket,
+        custom_hash: (u64, u64),
     ) -> Result<CacheKey, failure::Error> {
         let dnssec = parsed_packet.dnssec();
         let (qname_lc, qtype, qclass) = parsed_packet
             .question_raw()
             .map(|(qname, qtype, qclass)| (dns::qname_lc(qname), qtype, qclass))
             .ok_or(DNSError::Inconsistent)?;
-        println!("{:?}", qname_lc);
-        let normalized_question_key = NormalizedQuestionKey {
+        let local_upstream_question = LocalUpstreamQuestion {
             qname_lc,
             qtype,
             qclass,
             dnssec,
+            custom_hash,
         };
         Ok(CacheKey {
-            normalized_question_key,
-            custom_hash: (0, 0),
+            local_upstream_question,
         })
+    }
+
+    pub fn from_normalized_question(
+        normalized_question: &NormalizedQuestion,
+        custom_hash: (u64, u64),
+    ) -> CacheKey {
+        let local_upstream_question = LocalUpstreamQuestion {
+            qname_lc: normalized_question.qname_lc.clone(),
+            qtype: normalized_question.qtype,
+            qclass: normalized_question.qclass,
+            dnssec: normalized_question.dnssec,
+            custom_hash,
+        };
+        CacheKey {
+            local_upstream_question,
+        }
     }
 }
 
@@ -149,19 +164,19 @@ impl Cache {
             }
             return Some(cache_entry);
         }
-        if !cache_key.normalized_question_key.dnssec {
-            let qname_lc = &cache_key.normalized_question_key.qname_lc;
+        if !cache_key.local_upstream_question.dnssec {
+            let qname_lc = &cache_key.local_upstream_question.qname_lc;
             if let Some(qname_shifted) = dns::qname_shift(qname_lc) {
                 let qname_lc_shifted = qname_shifted;
-                let normalized_question_key = NormalizedQuestionKey {
+                let local_upstream_question = LocalUpstreamQuestion {
                     qname_lc: qname_lc_shifted.to_owned(),
-                    qtype: cache_key.normalized_question_key.qtype,
-                    qclass: cache_key.normalized_question_key.qclass,
-                    dnssec: cache_key.normalized_question_key.dnssec,
+                    qtype: cache_key.local_upstream_question.qtype,
+                    qclass: cache_key.local_upstream_question.qclass,
+                    dnssec: cache_key.local_upstream_question.dnssec,
+                    custom_hash: cache_key.local_upstream_question.custom_hash,
                 };
                 let shifted_cache_key = CacheKey {
-                    normalized_question_key,
-                    custom_hash: cache_key.custom_hash,
+                    local_upstream_question,
                 };
                 let shifted_cache_entry = self.get(&shifted_cache_key);
                 if let Some(shifted_cache_entry) = shifted_cache_entry {
@@ -171,13 +186,13 @@ impl Cache {
                         && dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN
                     {
                         debug!("Shifted query returned NXDOMAIN");
-                        let normalized_question_key = &cache_key.normalized_question_key;
+                        let local_upstream_question = &cache_key.local_upstream_question;
                         return Some(CacheEntry {
                             expiration: shifted_cache_entry.expiration,
                             packet: dns::build_nxdomain_packet(
-                                &normalized_question_key.qname_lc,
-                                normalized_question_key.qtype,
-                                normalized_question_key.qclass,
+                                &local_upstream_question.qname_lc,
+                                local_upstream_question.qtype,
+                                local_upstream_question.qclass,
                             ).unwrap(),
                         });
                     }

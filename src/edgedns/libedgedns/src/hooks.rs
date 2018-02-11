@@ -34,6 +34,7 @@ pub struct SessionStateInner {
     pub env_str: Trie<Vec<u8>, Vec<u8>>,
     pub env_i64: Trie<Vec<u8>, i64>,
     pub upstream_servers_for_query: Vec<UpstreamServerForQuery>,
+    pub custom_hash: (u64, u64),
 }
 
 #[derive(Clone, Debug, Default)]

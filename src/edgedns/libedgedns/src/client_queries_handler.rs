@@ -116,11 +116,12 @@ impl ClientQueriesHandler {
         client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = DNSError> {
         let normalized_question = &client_query.normalized_question;
-        let custom_hash = (0u64, 0u64);
+        let custom_hash = client_query.session_state.inner.read().custom_hash;
         let local_upstream_question = LocalUpstreamQuestion {
             qname_lc: normalized_question.qname_lc.clone(), // XXX - maybe make qname_lc a Rc
             qtype: normalized_question.qtype,
             qclass: normalized_question.qclass,
+            dnssec: normalized_question.dnssec,
             custom_hash,
         };
         let mut pending_queries = self.globals.pending_queries.inner.write();

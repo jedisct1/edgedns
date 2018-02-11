@@ -61,6 +61,7 @@ pub struct LocalUpstreamQuestion {
     pub qname_lc: Vec<u8>,
     pub qtype: u16,
     pub qclass: u16,
+    pub dnssec: bool,
     pub custom_hash: (u64, u64),
 }
 

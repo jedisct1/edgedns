@@ -145,8 +145,7 @@ impl QueryRouter {
             globals,
             session_state: Some(session_state),
         };
-        let aof = query_router.create_answer(&mut parsed_packet);
-        match aof {
+        match query_router.create_answer(&mut parsed_packet) {
             Ok(AnswerOrFuture::Answer(answer)) => {
                 let packet = match query_router.rewrite_according_to_original_query(
                     &mut parsed_packet,
@@ -194,7 +193,11 @@ impl QueryRouter {
             }
         }
 
-        let cache_key = CacheKey::from_parsed_packet(&mut parsed_packet)?;
+        let custom_hash = match self.session_state {
+            None => (0u64, 0u64),
+            Some(ref session_state) => session_state.inner.read().custom_hash,
+        };
+        let cache_key = CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash)?;
         let cache_entry = self.globals.cache.clone().get2(&cache_key);
         match cache_entry {
             None => {}

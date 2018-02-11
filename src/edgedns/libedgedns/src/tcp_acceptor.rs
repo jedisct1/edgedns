@@ -91,11 +91,7 @@ impl TcpClientQuery {
         custom_hash: (u64, u64),
     ) -> Box<Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = oneshot::channel();
-        let normalized_question_key = normalized_question.key();
-        let cache_key = CacheKey {
-            normalized_question_key,
-            custom_hash,
-        };
+        let cache_key = CacheKey::from_normalized_question(&normalized_question, custom_hash);
         let cache_entry = self.cache.get2(&cache_key);
         let session_state = SessionState::default();
         let client_query = ClientQuery::tcp(
