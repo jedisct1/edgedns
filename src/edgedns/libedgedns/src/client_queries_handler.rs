@@ -7,7 +7,7 @@
 //! unresponsive after too many timeouts, and bringing them back to life after
 //! regular probes have been successfully received.
 
-use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
+use super::{FAILURE_TTL, UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use cache::Cache;
 use cache::CacheKey;
 use client_query::{ClientQuery, ResolverResponse};
@@ -198,6 +198,11 @@ impl ClientQueriesHandler {
             .insert(upstream_question, waiting_clients.clone());
 
         let mut cache_inner = self.globals.cache.clone();
+        let (min_ttl, max_ttl, failure_ttl) = (
+            self.globals.config.min_ttl,
+            self.globals.config.max_ttl,
+            FAILURE_TTL,
+        );
         let fut = upstream_rx
             .map_err(|_| {})
             .and_then(move |upstream_packet| {
@@ -226,7 +231,9 @@ impl ClientQueriesHandler {
                     .expect("Waiting clients set vanished");
 
                 let cache_key = CacheKey::from_local_upstream_question(local_upstream_question);
-                let ttl = 42;
+
+                let ttl = dns::min_ttl(&response.packet, min_ttl, max_ttl, failure_ttl)
+                    .unwrap_or(FAILURE_TTL);
                 cache_inner.insert(cache_key, response.packet, ttl);
                 future::ok(())
             });

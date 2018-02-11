@@ -87,6 +87,7 @@ impl QueryRouter {
         }
 
         let tid = parsed_packet.tid();
+        dns::set_tid(&mut packet, tid);
 
         let packet_len = packet.len();
         if packet.len() < DNS_RESPONSE_MIN_SIZE
