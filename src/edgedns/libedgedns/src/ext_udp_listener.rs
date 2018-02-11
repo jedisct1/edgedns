@@ -75,7 +75,7 @@ impl ExtUdpListener {
         packet: Vec<u8>,
         server_addr: SocketAddr,
     ) -> impl Future<Item = (), Error = failure::Error> {
-        println!("Something received on port {}", self.local_port);
+        info!("Something received on external port {}", self.local_port);
         let pending_queries = self.globals.pending_queries.inner.read();
         let upstream_question =
             match UpstreamQuestion::from_packet(&packet, self.local_port, &server_addr) {
@@ -83,7 +83,10 @@ impl ExtUdpListener {
                 Ok(upstream_question) => upstream_question,
             };
         let mut waiting_clients = match pending_queries.waiting_clients.get(&upstream_question) {
-            None => return future::err(DNSError::SpuriousResponse.into()),
+            None => {
+                warn!("Spurious response received");
+                return future::err(DNSError::SpuriousResponse.into());
+            }
             Some(waiting_clients) => waiting_clients.lock(),
         };
         let _ = waiting_clients.upstream_tx.take().unwrap().send(packet);

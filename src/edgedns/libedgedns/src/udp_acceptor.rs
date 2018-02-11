@@ -34,6 +34,7 @@ use std::rc::Rc;
 use std::sync::{mpsc, Arc};
 use std::thread;
 use tokio_core::reactor::{Core, Handle};
+use tokio_timer::{wheel, Timer};
 use udp_stream::*;
 use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
@@ -49,6 +50,7 @@ struct UdpAcceptor {
     varz: Varz,
     hooks_arc: Arc<RwLock<Hooks>>,
     pending_queries: PendingQueries,
+    timer: Timer,
 }
 
 pub struct UdpAcceptorCore {
@@ -60,6 +62,7 @@ pub struct UdpAcceptorCore {
     hooks_arc: Arc<RwLock<Hooks>>,
     pending_queries: PendingQueries,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
+    timer: Timer,
 }
 
 impl UdpAcceptor {
@@ -81,6 +84,7 @@ impl UdpAcceptor {
             varz: Arc::clone(&udp_acceptor_core.varz),
             hooks_arc: Arc::clone(&udp_acceptor_core.hooks_arc),
             pending_queries: udp_acceptor_core.pending_queries.clone(),
+            timer: udp_acceptor_core.timer.clone(),
         }
     }
 
@@ -120,6 +124,7 @@ impl UdpAcceptor {
             parsed_packet,
             ClientQueryProtocol::UDP,
             session_state,
+            self.timer.clone(),
         );
         let net_udp_socket_inner = self.net_udp_socket.clone();
         let fut = match query_router {
@@ -178,6 +183,9 @@ impl UdpAcceptorCore {
         let varz = Arc::clone(&edgedns_context.varz);
         let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
         let pending_queries = edgedns_context.pending_queries.clone();
+        let timer = wheel()
+            .max_capacity(edgedns_context.config.max_active_queries)
+            .build();
 
         let udp_acceptor_th = thread::Builder::new()
             .name("udp_acceptor".to_string())
@@ -192,6 +200,7 @@ impl UdpAcceptorCore {
                     varz,
                     hooks_arc,
                     pending_queries,
+                    timer,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core

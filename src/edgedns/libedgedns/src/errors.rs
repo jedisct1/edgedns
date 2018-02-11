@@ -25,4 +25,6 @@ pub enum DNSError {
     NoServers,
     #[fail(display = "response to a nonexistent question")]
     SpuriousResponse,
+    #[fail(display = "timeout")]
+    Timeout,
 }

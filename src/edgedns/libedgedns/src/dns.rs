@@ -21,6 +21,7 @@ pub const DNS_OFFSET_EDNS_PAYLOAD_SIZE: usize = 2;
 pub const DNS_OFFSET_EDNS_TYPE: usize = 0;
 pub const DNS_OFFSET_QUESTION: usize = DNS_HEADER_SIZE;
 pub const DNS_QTYPE_PLUS_QCLASS_LEN: usize = 4;
+pub const DNS_RCODE_NOERROR: u8 = 0;
 pub const DNS_RCODE_NXDOMAIN: u8 = 3;
 pub const DNS_RCODE_REFUSED: u8 = 5;
 pub const DNS_RCODE_SERVFAIL: u8 = 2;

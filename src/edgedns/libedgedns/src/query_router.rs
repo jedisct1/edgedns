@@ -1,4 +1,5 @@
-use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_RESPONSE_MIN_SIZE};
+use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_RESPONSE_MIN_SIZE,
+            UPSTREAM_TOTAL_TIMEOUT_MS};
 use byteorder::{BigEndian, ByteOrder};
 use cache::*;
 use client_query::*;
@@ -19,6 +20,8 @@ use hooks;
 use hooks::*;
 use std::ptr;
 use std::rc::Rc;
+use std::time;
+use tokio_timer::{Timeout, TimeoutError, Timer};
 use upstream_server::*;
 
 pub struct Answer {
@@ -60,6 +63,7 @@ pub enum AnswerOrFuture {
 pub struct QueryRouter {
     globals: Rc<Globals>,
     session_state: Option<SessionState>,
+    timer: Timer,
 }
 
 impl QueryRouter {
@@ -141,10 +145,12 @@ impl QueryRouter {
         mut parsed_packet: ParsedPacket,
         protocol: ClientQueryProtocol,
         session_state: SessionState,
+        timer: Timer,
     ) -> PacketOrFuture {
         let mut query_router = QueryRouter {
             globals,
             session_state: Some(session_state),
+            timer,
         };
         match query_router.create_answer(&mut parsed_packet) {
             Ok(AnswerOrFuture::Answer(answer)) => {
@@ -224,14 +230,18 @@ impl QueryRouter {
 
         let client_query_fut = response_rx
             .map_err(|e| DNSError::InternalError.into())
-            .and_then(|resolver_response| {
+            .and_then(move |resolver_response| {
                 let answer = Answer::from(resolver_response.packet);
                 Ok(answer)
             });
 
-        let client_query_fut = fut_send.and_then(|_| client_query_fut);
+        let client_query_fut = fut_send.and_then(move |_| client_query_fut);
+        let fut_timeout = self.timer.timeout(
+            client_query_fut,
+            time::Duration::from_millis(UPSTREAM_TOTAL_TIMEOUT_MS),
+        );
 
-        return Ok(AnswerOrFuture::Future(Box::new(client_query_fut)));
+        return Ok(AnswerOrFuture::Future(Box::new(fut_timeout)));
     }
 }
 

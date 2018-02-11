@@ -231,8 +231,14 @@ impl ClientQueriesHandler {
                     .expect("Waiting clients set vanished");
 
                 if let Ok(ttl) = dns::min_ttl(&response.packet, min_ttl, max_ttl, failure_ttl) {
-                    let cache_key = CacheKey::from_local_upstream_question(local_upstream_question);
-                    cache_inner.insert(cache_key, response.packet, ttl);
+                    match dns::rcode(&response.packet) {
+                        DNS_RCODE_NOERROR | DNS_RCODE_NXDOMAIN => {
+                            let cache_key =
+                                CacheKey::from_local_upstream_question(local_upstream_question);
+                            cache_inner.insert(cache_key, response.packet, ttl);
+                        }
+                        _ => {}
+                    }
                 }
                 future::ok(())
             });
