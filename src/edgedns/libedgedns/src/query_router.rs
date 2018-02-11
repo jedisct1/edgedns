@@ -49,12 +49,12 @@ impl From<(Vec<u8>, u32)> for Answer {
 
 pub enum PacketOrFuture {
     Packet(Vec<u8>),
-    Future(Box<Future<Item = (), Error = failure::Error>>),
+    Future(Box<Future<Item = Vec<u8>, Error = failure::Error>>),
 }
 
 pub enum AnswerOrFuture {
     Answer(Answer),
-    Future(Box<Future<Item = (), Error = failure::Error>>),
+    Future(Box<Future<Item = Answer, Error = failure::Error>>),
 }
 
 pub struct QueryRouter {
@@ -157,7 +157,9 @@ impl QueryRouter {
                 };
                 PacketOrFuture::Packet(packet)
             }
-            Ok(AnswerOrFuture::Future(future)) => PacketOrFuture::Future(future),
+            Ok(AnswerOrFuture::Future(future)) => {
+                PacketOrFuture::Future(Box::new(future.map(|answer| answer.packet)))
+            }
             Err(e) => PacketOrFuture::Future(Box::new(future::err(e))),
         }
     }
@@ -214,7 +216,7 @@ impl QueryRouter {
             .and_then(|resolver_response| {
                 println!("XXX {:?}", resolver_response.packet);
                 let answer = Answer::from(resolver_response.packet);
-                 Ok(AnswerOrFuture::Answer(answer)).map(|_| ())
+                Ok(answer)
             });
 
         let client_query_fut = fut_send.and_then(|_| client_query_fut);

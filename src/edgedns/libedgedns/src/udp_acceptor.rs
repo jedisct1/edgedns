@@ -124,12 +124,15 @@ impl UdpAcceptor {
             ClientQueryProtocol::UDP,
             session_state,
         );
+        let net_udp_socket_inner = self.net_udp_socket.try_clone().unwrap();
         let fut = match query_router {
             PacketOrFuture::Packet(packet) => {
                 let _ = self.net_udp_socket.send_to(&packet, client_addr);
                 return Box::new(future::ok(()));
             }
-            PacketOrFuture::Future(fut) => fut,
+            PacketOrFuture::Future(fut) => Box::new(fut.map(move |packet| {
+                let _ = net_udp_socket_inner.send_to(&packet, client_addr);
+            })),
         };
         fut
     }
