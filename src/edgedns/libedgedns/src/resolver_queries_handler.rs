@@ -58,7 +58,7 @@ pub struct PendingQueries {
     pub inner: Arc<RwLock<PendingQueriesInner>>,
 }
 
-pub struct ClientQueriesHandler {
+pub struct ResolverQueriesHandler {
     globals: Globals,
     handle: Handle,
     net_udp_socket: net::UdpSocket,
@@ -67,9 +67,9 @@ pub struct ClientQueriesHandler {
     timer: Timer,
 }
 
-impl Clone for ClientQueriesHandler {
+impl Clone for ResolverQueriesHandler {
     fn clone(&self) -> Self {
-        ClientQueriesHandler {
+        ResolverQueriesHandler {
             globals: self.globals.clone(),
             handle: self.handle.clone(),
             net_udp_socket: self.net_udp_socket.try_clone().unwrap(),
@@ -80,12 +80,12 @@ impl Clone for ClientQueriesHandler {
     }
 }
 
-impl ClientQueriesHandler {
+impl ResolverQueriesHandler {
     pub fn new(resolver_core: &ResolverCore) -> Self {
         let timer = wheel()
             .max_capacity(resolver_core.globals.config.max_active_queries)
             .build();
-        ClientQueriesHandler {
+        ResolverQueriesHandler {
             globals: resolver_core.globals.clone(),
             handle: resolver_core.handle.clone(),
             net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),

@@ -12,7 +12,6 @@
 
 use super::EdgeDNSContext;
 use cache::Cache;
-use client_queries_handler::PendingQueries;
 use client_query::*;
 use config::Config;
 use dns;
@@ -28,6 +27,7 @@ use globals::Globals;
 use hooks::{Action, Hooks, SessionState, Stage};
 use parking_lot::RwLock;
 use query_router::*;
+use resolver_queries_handler::PendingQueries;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;

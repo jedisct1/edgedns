@@ -6,7 +6,6 @@
 
 use super::EdgeDNSContext;
 use cache::Cache;
-use client_queries_handler::{ClientQueriesHandler, PendingQueries};
 use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
@@ -21,6 +20,7 @@ use log_dnstap;
 use net_helpers::*;
 use nix::sys::socket::{bind, setsockopt, sockopt, InetAddr, SockAddr};
 use parking_lot::RwLock;
+use resolver_queries_handler::{PendingQueries, ResolverQueriesHandler};
 use std::collections::HashMap;
 use std::io;
 use std::io::Cursor;
@@ -115,8 +115,8 @@ impl ResolverCore {
                         .fut_process_stream(net_ext_udp_socket.try_clone().unwrap());
                     handle.spawn(stream.map_err(|_| {}));
                 }
-                let client_queries_handler = ClientQueriesHandler::new(&resolver_core);
-                let stream = client_queries_handler.fut_process_stream(&handle, resolver_rx);
+                let resolver_queries_handler = ResolverQueriesHandler::new(&resolver_core);
+                let stream = resolver_queries_handler.fut_process_stream(&handle, resolver_rx);
                 event_loop
                     .handle()
                     .spawn(stream.map_err(|_| {}).map(|_| {}));
