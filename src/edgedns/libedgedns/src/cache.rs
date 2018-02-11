@@ -69,6 +69,14 @@ impl CacheKey {
             local_upstream_question,
         }
     }
+
+    pub fn from_local_upstream_question(
+        local_upstream_question: LocalUpstreamQuestion,
+    ) -> CacheKey {
+        CacheKey {
+            local_upstream_question,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -9,6 +9,7 @@
 
 use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use cache::Cache;
+use cache::CacheKey;
 use client_query::{ClientQuery, ResolverResponse};
 use coarsetime::{Duration, Instant};
 use config::Config;
@@ -196,16 +197,16 @@ impl ClientQueriesHandler {
             .waiting_clients
             .insert(upstream_question, waiting_clients.clone());
 
+        let mut cache_inner = self.globals.cache.clone();
         let fut = upstream_rx
             .map_err(|_| {})
-            .and_then(move |upstream_response| {
+            .and_then(move |upstream_packet| {
                 let response = ResolverResponse {
-                    packet: upstream_response.clone(),
+                    packet: upstream_packet,
                     dnssec: false,
                 };
                 let mut waiting_clients = waiting_clients.lock();
                 for mut client_query in waiting_clients.client_queries.iter_mut() {
-                    println!("{:?}", client_query.normalized_question);
                     let _ = client_query
                         .response_tx
                         .take()
@@ -213,6 +214,7 @@ impl ClientQueriesHandler {
                         .send(response.clone());
                 }
                 waiting_clients.client_queries.clear();
+
                 let mut pending_queries = pending_queries_inner.write();
                 let upstream_question = pending_queries
                     .local_question_to_waiting_client
@@ -222,6 +224,10 @@ impl ClientQueriesHandler {
                     .waiting_clients
                     .remove(&upstream_question)
                     .expect("Waiting clients set vanished");
+
+                let cache_key = CacheKey::from_local_upstream_question(local_upstream_question);
+                let ttl = 42;
+                cache_inner.insert(cache_key, response.packet, ttl);
                 future::ok(())
             });
         self.handle.spawn(fut);

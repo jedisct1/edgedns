@@ -328,13 +328,13 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
     Ok((offset, labels_count))
 }
 
-#[derive(Debug)]
-struct EDNS0 {
-    payload_size: u16,
-    dnssec: bool,
+#[derive(Debug, Copy, Clone)]
+pub struct EDNS0 {
+    pub payload_size: u16,
+    pub dnssec: bool,
 }
 
-fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
+pub fn parse_edns0_question(packet: &[u8]) -> Option<EDNS0> {
     debug_assert_eq!(qdcount(packet), 1);
     debug_assert_eq!(ancount(packet), 0);
     debug_assert_eq!(nscount(packet), 0);
