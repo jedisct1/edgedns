@@ -161,8 +161,7 @@ impl ClientQueriesHandler {
                 upstream_servers_for_query.len() as u32,
             ) as usize;
             let upstream_server_for_query = &upstream_servers_for_query[upstream_server_i];
-            let remote_addr = &upstream_server_for_query.remote_addr;
-            remote_addr.clone()
+            upstream_server_for_query.remote_addr
         };
         let net_ext_udp_sockets = &self.net_ext_udp_sockets_rc;
         let mut rng = rand::thread_rng();
@@ -216,7 +215,7 @@ impl ClientQueriesHandler {
                     dnssec: false,
                 };
                 let mut waiting_clients = waiting_clients.lock();
-                for mut client_query in waiting_clients.client_queries.iter_mut() {
+                for mut client_query in &mut waiting_clients.client_queries {
                     let _ = client_query
                         .response_tx
                         .take()
@@ -276,7 +275,7 @@ impl ClientQueriesHandler {
                         dnssec: false,
                     };
                     let mut waiting_clients = waiting_clients.lock();
-                    for mut client_query in waiting_clients.client_queries.iter_mut() {
+                    for mut client_query in &mut waiting_clients.client_queries {
                         let _ = client_query
                             .response_tx
                             .take()
@@ -299,12 +298,12 @@ impl PendingQueries {
         let mut pending_queries = self.inner.write();
         pending_queries
             .local_question_to_waiting_client
-            .remove(&local_upstream_question)
+            .remove(local_upstream_question)
             .and_then(|upstream_question| {
                 let waiting_clients = pending_queries
                     .waiting_clients
                     .remove(&upstream_question)
-                    .unwrap_or(Arc::new(Mutex::new(WaitingClients::default())));
+                    .unwrap_or_else(|| Arc::new(Mutex::new(WaitingClients::default())));
                 Some((upstream_question, waiting_clients))
             })
     }

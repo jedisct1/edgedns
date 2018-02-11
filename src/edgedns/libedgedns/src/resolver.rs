@@ -110,7 +110,7 @@ impl ResolverCore {
                 };
                 info!("Registering UDP ports...");
                 for net_ext_udp_socket in &*resolver_core.net_ext_udp_sockets_rc {
-                    let ext_udp_listener = ExtUdpListener::new(&resolver_core, &net_ext_udp_socket);
+                    let ext_udp_listener = ExtUdpListener::new(&resolver_core, net_ext_udp_socket);
                     let stream = ext_udp_listener
                         .fut_process_stream(net_ext_udp_socket.try_clone().unwrap());
                     handle.spawn(stream.map_err(|_| {}));

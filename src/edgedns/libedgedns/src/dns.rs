@@ -95,7 +95,7 @@ impl UpstreamQuestion {
             qclass: question_rr.qclass,
             local_port,
             tid: tid(packet),
-            server_addr: server_addr.clone(),
+            server_addr: *server_addr,
         };
         Ok(upstream_question)
     }
@@ -650,7 +650,7 @@ pub fn build_servfail_packet(
     set_aa(&mut packet, true);
     set_qr(&mut packet, true);
     set_qdcount(&mut packet, 1);
-    packet.extend_from_slice(&qname);
+    packet.extend_from_slice(qname);
     packet.push(0);
 
     packet.push((qtype >> 8) as u8);

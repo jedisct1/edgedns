@@ -77,9 +77,8 @@ impl QueryRouter {
         if packet.len() < DNS_RESPONSE_MIN_SIZE || !dns::qr(&packet) {
             xbail!(DNSError::Unexpected);
         }
-        match answer.ttl {
-            Some(ttl) => dns::set_ttl(&mut packet, ttl).map_err(|_| DNSError::InternalError)?,
-            None => {}
+        if let Some(ttl) = answer.ttl {
+            dns::set_ttl(&mut packet, ttl).map_err(|_| DNSError::InternalError)?
         };
 
         {
@@ -181,9 +180,10 @@ impl QueryRouter {
         &mut self,
         mut parsed_packet: &mut ParsedPacket,
     ) -> Result<AnswerOrFuture, failure::Error> {
-        match SpecialQueries::handle_special_queries(&self.globals, &mut parsed_packet) {
-            Some(answer) => return Ok(AnswerOrFuture::Answer(answer)),
-            None => {}
+        if let Some(answer) =
+            SpecialQueries::handle_special_queries(&self.globals, &mut parsed_packet)
+        {
+            return Ok(AnswerOrFuture::Answer(answer));
         };
 
         let hooks_arc = self.globals.hooks_arc.read();
@@ -241,7 +241,7 @@ impl QueryRouter {
             time::Duration::from_millis(UPSTREAM_TOTAL_TIMEOUT_MS),
         );
 
-        return Ok(AnswerOrFuture::Future(Box::new(fut_timeout)));
+        Ok(AnswerOrFuture::Future(Box::new(fut_timeout)))
     }
 }
 
@@ -262,7 +262,7 @@ impl SpecialQueries {
                 None => return None,
             };
             let packet =
-                dns::build_any_packet(&original_qname, qtype, qclass, tid, globals.config.max_ttl)
+                dns::build_any_packet(original_qname, qtype, qclass, tid, globals.config.max_ttl)
                     .unwrap();
             let mut answer = Answer::from(packet);
             answer.special = true;
@@ -276,7 +276,7 @@ impl SpecialQueries {
                 None => return None,
             };
             let packet = dns::build_version_packet(
-                &original_qname,
+                original_qname,
                 qtype,
                 qclass,
                 tid,
@@ -293,7 +293,7 @@ impl SpecialQueries {
                 Some((original_qname, ..)) => original_qname,
                 None => return None,
             };
-            let packet = dns::build_refused_packet(&original_qname, qtype, qclass, tid).unwrap();
+            let packet = dns::build_refused_packet(original_qname, qtype, qclass, tid).unwrap();
             let mut answer = Answer::from(packet);
             answer.special = true;
             return Some(answer);
