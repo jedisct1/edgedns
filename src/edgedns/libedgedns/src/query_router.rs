@@ -57,7 +57,7 @@ pub enum PacketOrFuture {
 
 pub enum AnswerOrFuture {
     Answer(Answer),
-    Future(Box<Future<Item = Answer, Error = failure::Error>>),
+    Future(Box<Future<Item = (Answer, Option<SessionState>), Error = failure::Error>>),
 }
 
 pub struct QueryRouter {
@@ -180,7 +180,9 @@ impl QueryRouter {
                 PacketOrFuture::Packet(packet)
             }
             Ok(AnswerOrFuture::Future(future)) => {
-                let fut = future.and_then(move |answer| {
+                let fut = future.and_then(move |(answer, session_state)| {
+                    query_router.session_state =
+                        session_state.or_else(|| Some(SessionState::default()));
                     let packet = query_router
                         .deliver_to_client(&mut parsed_packet, answer, protocol)
                         .expect("Unable to rewrite according to the original query");
@@ -275,7 +277,7 @@ impl QueryRouter {
             .map_err(|e| DNSError::InternalError.into())
             .and_then(move |resolver_response| {
                 let answer = Answer::from(resolver_response.packet);
-                Ok(answer)
+                Ok((answer, None))
             });
 
         let client_query_fut = fut_send.and_then(move |_| client_query_fut);
