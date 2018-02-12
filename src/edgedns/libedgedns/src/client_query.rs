@@ -25,6 +25,7 @@ use varz::Varz;
 pub struct ResolverResponse {
     pub packet: Vec<u8>,
     pub dnssec: bool,
+    pub session_state: Option<SessionState>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -38,7 +39,7 @@ pub struct ClientQuery {
     pub normalized_question: NormalizedQuestion,
     pub proto: ClientQueryProtocol,
     pub ts: Instant,
-    pub session_state: SessionState,
+    pub session_state: Option<SessionState>,
     pub task: Task,
 }
 
@@ -53,7 +54,7 @@ impl ClientQuery {
             normalized_question,
             proto: ClientQueryProtocol::UDP,
             ts: Instant::recent(),
-            session_state,
+            session_state: Some(session_state),
             task: task::current(),
             response_tx: Some(response_tx),
         })
@@ -69,7 +70,7 @@ impl ClientQuery {
             normalized_question,
             proto: ClientQueryProtocol::TCP,
             ts: Instant::recent(),
-            session_state,
+            session_state: Some(session_state),
             task: task::current(),
             response_tx: Some(response_tx),
         }

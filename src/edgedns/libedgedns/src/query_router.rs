@@ -139,6 +139,25 @@ impl QueryRouter {
         Ok(packet)
     }
 
+    fn deliver_to_client(
+        &mut self,
+        parsed_packet: &mut ParsedPacket,
+        answer: Answer,
+        protocol: ClientQueryProtocol,
+    ) -> Result<Vec<u8>, failure::Error> {
+        let hooks_arc = self.globals.hooks_arc.read();
+        if hooks_arc.enabled(Stage::Deliver) {
+            let action = hooks_arc
+                .apply_serverside(
+                    self.session_state.as_mut().unwrap(),
+                    answer.packet.clone(),
+                    Stage::Deliver,
+                )
+                .map_err(|e| DNSError::HookError(e))?;
+        }
+        self.rewrite_according_to_original_query(parsed_packet, answer, protocol)
+    }
+
     pub fn create(
         globals: Rc<Globals>,
         mut parsed_packet: ParsedPacket,
@@ -153,20 +172,17 @@ impl QueryRouter {
         };
         match query_router.create_answer(&mut parsed_packet) {
             Ok(AnswerOrFuture::Answer(answer)) => {
-                let packet = match query_router.rewrite_according_to_original_query(
-                    &mut parsed_packet,
-                    answer,
-                    protocol,
-                ) {
-                    Ok(packet) => packet,
-                    Err(e) => return PacketOrFuture::Future(Box::new(future::err(e))),
-                };
+                let packet =
+                    match query_router.deliver_to_client(&mut parsed_packet, answer, protocol) {
+                        Ok(packet) => packet,
+                        Err(e) => return PacketOrFuture::Future(Box::new(future::err(e))),
+                    };
                 PacketOrFuture::Packet(packet)
             }
             Ok(AnswerOrFuture::Future(future)) => {
                 let fut = future.and_then(move |answer| {
                     let packet = query_router
-                        .rewrite_according_to_original_query(&mut parsed_packet, answer, protocol)
+                        .deliver_to_client(&mut parsed_packet, answer, protocol)
                         .expect("Unable to rewrite according to the original query");
                     future::ok(packet)
                 });

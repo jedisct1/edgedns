@@ -303,6 +303,7 @@ impl Hooks {
 
     pub fn apply_serverside(
         &self,
+        session_state: &mut SessionState,
         packet: Vec<u8>,
         stage: Stage,
     ) -> Result<(Action, Vec<u8>), &'static str> {

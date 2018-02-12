@@ -118,7 +118,7 @@ impl ResolverQueriesHandler {
     ) -> impl Future<Item = (), Error = DNSError> {
         let normalized_question = &client_query.normalized_question;
         let (custom_hash, bypass_cache) = {
-            let session_state = client_query.session_state.inner.read();
+            let session_state = client_query.session_state.as_ref().unwrap().inner.read();
             (session_state.custom_hash, session_state.bypass_cache)
         };
         let local_upstream_question = LocalUpstreamQuestion {
@@ -154,6 +154,8 @@ impl ResolverQueriesHandler {
         let remote_addr = {
             let upstream_servers_for_query = &client_query
                 .session_state
+                .as_ref()
+                .unwrap()
                 .inner
                 .read()
                 .upstream_servers_for_query;
@@ -217,6 +219,7 @@ impl ResolverQueriesHandler {
                 let response = ResolverResponse {
                     packet: upstream_packet,
                     dnssec: false,
+                    session_state: None,
                 };
                 let mut waiting_clients = waiting_clients.lock();
                 for mut client_query in &mut waiting_clients.client_queries {
@@ -277,6 +280,7 @@ impl ResolverQueriesHandler {
                     let response = ResolverResponse {
                         packet,
                         dnssec: false,
+                        session_state: None,
                     };
                     let mut waiting_clients = waiting_clients.lock();
                     for mut client_query in &mut waiting_clients.client_queries {
