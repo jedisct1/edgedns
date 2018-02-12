@@ -123,9 +123,7 @@ impl TcpAcceptor {
             .and_then(move |(rh, packet)| tcp_client_query.fut_process_query(packet));
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
         let fut_timeout = self.timer
-            .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS))
-            .map(|_| {})
-            .map_err(|_: failure::Error| {});
+            .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
 
         let fut_with_timeout = fut_timeout.then(move |_| {
             debug!("Closing TCP connection with session index {}", session_idx);
