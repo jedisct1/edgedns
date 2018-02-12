@@ -221,11 +221,11 @@ dependencies = [
 
 [[package]]
 name = "clockpro-cache"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "slab 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -625,7 +625,7 @@ dependencies = [
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "clippy 0.0.186 (registry+https://github.com/rust-lang/crates.io-index)",
- "clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clockpro-cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "coarsetime 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "dnssector 0.1.0 (git+https://github.com/jedisct1/dnssector)",
  "dnstap 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1648,7 +1648,7 @@ dependencies = [
 "checksum clap 2.29.4 (registry+https://github.com/rust-lang/crates.io-index)" = "7b8f59bcebcfe4269b09f71dab0da15b355c75916a8f975d3876ce81561893ee"
 "checksum clippy 0.0.186 (registry+https://github.com/rust-lang/crates.io-index)" = "fa7b79c57f831e752f3667ae6115d02ed2d9e97a986ff76e5f04d613a8c0842a"
 "checksum clippy_lints 0.0.186 (registry+https://github.com/rust-lang/crates.io-index)" = "a3864104a4e6092e644b985dd7543e5f24e99aa7262f5ee400bcb17cfeec1bf5"
-"checksum clockpro-cache 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "83779adb8130382bbc0f602356a3fa832988cfc59440bb6501f8ee8aece72d7f"
+"checksum clockpro-cache 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "f15bbd49b15a82a11eb0fb113078c5cd0545b7e959fd5a2e67cd96f7153d3954"
 "checksum coarsetime 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "58fff2c3936e1685f9692b0b912ca95080485ada338270a6a5651a58f45ddff6"
 "checksum conv 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "78ff10625fd0ac447827aa30ea8b861fead473bb60aeb73af6c1c58caf0d1299"
 "checksum crc 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bd5d02c0aac6bd68393ed69e00bbc2457f3e89075c6349db7189618dc4ddc1d7"
