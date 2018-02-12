@@ -17,6 +17,7 @@ use futures::future::{self, Future};
 use futures::stream::Stream;
 use futures::sync::mpsc::{channel, Sender};
 use futures::sync::oneshot;
+use globals::Globals;
 use hooks::{Hooks, SessionState};
 use parking_lot::RwLock;
 use std::cell::RefCell;
@@ -36,46 +37,33 @@ use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
 struct TcpAcceptor {
-    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
+    globals: Globals,
     timer: Timer,
     net_tcp_listener: net::TcpListener,
-    resolver_tx: Sender<ClientQuery>,
-    cache: Cache,
-    varz: Varz,
-    hooks_arc: Arc<RwLock<Hooks>>,
     tcp_arbitrator: TcpArbitrator,
+    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
 }
 
 pub struct TcpAcceptorCore {
-    config: Rc<Config>,
+    globals: Globals,
     timer: Timer,
     net_tcp_listener: net::TcpListener,
-    resolver_tx: Sender<ClientQuery>,
-    cache: Cache,
-    varz: Varz,
-    hooks_arc: Arc<RwLock<Hooks>>,
-    service_ready_tx: Option<mpsc::SyncSender<u8>>,
     tcp_arbitrator: TcpArbitrator,
+    service_ready_tx: Option<mpsc::SyncSender<u8>>,
 }
 
 struct TcpClientQuery {
+    globals: Arc<Globals>,
     timer: Timer,
     wh: WriteHalf<TcpStream>,
-    resolver_tx: Sender<ClientQuery>,
-    cache: Cache,
-    varz: Varz,
-    hooks_arc: Arc<RwLock<Hooks>>,
 }
 
 impl TcpClientQuery {
     pub fn new(tcp_acceptor: &TcpAcceptor, wh: WriteHalf<TcpStream>) -> Self {
         TcpClientQuery {
+            globals: Arc::new(tcp_acceptor.globals.clone()),
             timer: tcp_acceptor.timer.clone(),
             wh: wh,
-            resolver_tx: tcp_acceptor.resolver_tx.clone(),
-            cache: tcp_acceptor.cache.clone(),
-            varz: Arc::clone(&tcp_acceptor.varz),
-            hooks_arc: Arc::clone(&tcp_acceptor.hooks_arc),
         }
     }
 
@@ -86,7 +74,7 @@ impl TcpClientQuery {
 
 impl TcpAcceptor {
     fn new(tcp_acceptor_core: &TcpAcceptorCore) -> Self {
-        let config = &tcp_acceptor_core.config;
+        let config = &tcp_acceptor_core.globals.config;
         let default_upstream_servers_for_query = config
             .upstream_servers_str
             .iter()
@@ -95,17 +83,14 @@ impl TcpAcceptor {
             )
             .collect();
         TcpAcceptor {
-            cache: tcp_acceptor_core.cache.clone(),
+            globals: tcp_acceptor_core.globals.clone(),
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
-            hooks_arc: Arc::clone(&tcp_acceptor_core.hooks_arc),
             net_tcp_listener: tcp_acceptor_core
                 .net_tcp_listener
                 .try_clone()
                 .expect("Couldn't clone a TCP socket"),
-            resolver_tx: tcp_acceptor_core.resolver_tx.clone(),
             tcp_arbitrator: tcp_acceptor_core.tcp_arbitrator.clone(),
             timer: tcp_acceptor_core.timer.clone(),
-            varz: Arc::clone(&tcp_acceptor_core.varz),
         }
     }
 
@@ -126,11 +111,9 @@ impl TcpAcceptor {
             "Incoming connection using TCP, session index {}",
             session_idx
         );
-        let varz = Arc::clone(&self.varz);
-        varz.client_queries_tcp.inc();
+        self.globals.varz.client_queries_tcp.inc();
         let (rh, wh) = client.split();
-        let varz = Arc::clone(&self.varz);
-
+        let varz = self.globals.varz.clone();
         let fut_expected_len = read_exact(rh, vec![0u8; 2])
             .map_err(|e| DNSError::Io(e).into())
             .and_then(move |(rh, len_buf)| {
@@ -215,6 +198,15 @@ impl TcpAcceptorCore {
         let cache = edgedns_context.cache.clone();
         let varz = Arc::clone(&edgedns_context.varz);
         let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
+        let pending_queries = edgedns_context.pending_queries.clone();
+        let globals = Globals {
+            config: Arc::new(config),
+            cache,
+            varz,
+            hooks_arc,
+            pending_queries,
+            resolver_tx,
+        };
         let tcp_arbitrator = edgedns_context.tcp_arbitrator.clone();
         let timer = wheel()
             .tick_duration(time::Duration::from_millis(MAX_TCP_IDLE_MS / 2))
@@ -226,15 +218,11 @@ impl TcpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let tcp_acceptor_core = TcpAcceptorCore {
-                    cache,
-                    config: Rc::new(config),
-                    hooks_arc,
+                    globals,
                     net_tcp_listener,
-                    resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
                     tcp_arbitrator,
                     timer,
-                    varz,
                 };
                 let tcp_acceptor = TcpAcceptor::new(&tcp_acceptor_core);
                 tcp_acceptor_core
