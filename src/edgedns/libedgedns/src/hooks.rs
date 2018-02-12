@@ -53,6 +53,8 @@ pub enum Action {
     Synth,
     Drop,
     Fail,
+    Deliver,
+    Restart,
 }
 
 impl From<Action> for c_int {
@@ -71,6 +73,8 @@ impl From<c_int> for Action {
             x if x == Action::Purge.into() => Action::Purge,
             x if x == Action::Synth.into() => Action::Synth,
             x if x == Action::Fail.into() => Action::Fail,
+            x if x == Action::Deliver.into() => Action::Deliver,
+            x if x == Action::Restart.into() => Action::Restart,
             _ => Action::Drop,
         }
     }

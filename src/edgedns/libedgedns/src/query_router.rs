@@ -142,18 +142,33 @@ impl QueryRouter {
     fn deliver_to_client(
         &mut self,
         parsed_packet: &mut ParsedPacket,
-        answer: Answer,
+        mut answer: Answer,
         protocol: ClientQueryProtocol,
     ) -> Result<Vec<u8>, failure::Error> {
         let hooks_arc = self.globals.hooks_arc.read();
         if hooks_arc.enabled(Stage::Deliver) {
-            let action = hooks_arc
+            let (action, packet) = hooks_arc
                 .apply_serverside(
                     self.session_state.as_mut().unwrap(),
                     answer.packet.clone(),
                     Stage::Deliver,
                 )
                 .map_err(|e| DNSError::HookError(e))?;
+            match action {
+                Action::Deliver | Action::Synth | Action::Pass | Action::Pipe => {
+                    answer.packet = packet;
+                }
+                Action::Fail => {
+                    let tid = parsed_packet.tid();
+                    let (qtype, qclass) = parsed_packet.qtype_qclass().ok_or(DNSError::Unexpected)?;
+                    let original_qname = match parsed_packet.question_raw() {
+                        Some((original_qname, ..)) => original_qname,
+                        None => xbail!(DNSError::Unexpected),
+                    };
+                    answer.packet = dns::build_refused_packet(original_qname, qtype, qclass, tid)?;
+                }
+                _ => return Err(DNSError::Refused.into()),
+            }
         }
         self.rewrite_according_to_original_query(parsed_packet, answer, protocol)
     }
