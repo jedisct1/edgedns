@@ -117,13 +117,17 @@ impl ResolverQueriesHandler {
         client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = DNSError> {
         let normalized_question = &client_query.normalized_question;
-        let custom_hash = client_query.session_state.inner.read().custom_hash;
+        let (custom_hash, bypass_cache) = {
+            let session_state = client_query.session_state.inner.read();
+            (session_state.custom_hash, session_state.bypass_cache)
+        };
         let local_upstream_question = LocalUpstreamQuestion {
             qname_lc: normalized_question.qname_lc.clone(), // XXX - maybe make qname_lc a Rc
             qtype: normalized_question.qtype,
             qclass: normalized_question.qclass,
             dnssec: normalized_question.dnssec,
             custom_hash,
+            bypass_cache
         };
         let mut pending_queries_inner = self.globals.pending_queries.inner.write();
         let upstream_question = pending_queries_inner

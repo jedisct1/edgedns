@@ -64,6 +64,7 @@ pub struct LocalUpstreamQuestion {
     pub qclass: u16,
     pub dnssec: bool,
     pub custom_hash: (u64, u64),
+    pub bypass_cache: bool,
 }
 
 impl NormalizedQuestionKey {

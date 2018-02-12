@@ -199,12 +199,11 @@ impl QueryRouter {
                 return Err(DNSError::Unimplemented.into());
             }
         }
-
-        let custom_hash = match self.session_state {
-            None => (0u64, 0u64),
-            Some(ref session_state) => session_state.inner.read().custom_hash,
+        let (custom_hash, bypass_cache) = {
+            let session_state = self.session_state.as_ref().expect("session_state is None").inner.read();
+            (session_state.custom_hash, session_state.bypass_cache)
         };
-        let cache_key = CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash)?;
+        let cache_key = CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash, bypass_cache)?;
         let cache_entry = self.globals.cache.clone().get2(&cache_key);
         match cache_entry {
             None => {}

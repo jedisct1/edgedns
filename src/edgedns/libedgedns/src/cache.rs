@@ -36,6 +36,7 @@ impl CacheKey {
     pub fn from_parsed_packet(
         parsed_packet: &mut ParsedPacket,
         custom_hash: (u64, u64),
+        bypass_cache: bool,
     ) -> Result<CacheKey, failure::Error> {
         let dnssec = parsed_packet.dnssec();
         let (qname_lc, qtype, qclass) = parsed_packet
@@ -48,6 +49,7 @@ impl CacheKey {
             qclass,
             dnssec,
             custom_hash,
+            bypass_cache,
         };
         Ok(CacheKey {
             local_upstream_question,
@@ -57,6 +59,7 @@ impl CacheKey {
     pub fn from_normalized_question(
         normalized_question: &NormalizedQuestion,
         custom_hash: (u64, u64),
+        bypass_cache: bool,
     ) -> CacheKey {
         let local_upstream_question = LocalUpstreamQuestion {
             qname_lc: normalized_question.qname_lc.clone(),
@@ -64,6 +67,7 @@ impl CacheKey {
             qclass: normalized_question.qclass,
             dnssec: normalized_question.dnssec,
             custom_hash,
+            bypass_cache,
         };
         CacheKey {
             local_upstream_question,
@@ -182,6 +186,7 @@ impl Cache {
                     qclass: cache_key.local_upstream_question.qclass,
                     dnssec: cache_key.local_upstream_question.dnssec,
                     custom_hash: cache_key.local_upstream_question.custom_hash,
+                    bypass_cache: cache_key.local_upstream_question.bypass_cache,
                 };
                 let shifted_cache_key = CacheKey {
                     local_upstream_question,
