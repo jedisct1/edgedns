@@ -215,6 +215,7 @@ impl EdgeDNS {
         let mut tasks: Vec<thread::JoinHandle<()>> = Vec::new();
         for _ in 0..config.udp_acceptor_threads {
             let udp_acceptor = UdpAcceptorCore::spawn(
+                globals.clone(),
                 &edgedns_context,
                 globals.resolver_tx.clone(),
                 service_ready_tx.clone(),
@@ -224,6 +225,7 @@ impl EdgeDNS {
         }
         for _ in 0..config.tcp_acceptor_threads {
             let tcp_listener = TcpAcceptorCore::spawn(
+                globals.clone(),
                 &edgedns_context,
                 globals.resolver_tx.clone(),
                 service_ready_tx.clone(),

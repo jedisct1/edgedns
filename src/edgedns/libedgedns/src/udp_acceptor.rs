@@ -150,23 +150,11 @@ impl UdpAcceptorCore {
     }
 
     pub fn spawn(
+        globals: Globals,
         edgedns_context: &EdgeDNSContext,
         resolver_tx: Sender<ClientQuery>,
         service_ready_tx: mpsc::SyncSender<u8>,
     ) -> io::Result<(thread::JoinHandle<()>)> {
-        let config = edgedns_context.config.clone();
-        let cache = edgedns_context.cache.clone();
-        let varz = Arc::clone(&edgedns_context.varz);
-        let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
-        let pending_queries = edgedns_context.pending_queries.clone();
-        let globals = Globals {
-            config: Arc::new(config),
-            cache,
-            varz,
-            hooks_arc,
-            pending_queries,
-            resolver_tx,
-        };
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let timer = wheel()
             .max_capacity(edgedns_context.config.max_active_queries)

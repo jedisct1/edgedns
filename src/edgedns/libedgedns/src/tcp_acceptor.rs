@@ -189,24 +189,12 @@ impl TcpAcceptorCore {
     }
 
     pub fn spawn(
+        globals: Globals,
         edgedns_context: &EdgeDNSContext,
         resolver_tx: Sender<ClientQuery>,
         service_ready_tx: mpsc::SyncSender<u8>,
     ) -> io::Result<(thread::JoinHandle<()>)> {
         let net_tcp_listener = edgedns_context.tcp_listener.try_clone()?;
-        let config = edgedns_context.config.clone();
-        let cache = edgedns_context.cache.clone();
-        let varz = Arc::clone(&edgedns_context.varz);
-        let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
-        let pending_queries = edgedns_context.pending_queries.clone();
-        let globals = Globals {
-            config: Arc::new(config),
-            cache,
-            varz,
-            hooks_arc,
-            pending_queries,
-            resolver_tx,
-        };
         let tcp_arbitrator = edgedns_context.tcp_arbitrator.clone();
         let timer = wheel()
             .tick_duration(time::Duration::from_millis(MAX_TCP_IDLE_MS / 2))
