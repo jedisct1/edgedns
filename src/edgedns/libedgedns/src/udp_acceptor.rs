@@ -36,14 +36,12 @@ use std::thread;
 use tokio_core::reactor::{Core, Handle};
 use tokio_timer::{wheel, Timer};
 use udp_stream::*;
-use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 use varz::Varz;
 
 use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 struct UdpAcceptor {
     globals: Globals,
-    default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     net_udp_socket: Rc<net::UdpSocket>,
     timer: Timer,
 }
@@ -57,17 +55,8 @@ pub struct UdpAcceptorCore {
 
 impl UdpAcceptor {
     fn new(udp_acceptor_core: &UdpAcceptorCore) -> Self {
-        let config = &udp_acceptor_core.globals.config;
-        let default_upstream_servers_for_query = config
-            .upstream_servers_str
-            .iter()
-            .map(
-                |s| UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s).expect("Invalid upstream server address")),
-            )
-            .collect();
         UdpAcceptor {
             globals: udp_acceptor_core.globals.clone(),
-            default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
             net_udp_socket: udp_acceptor_core.net_udp_socket.clone(),
             timer: udp_acceptor_core.timer.clone(),
         }
@@ -94,8 +83,10 @@ impl UdpAcceptor {
             Err(e) => return Box::new(future::err(e)),
         };
         let session_state = SessionState::default();
-        session_state.inner.write().upstream_servers_for_query =
-            self.default_upstream_servers_for_query.as_ref().clone(); // XXX - Remove clone()
+        session_state.inner.write().upstream_servers_for_query = self.globals
+            .default_upstream_servers_for_query
+            .as_ref()
+            .clone();
         let query_router = QueryRouter::create(
             Rc::new(self.globals.clone()),
             parsed_packet,

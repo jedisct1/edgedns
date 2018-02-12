@@ -32,7 +32,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::thread;
 use tokio_core::reactor::{Core, Handle};
-use upstream_server::UpstreamServer;
+use upstream_server::{UpstreamServer, UpstreamServerForQuery};
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum LoadBalancingMode {
@@ -81,6 +81,13 @@ impl ResolverCore {
         if config.decrement_ttl {
             info!("Resolver mode: TTL will be automatically decremented");
         }
+        let default_upstream_servers_for_query = config
+            .upstream_servers_str
+            .iter()
+            .map(
+                |s| UpstreamServerForQuery::from_upstream_server(&UpstreamServer::new(s).expect("Invalid upstream server address")),
+            )
+            .collect();
         let globals = Globals {
             config: Arc::new(edgedns_context.config.clone()),
             cache: edgedns_context.cache.clone(),
@@ -88,6 +95,7 @@ impl ResolverCore {
             resolver_tx,
             pending_queries: edgedns_context.pending_queries.clone(),
             varz: edgedns_context.varz.clone(),
+            default_upstream_servers_for_query: Arc::new(default_upstream_servers_for_query),
         };
         let dnstap_sender = edgedns_context.dnstap_sender.clone();
         let decrement_ttl = config.decrement_ttl;
