@@ -47,7 +47,12 @@ pub struct SessionState {
 pub enum Action {
     Pass = 1,
     Lookup,
+    Pipe,
+    Hash,
+    Purge,
+    Synth,
     Drop,
+    Fail,
 }
 
 impl From<Action> for c_int {
@@ -61,6 +66,11 @@ impl From<c_int> for Action {
         match id {
             x if x == Action::Pass.into() => Action::Pass,
             x if x == Action::Lookup.into() => Action::Lookup,
+            x if x == Action::Pipe.into() => Action::Pipe,
+            x if x == Action::Hash.into() => Action::Hash,
+            x if x == Action::Purge.into() => Action::Purge,
+            x if x == Action::Synth.into() => Action::Synth,
+            x if x == Action::Fail.into() => Action::Fail,
             _ => Action::Drop,
         }
     }

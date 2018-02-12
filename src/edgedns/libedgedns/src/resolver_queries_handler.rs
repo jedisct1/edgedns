@@ -127,7 +127,7 @@ impl ResolverQueriesHandler {
             qclass: normalized_question.qclass,
             dnssec: normalized_question.dnssec,
             custom_hash,
-            bypass_cache
+            bypass_cache,
         };
         let mut pending_queries_inner = self.globals.pending_queries.inner.write();
         let upstream_question = pending_queries_inner

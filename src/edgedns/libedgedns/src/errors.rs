@@ -29,4 +29,6 @@ pub enum DNSError {
     Timeout,
     #[fail(display = "too busy")]
     TooBusy,
+    #[fail(display = "refused")]
+    Refused,
 }

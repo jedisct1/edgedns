@@ -195,23 +195,51 @@ impl QueryRouter {
                     Stage::Recv,
                 )
                 .map_err(|e| DNSError::HookError(e))?;
-            if action != hooks::Action::Pass {
-                return Err(DNSError::Unimplemented.into());
+            match action {
+                hooks::Action::Pass | hooks::Action::Pipe | hooks::Action::Purge => {
+                    self.session_state
+                        .as_mut()
+                        .expect("session_state is None")
+                        .inner
+                        .write()
+                        .bypass_cache = true
+                }
+                hooks::Action::Drop => return Err(DNSError::Refused.into()),
+                hooks::Action::Fail => {
+                    let tid = parsed_packet.tid();
+                    let (qtype, qclass) = parsed_packet.qtype_qclass().ok_or(DNSError::Unexpected)?;
+                    let original_qname = match parsed_packet.question_raw() {
+                        Some((original_qname, ..)) => original_qname,
+                        None => xbail!(DNSError::Unexpected),
+                    };
+                    let packet = dns::build_refused_packet(original_qname, qtype, qclass, tid)?;
+                    let answer = Answer::from(packet);
+                    return Ok(AnswerOrFuture::Answer(answer));
+                }
+                hooks::Action::Hash => {}
+                _ => return Err(DNSError::Unimplemented.into()),
             }
         }
         let (custom_hash, bypass_cache) = {
-            let session_state = self.session_state.as_ref().expect("session_state is None").inner.read();
+            let session_state = self.session_state
+                .as_ref()
+                .expect("session_state is None")
+                .inner
+                .read();
             (session_state.custom_hash, session_state.bypass_cache)
         };
-        let cache_key = CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash, bypass_cache)?;
-        let cache_entry = self.globals.cache.clone().get2(&cache_key);
-        match cache_entry {
-            None => {}
-            Some(cache_entry) => {
-                if !cache_entry.is_expired() {
-                    let cached_packet = cache_entry.packet;
-                    let answer = Answer::from(cached_packet);
-                    return Ok(AnswerOrFuture::Answer(answer));
+        if !bypass_cache {
+            let cache_key =
+                CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash, bypass_cache)?;
+            let cache_entry = self.globals.cache.clone().get2(&cache_key);
+            match cache_entry {
+                None => {}
+                Some(cache_entry) => {
+                    if !cache_entry.is_expired() {
+                        let cached_packet = cache_entry.packet;
+                        let answer = Answer::from(cached_packet);
+                        return Ok(AnswerOrFuture::Answer(answer));
+                    }
                 }
             }
         }
