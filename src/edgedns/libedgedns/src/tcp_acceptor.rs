@@ -65,7 +65,10 @@ impl TcpClientQuery {
         }
     }
 
-    fn fut_process_query(&self, packet: Vec<u8>) -> impl Future<Item = (), Error = failure::Error> {
+    fn fut_process_query(
+        &self,
+        packet: Vec<u8>,
+    ) -> Box<Future<Item = (), Error = failure::Error> + Sync + Send> {
         Box::new(future::ok(()))
     }
 }
@@ -87,14 +90,11 @@ impl TcpAcceptor {
         &mut self,
         client: TcpStream,
         client_addr: SocketAddr,
-    ) -> impl Future<Item = (), Error = failure::Error> {
+    ) -> Box<Future<Item = (), Error = failure::Error>> {
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
         let (session_rx, session_idx) = match tcp_arbitrator.new_session(&client_addr) {
             Ok(r) => r,
-            Err(_) => {
-                return Box::new(future::err(DNSError::TooBusy.into()))
-                    as Box<Future<Item = _, Error = _>>
-            }
+            Err(_) => return Box::new(future::err(DNSError::TooBusy.into())),
         };
         debug!(
             "Incoming connection using TCP, session index {}",
@@ -135,7 +135,7 @@ impl TcpAcceptor {
             .select(fut_with_timeout)
             .map(|_| {})
             .map_err(|_| DNSError::Timeout.into());
-        Box::new(fut) as Box<Future<Item = _, Error = _>>
+        Box::new(fut)
     }
 
     fn fut_process_stream(
