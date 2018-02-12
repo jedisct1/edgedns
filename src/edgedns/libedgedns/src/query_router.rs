@@ -274,7 +274,38 @@ impl QueryRouter {
             }
         }
         if let Some(answer_from_cache) = answer_from_cache {
-            return answer_from_cache;
+            if hooks_arc.enabled(Stage::Hit) {
+                let action = hooks_arc
+                    .apply_clientside(
+                        self.session_state.as_mut().unwrap(),
+                        parsed_packet,
+                        Stage::Hit,
+                    )
+                    .map_err(|e| DNSError::HookError(e))?;
+                match action {
+                    Action::Pass | Action::Miss => {}
+                    Action::Deliver => return answer_from_cache,
+                    Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
+                    _ => return Err(DNSError::Unimplemented.into()),
+                }
+            } else {
+                return answer_from_cache;
+            }
+        } else {
+            if hooks_arc.enabled(Stage::Miss) {
+                let action = hooks_arc
+                    .apply_clientside(
+                        self.session_state.as_mut().unwrap(),
+                        parsed_packet,
+                        Stage::Miss,
+                    )
+                    .map_err(|e| DNSError::HookError(e))?;
+                match action {
+                    Action::Pass | Action::Fetch => {}
+                    Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
+                    _ => return Err(DNSError::Unimplemented.into()),
+                }
+            }
         }
         let (response_tx, response_rx) = oneshot::channel();
         let client_query = ClientQuery::udp(
