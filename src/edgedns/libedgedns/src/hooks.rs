@@ -87,7 +87,11 @@ impl From<c_int> for Action {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Stage {
     Recv,
+    Hash,
+    Hit,
+    Miss,
     Deliver,
+    Synth,
 }
 
 type HookSymbolClientT = unsafe extern "C" fn(
@@ -101,6 +105,8 @@ struct ServiceHooks {
     library: Arc<Library>,
     hook_recv: Option<Symbol<HookSymbolClientT>>,
     hook_deliver: Option<Symbol<HookSymbolClientT>>,
+    hook_hit: Option<Symbol<HookSymbolClientT>>,
+    hook_miss: Option<Symbol<HookSymbolClientT>>,
 }
 
 struct Service {
@@ -141,10 +147,20 @@ impl Service {
             unsafe { library_inner.get(b"hook_deliver") };
         let hook_deliver = hook_deliver_hl.ok().map(|hook| unsafe { hook.into_raw() });
 
+        let hook_hit_hl: libloading::Result<libloading::Symbol<HookSymbolClientT>> =
+            unsafe { library_inner.get(b"hook_hit") };
+        let hook_hit = hook_hit_hl.ok().map(|hook| unsafe { hook.into_raw() });
+
+        let hook_miss_hl: libloading::Result<libloading::Symbol<HookSymbolClientT>> =
+            unsafe { library_inner.get(b"hook_miss") };
+        let hook_miss = hook_miss_hl.ok().map(|hook| unsafe { hook.into_raw() });
+
         let service_hooks = ServiceHooks {
             library,
             hook_recv,
             hook_deliver,
+            hook_hit,
+            hook_miss,
         };
         Ok(Service {
             service_hooks: Some(service_hooks),
@@ -249,7 +265,7 @@ impl Hooks {
             .is_some()
     }
 
-    fn apply_for_service(
+    fn apply_clientside_for_service(
         &self,
         service: &Service,
         session_state: &mut SessionState,
@@ -260,6 +276,8 @@ impl Hooks {
         let hook = match stage {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
+            Stage::Hit => service_hooks.hook_hit.as_ref().unwrap(),
+            _ => return Action::Drop,
         };
         let fn_table = c_abi::fn_table();
         let dnssector_fn_table = dnssector::c_abi::fn_table();
@@ -282,7 +300,8 @@ impl Hooks {
         let service = self.services
             .get(&self.master_service_id)
             .expect("Nonexistent master service");
-        let action = self.apply_for_service(service, session_state, parsed_packet, stage);
+        let action =
+            self.apply_clientside_for_service(service, session_state, parsed_packet, stage);
         if action != Action::Pass {
             return Ok(action);
         }
@@ -305,7 +324,8 @@ impl Hooks {
                 Some(service) => service,
             }
         };
-        let action = self.apply_for_service(service, session_state, parsed_packet, stage);
+        let action =
+            self.apply_clientside_for_service(service, session_state, parsed_packet, stage);
         Ok(action)
     }
 
@@ -337,8 +357,9 @@ impl Hooks {
             .expect("Nonexistent master service");
         let service_hooks = service.service_hooks.as_ref().unwrap();
         let hook = match stage {
-            Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
+            Stage::Hit => service_hooks.hook_hit.as_ref().unwrap(),
+            _ => return Err("Unexpected stage"),
         };
         let fn_table = c_abi::fn_table();
         let dnssector_fn_table = dnssector::c_abi::fn_table();
