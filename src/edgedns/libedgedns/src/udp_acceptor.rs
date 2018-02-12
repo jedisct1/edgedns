@@ -42,32 +42,22 @@ use varz::Varz;
 use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE};
 
 struct UdpAcceptor {
-    config: Rc<Config>,
+    globals: Globals,
     default_upstream_servers_for_query: Rc<Vec<UpstreamServerForQuery>>,
     net_udp_socket: Rc<net::UdpSocket>,
-    resolver_tx: Sender<ClientQuery>,
-    cache: Cache,
-    varz: Varz,
-    hooks_arc: Arc<RwLock<Hooks>>,
-    pending_queries: PendingQueries,
     timer: Timer,
 }
 
 pub struct UdpAcceptorCore {
-    config: Rc<Config>,
+    globals: Globals,
     net_udp_socket: Rc<net::UdpSocket>,
-    resolver_tx: Sender<ClientQuery>,
-    cache: Cache,
-    varz: Varz,
-    hooks_arc: Arc<RwLock<Hooks>>,
-    pending_queries: PendingQueries,
     service_ready_tx: Option<mpsc::SyncSender<u8>>,
     timer: Timer,
 }
 
 impl UdpAcceptor {
     fn new(udp_acceptor_core: &UdpAcceptorCore) -> Self {
-        let config = &udp_acceptor_core.config;
+        let config = &udp_acceptor_core.globals.config;
         let default_upstream_servers_for_query = config
             .upstream_servers_str
             .iter()
@@ -76,15 +66,10 @@ impl UdpAcceptor {
             )
             .collect();
         UdpAcceptor {
-            cache: udp_acceptor_core.cache.clone(),
-            config: udp_acceptor_core.config.clone(),
+            globals: udp_acceptor_core.globals.clone(),
             default_upstream_servers_for_query: Rc::new(default_upstream_servers_for_query),
-            hooks_arc: Arc::clone(&udp_acceptor_core.hooks_arc),
             net_udp_socket: udp_acceptor_core.net_udp_socket.clone(),
-            pending_queries: udp_acceptor_core.pending_queries.clone(),
-            resolver_tx: udp_acceptor_core.resolver_tx.clone(),
             timer: udp_acceptor_core.timer.clone(),
-            varz: Arc::clone(&udp_acceptor_core.varz),
         }
     }
 
@@ -93,11 +78,11 @@ impl UdpAcceptor {
         packet: Vec<u8>,
         client_addr: SocketAddr,
     ) -> impl Future<Item = (), Error = failure::Error> {
-        self.varz.client_queries_udp.inc();
+        self.globals.varz.client_queries_udp.inc();
         let count = packet.len();
         if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
             info!("Short query using UDP");
-            self.varz.client_queries_errors.inc();
+            self.globals.varz.client_queries_errors.inc();
             return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
         }
         let dns_sector = match DNSSector::new(packet) {
@@ -108,19 +93,11 @@ impl UdpAcceptor {
             Ok(parsed_packet) => parsed_packet,
             Err(e) => return Box::new(future::err(e)),
         };
-        let globals = Globals {
-            config: Arc::new(self.config.as_ref().clone()),
-            cache: self.cache.clone(),
-            varz: Arc::clone(&self.varz),
-            hooks_arc: Arc::clone(&self.hooks_arc),
-            resolver_tx: self.resolver_tx.clone(),
-            pending_queries: self.pending_queries.clone(),
-        };
         let session_state = SessionState::default();
         session_state.inner.write().upstream_servers_for_query =
             self.default_upstream_servers_for_query.as_ref().clone(); // XXX - Remove clone()
         let query_router = QueryRouter::create(
-            Rc::new(globals),
+            Rc::new(self.globals.clone()),
             parsed_packet,
             ClientQueryProtocol::UDP,
             session_state,
@@ -177,12 +154,20 @@ impl UdpAcceptorCore {
         resolver_tx: Sender<ClientQuery>,
         service_ready_tx: mpsc::SyncSender<u8>,
     ) -> io::Result<(thread::JoinHandle<()>)> {
-        let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let config = edgedns_context.config.clone();
         let cache = edgedns_context.cache.clone();
         let varz = Arc::clone(&edgedns_context.varz);
         let hooks_arc = Arc::clone(&edgedns_context.hooks_arc);
         let pending_queries = edgedns_context.pending_queries.clone();
+        let globals = Globals {
+            config: Arc::new(config),
+            cache,
+            varz,
+            hooks_arc,
+            pending_queries,
+            resolver_tx,
+        };
+        let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let timer = wheel()
             .max_capacity(edgedns_context.config.max_active_queries)
             .build();
@@ -192,15 +177,10 @@ impl UdpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let udp_acceptor_core = UdpAcceptorCore {
-                    cache,
-                    config: Rc::new(config),
-                    hooks_arc,
+                    globals,
                     net_udp_socket: Rc::new(net_udp_socket),
-                    pending_queries,
-                    resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
                     timer,
-                    varz,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core
