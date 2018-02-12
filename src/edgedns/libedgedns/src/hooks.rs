@@ -276,7 +276,6 @@ impl Hooks {
         let hook = match stage {
             Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
-            Stage::Hit => service_hooks.hook_hit.as_ref().unwrap(),
             Stage::Miss => service_hooks.hook_miss.as_ref().unwrap(),
             _ => return Action::Drop,
         };
@@ -360,7 +359,6 @@ impl Hooks {
         let hook = match stage {
             Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
             Stage::Hit => service_hooks.hook_hit.as_ref().unwrap(),
-            Stage::Miss => service_hooks.hook_miss.as_ref().unwrap(),
             _ => return Err("Unexpected stage"),
         };
         let fn_table = c_abi::fn_table();
