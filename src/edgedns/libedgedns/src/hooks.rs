@@ -55,6 +55,8 @@ pub enum Action {
     Fail,
     Deliver,
     Restart,
+    Miss,
+    Fetch,
 }
 
 impl From<Action> for c_int {
@@ -75,6 +77,8 @@ impl From<c_int> for Action {
             x if x == Action::Fail.into() => Action::Fail,
             x if x == Action::Deliver.into() => Action::Deliver,
             x if x == Action::Restart.into() => Action::Restart,
+            x if x == Action::Miss.into() => Action::Miss,
+            x if x == Action::Fetch.into() => Action::Fetch,
             _ => Action::Drop,
         }
     }
