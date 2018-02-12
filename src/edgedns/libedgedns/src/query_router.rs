@@ -261,20 +261,20 @@ impl QueryRouter {
                 .read();
             (session_state.custom_hash, session_state.bypass_cache)
         };
+        let mut answer_from_cache = None;
         if !bypass_cache {
             let cache_key =
                 CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash, bypass_cache)?;
             let cache_entry = self.globals.cache.clone().get2(&cache_key);
-            match cache_entry {
-                None => {}
-                Some(cache_entry) => {
-                    if !cache_entry.is_expired() {
-                        let cached_packet = cache_entry.packet;
-                        let answer = Answer::from(cached_packet);
-                        return Ok(AnswerOrFuture::Answer(answer));
-                    }
+            if let Some(cache_entry) = cache_entry {
+                if !cache_entry.is_expired() {
+                    let answer = Answer::from(cache_entry.packet);
+                    answer_from_cache = Some(Ok(AnswerOrFuture::Answer(answer)));
                 }
             }
+        }
+        if let Some(answer_from_cache) = answer_from_cache {
+            return answer_from_cache;
         }
         let (response_tx, response_rx) = oneshot::channel();
         let client_query = ClientQuery::udp(
