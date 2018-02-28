@@ -40,8 +40,8 @@ impl LogDNSTap {
         LogDNSTap {
             dnstap_pending_writer: Some(dnstap_pending_writer),
             dnstap_writer: None,
-            dnstap_identity: dnstap_identity,
-            dnstap_version: dnstap_version,
+            dnstap_identity,
+            dnstap_version,
         }
     }
 
@@ -78,7 +78,7 @@ impl Sender {
                 dnstap_version,
                 MessageType::FORWARDER_RESPONSE,
             ),
-            dnstap_sender: dnstap_sender,
+            dnstap_sender,
         }
     }
 

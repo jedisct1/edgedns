@@ -295,10 +295,10 @@ pub fn question(packet: &[u8]) -> Result<QuestionRR, &'static str> {
     let qtype = u16::from(packet[offset]) << 8 | u16::from(packet[offset + 1]);
     let qclass = u16::from(packet[offset + 2]) << 8 | u16::from(packet[offset + 3]);
     let question_rr = QuestionRR {
-        qname: qname,
-        qtype: qtype,
-        qclass: qclass,
-        labels_count: labels_count,
+        qname,
+        qtype,
+        qclass,
+        labels_count,
     };
     Ok(question_rr)
 }
@@ -388,8 +388,8 @@ pub fn parse_edns0_question(packet: &[u8]) -> Option<EDNS0> {
         payload_size = DNS_UDP_NOEDNS0_MAX_SIZE;
     }
     Some(EDNS0 {
-        payload_size: payload_size,
-        dnssec: dnssec,
+        payload_size,
+        dnssec,
     })
 }
 
@@ -440,7 +440,7 @@ impl NormalizedQuestion {
             self.dnssec
         };
         NormalizedQuestionKey {
-            dnssec: dnssec,
+            dnssec,
             qname_lc: self.qname_lc.clone(),
             qtype: self.qtype,
             qclass: self.qclass,

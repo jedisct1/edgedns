@@ -61,7 +61,7 @@ impl TcpClientQuery {
         TcpClientQuery {
             globals: Arc::new(tcp_acceptor.globals.clone()),
             timer: tcp_acceptor.timer.clone(),
-            wh: wh,
+            wh,
         }
     }
 
@@ -118,7 +118,7 @@ impl TcpAcceptor {
         let fut_packet_read = fut_expected_len.and_then(move |(rh, expected_len)| {
             read_exact(rh, vec![0u8; expected_len]).map_err(|e| DNSError::Io(e).into())
         });
-        let tcp_client_query = TcpClientQuery::new(&self, wh);
+        let tcp_client_query = TcpClientQuery::new(self, wh);
         let fut_packet = fut_packet_read
             .and_then(move |(rh, packet)| tcp_client_query.fut_process_query(packet));
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();

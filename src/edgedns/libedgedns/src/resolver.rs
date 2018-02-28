@@ -112,7 +112,7 @@ impl ResolverCore {
                     dnstap_sender,
                     net_udp_socket,
                     net_ext_udp_sockets_rc: Rc::new(net_ext_udp_sockets),
-                    decrement_ttl: decrement_ttl,
+                    decrement_ttl,
                     lbmode,
                     jumphasher: JumpHasher::default(),
                 };

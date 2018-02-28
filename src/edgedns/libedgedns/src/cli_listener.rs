@@ -24,8 +24,8 @@ pub struct CLIListener {
 impl CLIListener {
     pub fn new(socket_path: String, hooks_arc: Arc<RwLock<Hooks>>) -> Self {
         CLIListener {
-            socket_path: socket_path,
-            hooks_arc: hooks_arc,
+            socket_path,
+            hooks_arc,
         }
     }
 

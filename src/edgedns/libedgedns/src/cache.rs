@@ -116,7 +116,7 @@ impl Cache {
         let arc_mx = Arc::new(Mutex::new(arc));
         Cache {
             config: Arc::new(config),
-            arc_mx: arc_mx,
+            arc_mx,
         }
     }
 
@@ -139,10 +139,7 @@ impl Cache {
         let now = Instant::recent();
         let duration = Duration::from_secs(u64::from(ttl));
         let expiration = now + duration;
-        let cache_entry = CacheEntry {
-            expiration: expiration,
-            packet: packet,
-        };
+        let cache_entry = CacheEntry { expiration, packet };
         let mut cache = self.arc_mx.lock();
         cache.insert(cache_key, cache_entry)
     }

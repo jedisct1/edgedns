@@ -57,7 +57,7 @@ impl UpstreamServer {
             Ok(remote_addr) => remote_addr,
         };
         let upstream_server = UpstreamServer {
-            remote_addr: remote_addr,
+            remote_addr,
             pending_queries_count: 0,
             failures: 0,
             last_successful_response_instant: Instant::now(),

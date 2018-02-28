@@ -91,7 +91,7 @@ impl ResolverQueriesHandler {
             net_udp_socket: resolver_core.net_udp_socket.try_clone().unwrap(),
             net_ext_udp_sockets_rc: Rc::clone(&resolver_core.net_ext_udp_sockets_rc),
             jumphasher: resolver_core.jumphasher,
-            timer: timer,
+            timer,
         }
     }
 

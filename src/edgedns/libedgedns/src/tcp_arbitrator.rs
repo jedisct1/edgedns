@@ -31,12 +31,12 @@ pub struct TcpArbitrator {
 impl TcpArbitrator {
     pub fn with_capacity(capacity: usize) -> Self {
         let slab = Slab::with_capacity(capacity);
-        let sessions = Sessions { slab: slab };
+        let sessions = Sessions { slab };
         let mut rng = rand::thread_rng();
         let hasher = SipHasher13::new_with_keys(rng.gen(), rng.gen());
         TcpArbitrator {
             sessions_mx: Arc::new(Mutex::new(sessions)),
-            hasher: hasher,
+            hasher,
         }
     }
 
@@ -48,10 +48,7 @@ impl TcpArbitrator {
         client_addr.ip().hash(&mut hasher);
         let h = hasher.finish();
         let (session_tx, session_rx) = oneshot::channel();
-        let session = Session {
-            session_tx: session_tx,
-            h: h,
-        };
+        let session = Session { session_tx, h };
         let mut slab = &mut self.sessions_mx.lock().slab;
         self.recycle_slot_if_full(&mut slab, h);
         if slab.len() == slab.capacity() {
