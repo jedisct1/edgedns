@@ -282,7 +282,9 @@ impl QueryRouter {
                     .map_err(|e| DNSError::HookError(e))?;
                 match action {
                     Action::Pass | Action::Miss => {}
-                    Action::Deliver | Action::Default => return Ok(AnswerOrFuture::Answer(Answer::from(packet))),
+                    Action::Deliver | Action::Default => {
+                        return Ok(AnswerOrFuture::Answer(Answer::from(packet)))
+                    }
                     Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
                     _ => return Err(DNSError::Unimplemented.into()),
                 }
@@ -322,7 +324,7 @@ impl QueryRouter {
             .map_err(|e| DNSError::InternalError.into())
             .and_then(move |resolver_response| {
                 let answer = Answer::from(resolver_response.packet);
-                Ok((answer, None))
+                Ok((answer, resolver_response.session_state))
             });
 
         let client_query_fut = fut_send.and_then(move |_| client_query_fut);

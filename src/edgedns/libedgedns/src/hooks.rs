@@ -57,7 +57,7 @@ pub enum Action {
     Restart,
     Miss,
     Fetch,
-    Default
+    Default,
 }
 
 impl From<Action> for c_int {

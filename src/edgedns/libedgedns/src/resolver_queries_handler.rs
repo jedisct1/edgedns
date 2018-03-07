@@ -216,18 +216,16 @@ impl ResolverQueriesHandler {
         let fut = upstream_rx
             .map_err(|_| {})
             .and_then(move |upstream_packet| {
-                let response = ResolverResponse {
+                let response_base = ResolverResponse {
                     packet: upstream_packet,
                     dnssec: false,
                     session_state: None,
                 };
                 let mut waiting_clients = waiting_clients.lock();
                 for mut client_query in &mut waiting_clients.client_queries {
-                    let _ = client_query
-                        .response_tx
-                        .take()
-                        .unwrap()
-                        .send(response.clone());
+                    let mut response = response_base.clone();
+                    response.session_state = client_query.session_state.take();
+                    let _ = client_query.response_tx.take().unwrap().send(response);
                 }
                 waiting_clients.client_queries.clear();
 
@@ -241,13 +239,14 @@ impl ResolverQueriesHandler {
                     .remove(&upstream_question)
                     .expect("Waiting clients set vanished");
 
-                if let Ok(ttl) = dns::min_ttl(&response.packet, min_ttl, max_ttl, failure_ttl) {
-                    match dns::rcode(&response.packet) {
+                if let Ok(ttl) = dns::min_ttl(&response_base.packet, min_ttl, max_ttl, failure_ttl)
+                {
+                    match dns::rcode(&response_base.packet) {
                         DNS_RCODE_NOERROR | DNS_RCODE_NXDOMAIN => {
                             let cache_key = CacheKey::from_local_upstream_question(
                                 local_upstream_question_inner,
                             );
-                            cache_inner.insert(cache_key, response.packet, ttl);
+                            cache_inner.insert(cache_key, response_base.packet, ttl);
                         }
                         _ => {}
                     }
