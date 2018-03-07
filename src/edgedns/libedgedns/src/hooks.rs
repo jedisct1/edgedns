@@ -302,8 +302,9 @@ impl Hooks {
             .expect("Nonexistent master service");
         let action =
             self.apply_clientside_for_service(service, session_state, parsed_packet, stage);
-        if action != Action::Pass {
-            return Ok(action);
+        match action {
+            Action::Fail | Action::Drop | Action::Synth | Action::Restart => return Ok(action),
+            _ => {}
         }
 
         // service_id hooks
