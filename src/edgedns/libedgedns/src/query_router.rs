@@ -220,38 +220,36 @@ impl QueryRouter {
         };
 
         let hooks_arc = self.globals.hooks_arc.read();
-        if hooks_arc.enabled(Stage::Recv) {
-            let action = hooks_arc
-                .apply_clientside(
-                    self.session_state.as_mut().unwrap(),
-                    parsed_packet,
-                    Stage::Recv,
-                )
-                .map_err(|e| DNSError::HookError(e))?;
-            match action {
-                hooks::Action::Pass | hooks::Action::Pipe | hooks::Action::Purge => {
-                    self.session_state
-                        .as_mut()
-                        .expect("session_state is None")
-                        .inner
-                        .write()
-                        .bypass_cache = true
-                }
-                hooks::Action::Drop => return Err(DNSError::Refused.into()),
-                hooks::Action::Fail => {
-                    let tid = parsed_packet.tid();
-                    let (qtype, qclass) = parsed_packet.qtype_qclass().ok_or(DNSError::Unexpected)?;
-                    let original_qname = match parsed_packet.question_raw() {
-                        Some((original_qname, ..)) => original_qname,
-                        None => xbail!(DNSError::Unexpected),
-                    };
-                    let packet = dns::build_refused_packet(original_qname, qtype, qclass, tid)?;
-                    let answer = Answer::from(packet);
-                    return Ok(AnswerOrFuture::Answer(answer));
-                }
-                hooks::Action::Hash => {}
-                _ => return Err(DNSError::Unimplemented.into()),
+        let action = hooks_arc
+            .apply_clientside(
+                self.session_state.as_mut().unwrap(),
+                parsed_packet,
+                Stage::Recv,
+            )
+            .map_err(|e| DNSError::HookError(e))?;
+        match action {
+            Action::Pass | Action::Pipe | Action::Purge => {
+                self.session_state
+                    .as_mut()
+                    .expect("session_state is None")
+                    .inner
+                    .write()
+                    .bypass_cache = true
             }
+            Action::Drop => return Err(DNSError::Refused.into()),
+            Action::Fail => {
+                let tid = parsed_packet.tid();
+                let (qtype, qclass) = parsed_packet.qtype_qclass().ok_or(DNSError::Unexpected)?;
+                let original_qname = match parsed_packet.question_raw() {
+                    Some((original_qname, ..)) => original_qname,
+                    None => xbail!(DNSError::Unexpected),
+                };
+                let packet = dns::build_refused_packet(original_qname, qtype, qclass, tid)?;
+                let answer = Answer::from(packet);
+                return Ok(AnswerOrFuture::Answer(answer));
+            }
+            Action::Hash | Action::Default => {}
+            _ => return Err(DNSError::Unimplemented.into()),
         }
         let (custom_hash, bypass_cache) = {
             let session_state = self.session_state
@@ -284,7 +282,7 @@ impl QueryRouter {
                     .map_err(|e| DNSError::HookError(e))?;
                 match action {
                     Action::Pass | Action::Miss => {}
-                    Action::Deliver => return Ok(AnswerOrFuture::Answer(Answer::from(packet))),
+                    Action::Deliver | Action::Default => return Ok(AnswerOrFuture::Answer(Answer::from(packet))),
                     Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
                     _ => return Err(DNSError::Unimplemented.into()),
                 }
@@ -301,12 +299,13 @@ impl QueryRouter {
                     )
                     .map_err(|e| DNSError::HookError(e))?;
                 match action {
-                    Action::Pass | Action::Fetch => {}
+                    Action::Pass | Action::Fetch | Action::Default => {}
                     Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
                     _ => return Err(DNSError::Unimplemented.into()),
                 }
             }
         }
+
         let (response_tx, response_rx) = oneshot::channel();
         let client_query = ClientQuery::udp(
             response_tx,

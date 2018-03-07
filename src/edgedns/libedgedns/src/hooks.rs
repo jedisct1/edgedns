@@ -57,6 +57,7 @@ pub enum Action {
     Restart,
     Miss,
     Fetch,
+    Default
 }
 
 impl From<Action> for c_int {
@@ -286,27 +287,35 @@ impl Hooks {
         action
     }
 
-    pub fn apply_clientside(
+    fn apply_clientside_master(
         &self,
         session_state: &mut SessionState,
         parsed_packet: &mut ParsedPacket,
         stage: Stage,
     ) -> Result<Action, &'static str> {
-        if !self.enabled(stage) {
-            return Ok(Action::Pass);
-        }
-
         // master service hooks
         let service = self.services
             .get(&self.master_service_id)
             .expect("Nonexistent master service");
         let action =
             self.apply_clientside_for_service(service, session_state, parsed_packet, stage);
+        Ok(action)
+    }
+
+    pub fn apply_clientside(
+        &self,
+        session_state: &mut SessionState,
+        parsed_packet: &mut ParsedPacket,
+        stage: Stage,
+    ) -> Result<Action, &'static str> {
+        let action = self.apply_clientside_master(session_state, parsed_packet, stage)?;
         match action {
-            Action::Fail | Action::Drop | Action::Synth | Action::Restart => return Ok(action),
+            Action::Fail | Action::Drop | Action::Restart => return Ok(action),
             _ => {}
         }
-
+        if !self.enabled(stage) {
+            return Ok(Action::Default);
+        }
         // service_id hooks
         let service = {
             let service_id = &session_state.inner.read().service_id;
