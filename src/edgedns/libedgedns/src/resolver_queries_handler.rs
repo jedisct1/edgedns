@@ -114,7 +114,7 @@ impl ResolverQueriesHandler {
 
     fn fut_process_client_query(
         &mut self,
-        client_query: ClientQuery,
+        mut client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = DNSError> {
         let normalized_question = &client_query.normalized_question;
         let (custom_hash, bypass_cache) = {
@@ -150,7 +150,19 @@ impl ResolverQueriesHandler {
             Err(e) => return future::err(e),
             Ok(packet) => packet,
         };
-
+        {
+            let session_state = &mut client_query.session_state.as_mut().unwrap().inner.write();
+            let director = &session_state.director;
+            let upstream_servers_socket_addrs = &director.upstream_servers_socket_addrs;
+            if !upstream_servers_socket_addrs.is_empty() {
+                let upstream_servers_for_query: Vec<UpstreamServerForQuery> =
+                    upstream_servers_socket_addrs
+                        .iter()
+                        .map(|&remote_addr| remote_addr.into())
+                        .collect();
+                session_state.upstream_servers_for_query = upstream_servers_for_query;
+            }
+        }
         let remote_addr = {
             let upstream_servers_for_query = &client_query
                 .session_state

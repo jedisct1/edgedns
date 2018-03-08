@@ -151,8 +151,7 @@ unsafe extern "C" fn add_backend_to_director(
     backend_key_len: size_t,
 ) -> c_int {
     let backend_key = slice::from_raw_parts(backend_key as *const u8, backend_key_len);
-    let backends = &session_state.inner.read().backends;
-    let socket_addr = match backends.get(backend_key) {
+    let socket_addr = match session_state.inner.read().backends.get(backend_key) {
         None => {
             (*c_err).description_cs = CString::new("Backend not found").unwrap();
             return -1;

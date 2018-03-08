@@ -25,9 +25,13 @@ pub struct UpstreamServerForQuery {
 
 impl UpstreamServerForQuery {
     pub fn from_upstream_server(upstream_server: &UpstreamServer) -> UpstreamServerForQuery {
-        UpstreamServerForQuery {
-            remote_addr: upstream_server.remote_addr,
-        }
+        UpstreamServerForQuery::from(upstream_server.remote_addr)
+    }
+}
+
+impl From<SocketAddr> for UpstreamServerForQuery {
+    fn from(remote_addr: SocketAddr) -> UpstreamServerForQuery {
+        UpstreamServerForQuery { remote_addr }
     }
 }
 
