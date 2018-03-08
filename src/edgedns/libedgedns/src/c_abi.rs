@@ -6,6 +6,8 @@ use std::ffi::{CStr, CString};
 use std::slice;
 
 const ABI_VERSION: u64 = 0x2;
+const MAX_BACKENDS: usize = 64;
+const MAX_BACKENDS_FOR_DIRECTOR: usize = 32;
 
 #[repr(C)]
 pub struct CErr {
@@ -133,7 +135,12 @@ unsafe extern "C" fn register_backend(
     };
     let key = slice::from_raw_parts(key as *const u8, key_len).to_owned();
     let backends = &mut session_state.inner.write().backends;
-    backends.insert(key, socket_addr);
+    if backends.count() >= MAX_BACKENDS {
+        (*c_err).description_cs = CString::new("Too many backends").unwrap();
+        return -1;
+    } else {
+        backends.insert(key, socket_addr);
+    }
     0
 }
 
@@ -153,7 +160,12 @@ unsafe extern "C" fn add_backend_to_director(
         Some(socket_addr) => *socket_addr,
     };
     let director = &mut session_state.inner.write().director;
-    director.upstream_servers_socket_addrs.push(socket_addr);
+    if director.upstream_servers_socket_addrs.len() >= MAX_BACKENDS_FOR_DIRECTOR {
+        (*c_err).description_cs = CString::new("Too many backends").unwrap();
+        return -1;
+    } else {
+        director.upstream_servers_socket_addrs.push(socket_addr);
+    }
     0
 }
 
