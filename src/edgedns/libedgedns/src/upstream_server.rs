@@ -50,13 +50,9 @@ impl PartialEq for UpstreamServer {
 
 impl Eq for UpstreamServer {}
 
-impl UpstreamServer {
-    pub fn new(remote_addr_s: &str) -> Result<UpstreamServer, &'static str> {
-        let remote_addr = match remote_addr_s.parse() {
-            Err(_) => return Err("Unable to parse an upstream resolver address"),
-            Ok(remote_addr) => remote_addr,
-        };
-        let upstream_server = UpstreamServer {
+impl From<SocketAddr> for UpstreamServer {
+    fn from(remote_addr: SocketAddr) -> UpstreamServer {
+        UpstreamServer {
             remote_addr,
             pending_queries_count: 0,
             failures: 0,
@@ -65,8 +61,17 @@ impl UpstreamServer {
             last_probe_ts: None,
             rtt_est: None,
             rtt_dev_est: 0.0,
+        }
+    }
+}
+
+impl UpstreamServer {
+    pub fn new(remote_addr_s: &str) -> Result<UpstreamServer, &'static str> {
+        let remote_addr: SocketAddr = match remote_addr_s.parse() {
+            Err(_) => return Err("Unable to parse an upstream resolver address"),
+            Ok(remote_addr) => remote_addr,
         };
-        Ok(upstream_server)
+        Ok(remote_addr.into())
     }
 
     fn reset_state(&mut self) {

@@ -1,10 +1,11 @@
-use hooks::SessionState;
+use hooks::{Director, SessionState};
 use libc::{c_char, c_int, c_void, size_t};
+use nix::sys::socket::{self, sockaddr_storage};
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::slice;
 
-const ABI_VERSION: u64 = 0x1;
+const ABI_VERSION: u64 = 0x2;
 
 #[repr(C)]
 pub struct CErr {
@@ -13,7 +14,7 @@ pub struct CErr {
 
 thread_local!(
     static CERR: RefCell<CErr> = RefCell::new(CErr {
-        description_cs: CString::new("".as_bytes()).unwrap()
+        description_cs: CString::new("").unwrap()
     })
 );
 
@@ -108,6 +109,54 @@ unsafe extern "C" fn env_get_i64(
     0
 }
 
+unsafe extern "C" fn register_backend(
+    session_state: &SessionState,
+    c_err: *mut CErr,
+    key: *const c_char,
+    key_len: size_t,
+    ss: *const sockaddr_storage,
+    ss_len: size_t,
+) -> c_int {
+    let sock_addr = match socket::sockaddr_storage_to_addr(&*ss, ss_len) {
+        Err(_) => {
+            (*c_err).description_cs = CString::new("Unsupported address").unwrap();
+            return -1;
+        }
+        Ok(sock_addr) => sock_addr,
+    };
+    let socket_addr = match sock_addr {
+        socket::SockAddr::Inet(inet_addr) => inet_addr.to_std(),
+        _ => {
+            (*c_err).description_cs = CString::new("Unsupported address type").unwrap();
+            return -1;
+        }
+    };
+    let key = slice::from_raw_parts(key as *const u8, key_len).to_owned();
+    let backends = &mut session_state.inner.write().backends;
+    backends.insert(key, socket_addr);
+    0
+}
+
+unsafe extern "C" fn add_backend_to_director(
+    session_state: &SessionState,
+    c_err: *mut CErr,
+    backend_key: *const c_char,
+    backend_key_len: size_t,
+) -> c_int {
+    let backend_key = slice::from_raw_parts(backend_key as *const u8, backend_key_len);
+    let backends = &session_state.inner.read().backends;
+    let socket_addr = match backends.get(backend_key) {
+        None => {
+            (*c_err).description_cs = CString::new("Backend not found").unwrap();
+            return -1;
+        }
+        Some(socket_addr) => *socket_addr,
+    };
+    let director = &mut session_state.inner.write().director;
+    director.upstream_servers_socket_addrs.push(socket_addr);
+    0
+}
+
 /// C wrappers to the internal API
 #[repr(C)]
 pub struct FnTable {
@@ -149,6 +198,20 @@ pub struct FnTable {
         key_len: size_t,
         val_p: *mut i64,
     ) -> c_int,
+    pub register_backend: unsafe extern "C" fn(
+        session_state: &SessionState,
+        c_err: *mut CErr,
+        key: *const c_char,
+        key_len: size_t,
+        ss: *const sockaddr_storage,
+        ss_len: size_t,
+    ) -> c_int,
+    pub add_backend_to_director: unsafe extern "C" fn(
+        session_state: &SessionState,
+        c_err: *mut CErr,
+        backend_key: *const c_char,
+        backend_key_len: size_t,
+    ) -> c_int,
     abi_version: u64,
 }
 
@@ -160,6 +223,8 @@ pub fn fn_table() -> FnTable {
         env_insert_i64,
         env_get_str,
         env_get_i64,
+        register_backend,
+        add_backend_to_director,
         abi_version: ABI_VERSION,
     }
 }

@@ -15,6 +15,7 @@ use qp_trie::Trie;
 use siphasher::sip128::SipHasher13;
 use std::ffi::OsStr;
 use std::mem;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::ptr;
 use std::sync::Arc;
@@ -29,13 +30,35 @@ const DLL_EXT: &str = "so";
 const DLL_EXT: &str = "dll";
 
 #[derive(Clone, Debug, Default)]
+pub struct Director {
+    pub upstream_servers_socket_addrs: Vec<SocketAddr>,
+}
+
+#[derive(Clone, Debug)]
 pub struct SessionStateInner {
     pub service_id: Option<Vec<u8>>,
     pub env_str: Trie<Vec<u8>, Vec<u8>>,
     pub env_i64: Trie<Vec<u8>, i64>,
+    pub backends: Trie<Vec<u8>, SocketAddr>,
+    pub director: Director,
     pub upstream_servers_for_query: Vec<UpstreamServerForQuery>,
     pub custom_hash: (u64, u64),
     pub bypass_cache: bool,
+}
+
+impl Default for SessionStateInner {
+    fn default() -> SessionStateInner {
+        SessionStateInner {
+            service_id: None,
+            env_str: Trie::new(),
+            env_i64: Trie::new(),
+            backends: Trie::new(),
+            upstream_servers_for_query: Vec::new(),
+            director: Director::default(),
+            custom_hash: (0, 0),
+            bypass_cache: false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
