@@ -267,6 +267,7 @@ impl ResolverQueriesHandler {
             });
 
         let mut pending_queries = self.globals.pending_queries.clone();
+        let globals = self.globals.clone();
         let fut_timeout = self.timer
             .timeout(
                 fut,
@@ -279,7 +280,7 @@ impl ResolverQueriesHandler {
                 if let Some((upstream_question, waiting_clients)) =
                     upstream_question_waiting_clients
                 {
-                    FailureHandler::handle_failure(upstream_question, waiting_clients);
+                    FailureHandler::handle_failure(globals, upstream_question, waiting_clients);
                 }
             });
 
@@ -311,30 +312,56 @@ struct FailureHandler;
 
 impl FailureHandler {
     fn handle_failure(
+        globals: Globals,
         upstream_question: UpstreamQuestion,
         waiting_clients: Arc<Mutex<WaitingClients>>,
     ) {
-        let packet = match dns::build_servfail_packet(
+        let servfail_packet = match dns::build_servfail_packet(
             &upstream_question.qname_lc,
             upstream_question.qtype,
             upstream_question.qclass,
             upstream_question.tid,
         ) {
             Err(_) => return,
-            Ok(packet) => packet,
+            Ok(servfail_packet) => servfail_packet,
         };
-        let response = ResolverResponse {
-            packet,
+        let servfail_response = ResolverResponse {
+            packet: servfail_packet,
             dnssec: false,
             session_state: None,
         };
         let mut waiting_clients = waiting_clients.lock();
-        for mut client_query in &mut waiting_clients.client_queries {
-            let _ = client_query
-                .response_tx
+        let client_queries = &mut waiting_clients.client_queries;
+        for mut client_query in client_queries {
+            let session_state = client_query
+                .session_state
                 .take()
-                .unwrap()
-                .send(response.clone());
+                .expect("session_state is None");
+            let (custom_hash, bypass_cache) = {
+                let session_state_inner = session_state.inner.read();
+                (
+                    session_state_inner.custom_hash,
+                    session_state_inner.bypass_cache,
+                )
+            };
+            let mut response = servfail_response.clone();
+            response.session_state = Some(session_state);
+            if !bypass_cache {
+                let cache_key = CacheKey::from_normalized_question(
+                    &client_query.normalized_question,
+                    custom_hash,
+                    bypass_cache,
+                );
+                let cache_entry = globals.cache.clone().get(&cache_key);
+                if let Some(cache_entry) = cache_entry {
+                    response = ResolverResponse {
+                        packet: cache_entry.packet,
+                        dnssec: client_query.normalized_question.dnssec,
+                        session_state: response.session_state,
+                    };
+                }
+            }
+            let _ = client_query.response_tx.take().unwrap().send(response);
         }
     }
 }
