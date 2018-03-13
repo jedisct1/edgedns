@@ -300,10 +300,14 @@ impl Hooks {
     ) -> Action {
         let service_hooks = service.service_hooks.as_ref().unwrap();
         let hook = match stage {
-            Stage::Recv => service_hooks.hook_recv.as_ref().unwrap(),
-            Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
-            Stage::Miss => service_hooks.hook_miss.as_ref().unwrap(),
+            Stage::Recv => service_hooks.hook_recv.as_ref(),
+            Stage::Deliver => service_hooks.hook_deliver.as_ref(),
+            Stage::Miss => service_hooks.hook_miss.as_ref(),
             _ => return Action::Drop,
+        };
+        let hook = match hook {
+            Some(hook) => hook,
+            None => return Action::Default,
         };
         let fn_table = c_abi::fn_table();
         let dnssector_fn_table = dnssector::c_abi::fn_table();
@@ -392,9 +396,13 @@ impl Hooks {
             .expect("Nonexistent master service");
         let service_hooks = service.service_hooks.as_ref().unwrap();
         let hook = match stage {
-            Stage::Deliver => service_hooks.hook_deliver.as_ref().unwrap(),
-            Stage::Hit => service_hooks.hook_hit.as_ref().unwrap(),
+            Stage::Deliver => service_hooks.hook_deliver.as_ref(),
+            Stage::Hit => service_hooks.hook_hit.as_ref(),
             _ => return Err("Unexpected stage"),
+        };
+        let hook = match hook {
+            Some(hook) => hook,
+            None => return Ok((Action::Default, parsed_packet.into_packet())),
         };
         let fn_table = c_abi::fn_table();
         let dnssector_fn_table = dnssector::c_abi::fn_table();
