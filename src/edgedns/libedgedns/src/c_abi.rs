@@ -67,6 +67,19 @@ unsafe extern "C" fn env_insert_i64(
     0
 }
 
+unsafe extern "C" fn env_insert_bool(
+    session_state: &mut SessionState,
+    c_err: *const CErr,
+    key: *const c_char,
+    key_len: size_t,
+    val: c_int,
+) -> c_int {
+    let key = slice::from_raw_parts(key as *const u8, key_len).to_owned();
+    let env_bool = &mut session_state.inner.write().env_bool;
+    env_bool.insert(key, val != 0);
+    0
+}
+
 unsafe extern "C" fn env_get_str(
     session_state: &SessionState,
     c_err: *const CErr,
@@ -108,6 +121,23 @@ unsafe extern "C" fn env_get_i64(
         Some(val) => *val,
     };
     *val_p = val;
+    0
+}
+
+unsafe extern "C" fn env_get_bool(
+    session_state: &SessionState,
+    c_err: *const CErr,
+    key: *const c_char,
+    key_len: size_t,
+    val_p: *mut c_int,
+) -> c_int {
+    let key = slice::from_raw_parts(key as *const u8, key_len);
+    let env_bool = &session_state.inner.read().env_bool;
+    let val = match env_bool.get(key) {
+        None => return -1,
+        Some(val) => *val,
+    };
+    *val_p = val as c_int;
     0
 }
 
@@ -193,6 +223,13 @@ pub struct FnTable {
         key_len: size_t,
         val: i64,
     ) -> c_int,
+    pub env_insert_bool: unsafe extern "C" fn(
+        session_state: &mut SessionState,
+        c_err: *const CErr,
+        key: *const c_char,
+        key_len: size_t,
+        val: c_int,
+    ) -> c_int,
     pub env_get_str: unsafe extern "C" fn(
         session_state: &SessionState,
         c_err: *const CErr,
@@ -208,6 +245,13 @@ pub struct FnTable {
         key: *const c_char,
         key_len: size_t,
         val_p: *mut i64,
+    ) -> c_int,
+    pub env_get_bool: unsafe extern "C" fn(
+        session_state: &SessionState,
+        c_err: *const CErr,
+        key: *const c_char,
+        key_len: size_t,
+        val_p: *mut c_int,
     ) -> c_int,
     pub register_backend: unsafe extern "C" fn(
         session_state: &SessionState,
@@ -232,8 +276,10 @@ pub fn fn_table() -> FnTable {
         set_service_id,
         env_insert_str,
         env_insert_i64,
+        env_insert_bool,
         env_get_str,
         env_get_i64,
+        env_get_bool,
         register_backend,
         add_backend_to_director,
         abi_version: ABI_VERSION,
