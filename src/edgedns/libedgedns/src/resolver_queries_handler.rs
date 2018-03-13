@@ -279,28 +279,7 @@ impl ResolverQueriesHandler {
                 if let Some((upstream_question, waiting_clients)) =
                     upstream_question_waiting_clients
                 {
-                    let packet = match dns::build_servfail_packet(
-                        &upstream_question.qname_lc,
-                        upstream_question.qtype,
-                        upstream_question.qclass,
-                        upstream_question.tid,
-                    ) {
-                        Err(_) => return,
-                        Ok(packet) => packet,
-                    };
-                    let response = ResolverResponse {
-                        packet,
-                        dnssec: false,
-                        session_state: None,
-                    };
-                    let mut waiting_clients = waiting_clients.lock();
-                    for mut client_query in &mut waiting_clients.client_queries {
-                        let _ = client_query
-                            .response_tx
-                            .take()
-                            .unwrap()
-                            .send(response.clone());
-                    }
+                    FailureHandler::handle_failure(upstream_question, waiting_clients);
                 }
             });
 
@@ -325,5 +304,37 @@ impl PendingQueries {
                     .unwrap_or_else(|| Arc::new(Mutex::new(WaitingClients::default())));
                 Some((upstream_question, waiting_clients))
             })
+    }
+}
+
+struct FailureHandler;
+
+impl FailureHandler {
+    fn handle_failure(
+        upstream_question: UpstreamQuestion,
+        waiting_clients: Arc<Mutex<WaitingClients>>,
+    ) {
+        let packet = match dns::build_servfail_packet(
+            &upstream_question.qname_lc,
+            upstream_question.qtype,
+            upstream_question.qclass,
+            upstream_question.tid,
+        ) {
+            Err(_) => return,
+            Ok(packet) => packet,
+        };
+        let response = ResolverResponse {
+            packet,
+            dnssec: false,
+            session_state: None,
+        };
+        let mut waiting_clients = waiting_clients.lock();
+        for mut client_query in &mut waiting_clients.client_queries {
+            let _ = client_query
+                .response_tx
+                .take()
+                .unwrap()
+                .send(response.clone());
+        }
     }
 }
