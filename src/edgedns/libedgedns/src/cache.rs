@@ -25,6 +25,7 @@ use dnssector::ParsedPacket;
 use errors::*;
 use failure;
 use parking_lot::Mutex;
+use std::ops::Sub;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -93,6 +94,15 @@ impl CacheEntry {
     pub fn is_expired(&self) -> bool {
         let now = Instant::recent();
         now > self.expiration
+    }
+
+    pub fn ttl(&self) -> u64 {
+        let now = Instant::recent();
+        if now >= self.expiration {
+            0
+        } else {
+            self.expiration.sub(now).as_u64()
+        }
     }
 }
 

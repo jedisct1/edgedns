@@ -7,7 +7,8 @@
 //! unresponsive after too many timeouts, and bringing them back to life after
 //! regular probes have been successfully received.
 
-use super::{FAILURE_TTL, UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
+use super::{DEFAULT_GRACE_SEC, FAILURE_TTL, UPSTREAM_PROBES_DELAY_MS,
+            UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use cache::Cache;
 use cache::CacheKey;
 use client_query::{ClientQuery, ResolverResponse};
@@ -348,11 +349,18 @@ impl FailureHandler {
             .session_state
             .take()
             .expect("session_state is None");
-        let (custom_hash, bypass_cache) = {
+        let (custom_hash, bypass_cache, grace) = {
             let session_state_inner = session_state.inner.read();
+            let env_i64 = &session_state_inner.env_i64;
+            let grace = *env_i64
+                .get(&b"grace".to_vec())
+                .or_else(|| env_i64.get(&b"beresp.stale_if_error".to_vec()))
+                .unwrap_or(&(DEFAULT_GRACE_SEC as i64)) as u64;
+
             (
                 session_state_inner.custom_hash,
                 session_state_inner.bypass_cache,
+                grace,
             )
         };
         let mut response = default_response.clone();
@@ -365,11 +373,13 @@ impl FailureHandler {
             );
             let cache_entry = globals.cache.clone().get(&cache_key);
             if let Some(cache_entry) = cache_entry {
-                response = ResolverResponse {
-                    packet: cache_entry.packet,
-                    dnssec: client_query.normalized_question.dnssec,
-                    session_state: response.session_state,
-                };
+                if grace >= cache_entry.ttl() {
+                    response = ResolverResponse {
+                        packet: cache_entry.packet,
+                        dnssec: client_query.normalized_question.dnssec,
+                        session_state: response.session_state,
+                    };
+                }
             }
         }
         response
