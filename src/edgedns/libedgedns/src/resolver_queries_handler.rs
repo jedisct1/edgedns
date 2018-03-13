@@ -333,35 +333,45 @@ impl FailureHandler {
         let mut waiting_clients = waiting_clients.lock();
         let client_queries = &mut waiting_clients.client_queries;
         for mut client_query in client_queries {
-            let session_state = client_query
-                .session_state
-                .take()
-                .expect("session_state is None");
-            let (custom_hash, bypass_cache) = {
-                let session_state_inner = session_state.inner.read();
-                (
-                    session_state_inner.custom_hash,
-                    session_state_inner.bypass_cache,
-                )
-            };
-            let mut response = servfail_response.clone();
-            response.session_state = Some(session_state);
-            if !bypass_cache {
-                let cache_key = CacheKey::from_normalized_question(
-                    &client_query.normalized_question,
-                    custom_hash,
-                    bypass_cache,
-                );
-                let cache_entry = globals.cache.clone().get(&cache_key);
-                if let Some(cache_entry) = cache_entry {
-                    response = ResolverResponse {
-                        packet: cache_entry.packet,
-                        dnssec: client_query.normalized_question.dnssec,
-                        session_state: response.session_state,
-                    };
-                }
-            }
+            let response =
+                Self::get_stale_or_default_response(&globals, client_query, &servfail_response);
             let _ = client_query.response_tx.take().unwrap().send(response);
         }
+    }
+
+    fn get_stale_or_default_response(
+        globals: &Globals,
+        client_query: &mut ClientQuery,
+        default_response: &ResolverResponse,
+    ) -> ResolverResponse {
+        let session_state = client_query
+            .session_state
+            .take()
+            .expect("session_state is None");
+        let (custom_hash, bypass_cache) = {
+            let session_state_inner = session_state.inner.read();
+            (
+                session_state_inner.custom_hash,
+                session_state_inner.bypass_cache,
+            )
+        };
+        let mut response = default_response.clone();
+        response.session_state = Some(session_state);
+        if !bypass_cache {
+            let cache_key = CacheKey::from_normalized_question(
+                &client_query.normalized_question,
+                custom_hash,
+                bypass_cache,
+            );
+            let cache_entry = globals.cache.clone().get(&cache_key);
+            if let Some(cache_entry) = cache_entry {
+                response = ResolverResponse {
+                    packet: cache_entry.packet,
+                    dnssec: client_query.normalized_question.dnssec,
+                    session_state: response.session_state,
+                };
+            }
+        }
+        response
     }
 }
