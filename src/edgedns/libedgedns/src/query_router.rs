@@ -281,7 +281,7 @@ impl QueryRouter {
                     )
                     .map_err(|e| DNSError::HookError(e))?;
                 match action {
-                    Action::Pass | Action::Miss => {}
+                    Action::Pass | Action::Miss | Action::Fetch => {}
                     Action::Deliver | Action::Default => {
                         return Ok(AnswerOrFuture::Answer(Answer::from(packet)))
                     }
