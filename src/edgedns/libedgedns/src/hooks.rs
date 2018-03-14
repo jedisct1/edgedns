@@ -337,17 +337,20 @@ impl Hooks {
         parsed_packet: &mut ParsedPacket,
         stage: Stage,
     ) -> Result<Action, &'static str> {
+        if !self.enabled(stage) {
+            return Ok(Action::Default);
+        }
+
         let action = self.apply_clientside_master(session_state, parsed_packet, stage)?;
         match action {
             Action::Fail | Action::Drop | Action::Restart => return Ok(action),
             _ => {}
         }
-        if !self.enabled(stage) {
-            return Ok(Action::Default);
-        }
+
         // service_id hooks
         let service = {
             let service_id = &session_state.inner.read().service_id;
+            debug!("service_id={:?}", service_id);
             if service_id.is_none() {
                 return Ok(action);
             }
@@ -365,6 +368,44 @@ impl Hooks {
         };
         let action =
             self.apply_clientside_for_service(service, session_state, parsed_packet, stage);
+        Ok(action)
+    }
+
+    fn apply_serverside_for_service(
+        &self,
+        service: &Service,
+        session_state: &mut SessionState,
+        parsed_packet: &mut ParsedPacket,
+        stage: Stage,
+    ) -> Action {
+        let service_hooks = service.service_hooks.as_ref().unwrap();
+        let hook = match stage {
+            Stage::Deliver => service_hooks.hook_deliver.as_ref(),
+            Stage::Hit => service_hooks.hook_hit.as_ref(),
+            _ => return Action::Drop,
+        };
+        let hook = match hook {
+            Some(hook) => hook,
+            None => return Action::Default,
+        };
+        let fn_table = c_abi::fn_table();
+        let dnssector_fn_table = dnssector::c_abi::fn_table();
+        let action =
+            unsafe { hook(&fn_table, session_state, &dnssector_fn_table, parsed_packet) }.into();
+        action
+    }
+
+    fn apply_serverside_master(
+        &self,
+        session_state: &mut SessionState,
+        parsed_packet: &mut ParsedPacket,
+        stage: Stage,
+    ) -> Result<Action, &'static str> {
+        let service = self.services
+            .get(&self.master_service_id)
+            .expect("Nonexistent master service");
+        let action =
+            self.apply_serverside_for_service(service, session_state, parsed_packet, stage);
         Ok(action)
     }
 
@@ -391,30 +432,36 @@ impl Hooks {
                 return Err("Invalid packet");
             }
         };
-        let service = self.services
-            .get(&self.master_service_id)
-            .expect("Nonexistent master service");
-        let service_hooks = service.service_hooks.as_ref().unwrap();
-        let hook = match stage {
-            Stage::Deliver => service_hooks.hook_deliver.as_ref(),
-            Stage::Hit => service_hooks.hook_hit.as_ref(),
-            _ => return Err("Unexpected stage"),
+
+        let action = self.apply_serverside_master(session_state, &mut parsed_packet, stage)?;
+        match action {
+            Action::Fail | Action::Drop | Action::Restart => {
+                return Ok((action, parsed_packet.into_packet()))
+            }
+            _ => {}
+        }
+
+        // service_id hooks
+        let service = {
+            let service_id = &session_state.inner.read().service_id;
+            debug!("service_id={:?}", service_id);
+            if service_id.is_none() {
+                return Ok((action, parsed_packet.into_packet()));
+            }
+            let service_id = service_id.as_ref().unwrap();
+            match self.services.get(service_id) {
+                None => {
+                    warn!(
+                        "service_id={:?} but no loaded shared library with that id",
+                        service_id
+                    );
+                    return Ok((action, parsed_packet.into_packet()));
+                }
+                Some(service) => service,
+            }
         };
-        let hook = match hook {
-            Some(hook) => hook,
-            None => return Ok((Action::Default, parsed_packet.into_packet())),
-        };
-        let fn_table = c_abi::fn_table();
-        let dnssector_fn_table = dnssector::c_abi::fn_table();
-        let action = unsafe {
-            hook(
-                &fn_table,
-                ptr::null_mut(),
-                &dnssector_fn_table,
-                &mut parsed_packet,
-            )
-        }.into();
-        let packet = parsed_packet.into_packet();
-        Ok((action, packet))
+        let action =
+            self.apply_serverside_for_service(service, session_state, &mut parsed_packet, stage);
+        Ok((action, parsed_packet.into_packet()))
     }
 }
