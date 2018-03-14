@@ -14,9 +14,9 @@ default = ["nightly", "webservice"]
 name = "edgedns"
 path = "src/edgedns/main.rs"
 
-#[[bin]]
-#name = "edgedns-cli"
-#path = "src/edgedns-cli/main.rs"
+[[bin]]
+name = "edgedns-cli"
+path = "src/edgedns-cli/main.rs"
 
 [dependencies.libedgedns]
 path = "src/edgedns/libedgedns"
