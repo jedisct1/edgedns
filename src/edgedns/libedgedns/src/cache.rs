@@ -101,8 +101,13 @@ impl CacheEntry {
         if now >= self.expiration {
             0
         } else {
-            self.expiration.sub(now).as_u64()
+            self.expiration.sub(now).as_secs()
         }
+    }
+
+    #[inline]
+    pub fn ttl_is_less_than(&self, margin: u64) -> bool {
+        self.ttl() < margin
     }
 }
 

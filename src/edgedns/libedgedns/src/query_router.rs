@@ -272,22 +272,29 @@ impl QueryRouter {
             Action::Hash | Action::Default => {}
             _ => return Err(DNSError::Unimplemented.into()),
         }
-        let (custom_hash, bypass_cache) = {
-            let session_state = self.session_state
+        let (custom_hash, bypass_cache, prefetch) = {
+            let session_state_inner = self.session_state
                 .as_ref()
                 .expect("session_state is None")
                 .inner
                 .read();
-            (session_state.custom_hash, session_state.bypass_cache)
+            let env_i64 = &session_state_inner.env_i64;
+            let prefetch = *env_i64.get(&b"req.prefetch".to_vec()).unwrap_or(&0i64) as u64;
+            (
+                session_state_inner.custom_hash,
+                session_state_inner.bypass_cache,
+                prefetch,
+            )
         };
         let mut answer_from_cache = None;
-        let stale_while_revalidate = false;
+        let mut prefetched = false;
         if !bypass_cache {
             let cache_key =
                 CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash, bypass_cache)?;
             let cache_entry = self.globals.cache.clone().get2(&cache_key);
             if let Some(cache_entry) = cache_entry {
-                if !cache_entry.is_expired() || stale_while_revalidate {
+                if !cache_entry.is_expired() {
+                    prefetched = cache_entry.ttl_is_less_than(prefetch);
                     let answer = Answer::from(cache_entry.packet);
                     answer_from_cache = Some(answer);
                 }
@@ -298,14 +305,16 @@ impl QueryRouter {
                 let (action, packet) = hooks_arc
                     .apply_serverside(
                         self.session_state.as_mut().unwrap(),
-                        answer_from_cache.packet.clone(),
+                        answer_from_cache.packet.clone(), // XXX - Remove clone()
                         Stage::Hit,
                     )
                     .map_err(|e| DNSError::HookError(e))?;
                 match action {
                     Action::Pass | Action::Miss | Action::Fetch => {}
                     Action::Deliver | Action::Default => {
-                        return Ok(AnswerOrFuture::Answer(Answer::from(packet)))
+                        if !prefetched {
+                            return Ok(AnswerOrFuture::Answer(Answer::from(packet)));
+                        }
                     }
                     Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
                     _ => return Err(DNSError::Unimplemented.into()),
@@ -333,11 +342,12 @@ impl QueryRouter {
         };
 
         let (response_tx, response_rx) = oneshot::channel();
-        let client_query = ClientQuery::udp(
-            response_tx,
-            &mut parsed_packet,
-            self.session_state.take().unwrap(),
-        )?;
+        let session_state = if prefetched {
+            self.session_state.as_ref().unwrap().clone()
+        } else {
+            self.session_state.take().unwrap()
+        };
+        let client_query = ClientQuery::udp(response_tx, &mut parsed_packet, session_state)?;
         let fut_send = self.globals
             .resolver_tx
             .clone()
@@ -357,9 +367,9 @@ impl QueryRouter {
             time::Duration::from_millis(UPSTREAM_TOTAL_TIMEOUT_MS),
         );
 
-        if let Some(answer_from_cache) = answer_from_cache {
+        if prefetched {
             Ok(AnswerOrFuture::AnswerAndFuture((
-                answer_from_cache,
+                answer_from_cache.unwrap(),
                 Box::new(fut_timeout),
             )))
         } else {

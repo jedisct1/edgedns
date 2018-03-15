@@ -117,6 +117,8 @@ impl ResolverQueriesHandler {
         &mut self,
         mut client_query: ClientQuery,
     ) -> impl Future<Item = (), Error = DNSError> {
+        debug!("Incoming client query");
+
         let normalized_question = &client_query.normalized_question;
         let (custom_hash, bypass_cache) = {
             let session_state = client_query.session_state.as_ref().unwrap().inner.read();
@@ -144,8 +146,6 @@ impl ResolverQueriesHandler {
             waiting_clients.lock().client_queries.push(client_query);
             return future::ok(());
         }
-
-        debug!("Incoming client query");
         let tid: u16 = rand::random();
         let packet = match dns::build_query_packet(&client_query.normalized_question, tid, false) {
             Err(e) => return future::err(e),
@@ -353,7 +353,7 @@ impl FailureHandler {
             let session_state_inner = session_state.inner.read();
             let env_i64 = &session_state_inner.env_i64;
             let grace = *env_i64
-                .get(&b"grace".to_vec())
+                .get(&b"beresp.grace".to_vec())
                 .or_else(|| env_i64.get(&b"beresp.stale_if_error".to_vec()))
                 .unwrap_or(&(DEFAULT_GRACE_SEC as i64)) as u64;
 
