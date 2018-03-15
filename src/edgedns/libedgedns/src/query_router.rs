@@ -53,11 +53,18 @@ impl From<(Vec<u8>, u32)> for Answer {
 pub enum PacketOrFuture {
     Packet(Vec<u8>),
     Future(Box<Future<Item = Vec<u8>, Error = failure::Error>>),
+    PacketAndFuture((Vec<u8>, Box<Future<Item = Vec<u8>, Error = failure::Error>>)),
 }
 
 pub enum AnswerOrFuture {
     Answer(Answer),
     Future(Box<Future<Item = (Answer, Option<SessionState>), Error = failure::Error>>),
+    AnswerAndFuture(
+        (
+            Answer,
+            Box<Future<Item = (Answer, Option<SessionState>), Error = failure::Error>>,
+        ),
+    ),
 }
 
 pub struct QueryRouter {
@@ -205,6 +212,20 @@ impl QueryRouter {
                 });
                 PacketOrFuture::Future(Box::new(fut))
             }
+            Ok(AnswerOrFuture::AnswerAndFuture((answer, future))) => {
+                let packet =
+                    match query_router.deliver_to_client(&mut parsed_packet, answer, protocol) {
+                        Ok(packet) => packet,
+                        Err(e) => return PacketOrFuture::Future(Box::new(future::err(e))),
+                    };
+                let fut = future.and_then(move |(answer, session_state)| {
+                    query_router.session_state =
+                        session_state.or_else(|| Some(SessionState::default()));
+                    let packet = vec![];
+                    future::ok(packet)
+                });
+                PacketOrFuture::PacketAndFuture((packet, Box::new(fut)))
+            }
             Err(e) => PacketOrFuture::Future(Box::new(future::err(e))),
         }
     }
@@ -260,23 +281,24 @@ impl QueryRouter {
             (session_state.custom_hash, session_state.bypass_cache)
         };
         let mut answer_from_cache = None;
+        let stale_while_revalidate = false;
         if !bypass_cache {
             let cache_key =
                 CacheKey::from_parsed_packet(&mut parsed_packet, custom_hash, bypass_cache)?;
             let cache_entry = self.globals.cache.clone().get2(&cache_key);
             if let Some(cache_entry) = cache_entry {
-                if !cache_entry.is_expired() {
+                if !cache_entry.is_expired() || stale_while_revalidate {
                     let answer = Answer::from(cache_entry.packet);
                     answer_from_cache = Some(answer);
                 }
             }
         }
-        if let Some(answer_from_cache) = answer_from_cache {
+        let answer_from_cache = if let Some(answer_from_cache) = answer_from_cache {
             if hooks_arc.enabled(Stage::Hit) {
                 let (action, packet) = hooks_arc
                     .apply_serverside(
                         self.session_state.as_mut().unwrap(),
-                        answer_from_cache.packet,
+                        answer_from_cache.packet.clone(),
                         Stage::Hit,
                     )
                     .map_err(|e| DNSError::HookError(e))?;
@@ -288,6 +310,7 @@ impl QueryRouter {
                     Action::Drop | Action::Fail => return Err(DNSError::Refused.into()),
                     _ => return Err(DNSError::Unimplemented.into()),
                 }
+                Some(answer_from_cache)
             } else {
                 return Ok(AnswerOrFuture::Answer(answer_from_cache));
             }
@@ -306,7 +329,8 @@ impl QueryRouter {
                     _ => return Err(DNSError::Unimplemented.into()),
                 }
             }
-        }
+            None
+        };
 
         let (response_tx, response_rx) = oneshot::channel();
         let client_query = ClientQuery::udp(
@@ -333,7 +357,14 @@ impl QueryRouter {
             time::Duration::from_millis(UPSTREAM_TOTAL_TIMEOUT_MS),
         );
 
-        Ok(AnswerOrFuture::Future(Box::new(fut_timeout)))
+        if let Some(answer_from_cache) = answer_from_cache {
+            Ok(AnswerOrFuture::AnswerAndFuture((
+                answer_from_cache,
+                Box::new(fut_timeout),
+            )))
+        } else {
+            Ok(AnswerOrFuture::Future(Box::new(fut_timeout)))
+        }
     }
 }
 

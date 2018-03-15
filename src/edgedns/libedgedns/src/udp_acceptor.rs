@@ -103,6 +103,10 @@ impl UdpAcceptor {
             PacketOrFuture::Future(fut) => Box::new(fut.map(move |packet| {
                 let _ = net_udp_socket_inner.send_to(&packet, client_addr);
             })),
+            PacketOrFuture::PacketAndFuture((packet, fut)) => {
+                let _ = self.net_udp_socket.send_to(&packet, client_addr);
+                Box::new(fut.map(move |packet| {})) as Box<Future<Item = _, Error = _>>
+            }
         };
         fut
     }
