@@ -269,7 +269,7 @@ impl QueryRouter {
                 let answer = Answer::from(packet);
                 return Ok(AnswerOrFuture::Answer(answer));
             }
-            Action::Hash | Action::Default => {}
+            Action::Hash | Action::Lookup | Action::Default => {}
             _ => return Err(DNSError::Unimplemented.into()),
         }
         let (custom_hash, bypass_cache, prefetch) = {

@@ -68,21 +68,34 @@ pub struct SessionState {
     pub inner: Arc<RwLock<SessionStateInner>>,
 }
 
+impl SessionState {
+    pub fn shallow_clone(&self) -> SessionState {
+        let inner = self.inner.read();
+        SessionState {
+            inner: Arc::new(RwLock::new(inner.clone())),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Action {
-    Pass = 1,
-    Lookup,
-    Pipe,
-    Hash,
-    Purge,
-    Synth,
-    Drop,
-    Fail,
-    Deliver,
-    Restart,
-    Miss,
-    Fetch,
-    Default,
+    Deliver = 1,
+    DeliverStale = 2,
+    Done = 3,
+    Error = 4,
+    Fetch = 5,
+    Hash = 6,
+    HitForPass = 7,
+    Lookup = 8,
+    Pass = 9,
+    Pipe = 10,
+    Restart = 11,
+    Purge = 12,
+    Synth = 13,
+    Drop = 14,
+    Fail = 15,
+    Miss = 16,
+    Default = 17,
 }
 
 impl From<Action> for c_int {
@@ -94,17 +107,22 @@ impl From<Action> for c_int {
 impl From<c_int> for Action {
     fn from(id: c_int) -> Action {
         match id {
-            x if x == Action::Pass.into() => Action::Pass,
-            x if x == Action::Lookup.into() => Action::Lookup,
-            x if x == Action::Pipe.into() => Action::Pipe,
+            x if x == Action::Deliver.into() => Action::Deliver,
+            x if x == Action::DeliverStale.into() => Action::DeliverStale,
+            x if x == Action::Done.into() => Action::Done,
+            x if x == Action::Error.into() => Action::Error,
+            x if x == Action::Fetch.into() => Action::Fetch,
             x if x == Action::Hash.into() => Action::Hash,
+            x if x == Action::HitForPass.into() => Action::HitForPass,
+            x if x == Action::Lookup.into() => Action::Lookup,
+            x if x == Action::Pass.into() => Action::Pass,
+            x if x == Action::Pipe.into() => Action::Pipe,
+            x if x == Action::Restart.into() => Action::Restart,
             x if x == Action::Purge.into() => Action::Purge,
             x if x == Action::Synth.into() => Action::Synth,
             x if x == Action::Fail.into() => Action::Fail,
-            x if x == Action::Deliver.into() => Action::Deliver,
-            x if x == Action::Restart.into() => Action::Restart,
             x if x == Action::Miss.into() => Action::Miss,
-            x if x == Action::Fetch.into() => Action::Fetch,
+            x if x == Action::Default.into() => Action::Default,
             _ => Action::Drop,
         }
     }
