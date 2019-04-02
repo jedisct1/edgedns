@@ -6,7 +6,7 @@ publish = false
 
 [features]
 webservice = ["hyper"]
-nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly", "coarsetime/nightly"]
+nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly"]
 
 [dependencies]
 base64 = "*"
@@ -15,11 +15,11 @@ byteorder = "*"
 bytes = "*"
 clippy = {version = "*", optional = true}
 clockpro-cache = "*"
-coarsetime = "*"
+coarsetime = "0.1.10"
 dnstap = "*"
 env_logger = "*"
 futures = "*"
-hyper = {version = "*", optional = true, default-features = false}
+hyper = {version = "0.11", optional = true, default-features = false}
 jumphash = "*"
 lazy_static = "*"
 log = "*"
@@ -28,13 +28,13 @@ nix = "~0.8 "
 parking_lot = "*"
 privdrop = "*"
 prometheus = {git = "https://github.com/pingcap/rust-prometheus", default-features = false}
-rand = "*"
+rand = "0.5"
 siphasher = "*"
 slab = "*"
 socket-priority = "*"
 tokio-core = "*"
 tokio-io = "*"
-tokio-timer = "*"
+tokio-timer = "0.1"
 toml = "*"
 
 [profile.release]

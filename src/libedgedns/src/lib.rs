@@ -141,15 +141,15 @@ impl EdgeDNS {
     fn privileges_drop(config: &Config) {
         let mut pd = PrivDrop::default();
         if let Some(ref user) = config.user {
-            pd = pd.user(user);
+            pd = pd.user(user).expect("User not found");
         }
         if let Some(ref group) = config.group {
-            pd = pd.group(group);
+            pd = pd.group(group).expect("Group not found");
         }
         if let Some(ref chroot_dir) = config.chroot_dir {
             pd = pd.chroot(chroot_dir);
         }
-        pd.apply().unwrap();
+        pd.apply().expect("Unable to drop privileges");
     }
 
     pub fn new(config: Config) -> EdgeDNS {
