@@ -148,7 +148,7 @@ EdgeDNS can thus be used as a protection layer for DNS resolvers and
 authoritative servers.
 
 EdgeDNS has been running flawlessly on the public
-[dnscrypt.org-fr](https://fr.dnscrypt.org/) server since January 2016.
+[scaleway-fr](https://fr.dnscrypt.info/) server since January 2016.
 
 ### DNSSEC support
 
