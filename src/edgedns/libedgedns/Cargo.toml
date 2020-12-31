@@ -51,7 +51,6 @@ tokio-io = "*"
 tokio-timer = "*"
 tokio-uds = "*"
 toml = "*"
-unicase = "*"
 xfailure = "*"
 
 [build-dependencies]
