@@ -5,10 +5,9 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 
 [features]
 webservice = ["libedgedns/webservice"]
-nightly = ["libedgedns/nightly", "clap/nightly", "log/nightly"]
 clippy = ["libedgedns/clippy"]
 
-default = ["nightly", "webservice"]
+default = ["webservice"]
 
 [dev-dependencies]
 nix = "*"
@@ -20,8 +19,8 @@ path = "src/libedgedns"
 
 [dependencies]
 clap = "*"
-env_logger = "*"
-log = "*"
+env_logger = "0.11"
+log = "0.4"
 
 [profile.release]
 lto = true

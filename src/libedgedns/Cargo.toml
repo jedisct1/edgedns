@@ -6,7 +6,6 @@ publish = false
 
 [features]
 webservice = ["hyper"]
-nightly = ["hyper/nightly", "log/nightly", "prometheus/nightly"]
 
 [dependencies]
 base64 = "*"
@@ -14,20 +13,20 @@ bpf = "*"
 byteorder = "*"
 bytes = "*"
 clippy = {version = "*", optional = true}
-clockpro-cache = "*"
+clockpro-cache = "0.1.12"
 coarsetime = "0.1.10"
 dnstap = "*"
-env_logger = "*"
+env_logger = "0.11"
 futures = "*"
 hyper = {version = "0.11", optional = true, default-features = false}
 jumphash = "*"
 lazy_static = "*"
-log = "*"
+log = "0.4"
 net2 = "*"
 nix = "~0.8 "
 parking_lot = "*"
 privdrop = "*"
-prometheus = {git = "https://github.com/pingcap/rust-prometheus", default-features = false}
+prometheus = "*"
 rand = "0.5"
 siphasher = "*"
 slab = "*"
