@@ -1,9 +1,10 @@
 //! Send authoritative data received from upstream servers to a dnstap socket
 
-use config::Config;
 use coarsetime::Clock;
-use dnstap::{self, DNSMessage, DNSTapBuilder, DNSTapPendingWriter, DNSTapWriter, MessageType,
-             SocketProtocol};
+use config::Config;
+use dnstap::{
+    self, DNSMessage, DNSTapBuilder, DNSTapPendingWriter, DNSTapWriter, MessageType, SocketProtocol,
+};
 use std::net::SocketAddr;
 
 pub struct LogDNSTap {
@@ -40,8 +41,8 @@ impl LogDNSTap {
         LogDNSTap {
             dnstap_pending_writer: Some(dnstap_pending_writer),
             dnstap_writer: None,
-            dnstap_identity: dnstap_identity,
-            dnstap_version: dnstap_version,
+            dnstap_identity,
+            dnstap_version,
         }
     }
 
@@ -78,7 +79,7 @@ impl Sender {
                 dnstap_version,
                 MessageType::FORWARDER_RESPONSE,
             ),
-            dnstap_sender: dnstap_sender,
+            dnstap_sender,
         }
     }
 

@@ -8,19 +8,19 @@ mod test {
     extern crate env_logger;
     use libedgedns::{Config, EdgeDNS};
 
-    use nix::sys::signal::{kill, SIGKILL};
-    use nix::sys::ioctl::libc::pid_t;
-    use nix::unistd::{fork, read, ForkResult, dup2};
     use nix::sys::ioctl::libc::alarm;
+    use nix::sys::ioctl::libc::pid_t;
+    use nix::sys::signal::{kill, SIGKILL};
     use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
+    use nix::unistd::{dup2, fork, read, ForkResult};
 
     use regex::Regex;
 
     use std::env;
     use std::io::Write;
-    use std::process::{exit, Command, ExitStatus};
     use std::os::unix::io::RawFd;
     use std::os::unix::process::CommandExt;
+    use std::process::{exit, Command, ExitStatus};
     use std::string::String;
     use std::time::Duration;
 
@@ -60,7 +60,6 @@ mod test {
         F1: Fn() -> (),
         F2: FnMut(&str, pid_t) -> bool,
     {
-
         let mut server = Server {
             pid: 0,
             output: 0,
@@ -160,8 +159,7 @@ mod test {
     log stdout
 }}
 "#,
-            domain,
-            zfile_path
+            domain, zfile_path
         );
         conf_file
             .write_all(conf_str.as_bytes())
@@ -238,7 +236,7 @@ mod test {
         }
     }
 
-    static EXAMPLE_DOT_COM_ZONE : &'static str = r#"
+    static EXAMPLE_DOT_COM_ZONE: &'static str = r#"
 $ORIGIN example.com.     ; designates the start of this zone file in the namespace
 $TTL 1h                  ; default expiration time of all resource records without their own TTL value
 example.com.  IN  SOA   ns.example.com. username.example.com. ( 2007120710 1d 2h 4w 1h )
@@ -272,9 +270,8 @@ listen = "127.0.0.1:0"
             coredns.udp_port
         );
         let server = spawn_edgedns(&cfg);
-        let re = Regex::new(
-            r"\n;; ANSWER SECTION:\nmail.example.com.\s+\d+\s+IN\s+A\s+192.0.2.3",
-        ).unwrap();
+        let re = Regex::new(r"\n;; ANSWER SECTION:\nmail.example.com.\s+\d+\s+IN\s+A\s+192.0.2.3")
+            .unwrap();
         for port in &server.udp_ports {
             let output = dig("mail.example.com", Qprotocol::UDP, "127.0.0.1", *port).stdout;
             assert!(re.is_match(&output));

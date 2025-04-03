@@ -24,8 +24,8 @@ const PROBE_KEY_B64_LEN: usize = 16;
 
 lazy_static! {
     static ref HASHER: SipHasher13 = {
-        let mut rng = rand::thread_rng();   
-        SipHasher13::new_with_keys(rng.gen(), rng.gen())          
+        let mut rng = rand::thread_rng();
+        SipHasher13::new_with_keys(rng.gen(), rng.gen())
     };
 }
 
@@ -48,7 +48,7 @@ impl UpstreamProbe {
         let random_token_range = Range::new(0usize, net_ext_udp_sockets.len());
         let random_token = random_token_range.ind_sample(&mut rng);
         let net_ext_udp_socket = &net_ext_udp_sockets[random_token];
-        let _ = net_ext_udp_socket.send_to(&packet, &upstream_server.socket_addr);
+        let _ = net_ext_udp_socket.send_to(&packet, upstream_server.socket_addr);
         info!("Sent probe to {}", upstream_server.socket_addr.ip());
         probe
     }
@@ -97,14 +97,14 @@ impl UpstreamProbe {
         } else {
             probe_suffix.len() + 1
         };
-        if probe_name.len() !=
-            1 + probe_prefix_len + PROBE_KEY_B64_LEN + 1 + probe_suffix_len_with_terminator
+        if probe_name.len()
+            != 1 + probe_prefix_len + PROBE_KEY_B64_LEN + 1 + probe_suffix_len_with_terminator
         {
             return Err("Name length doesn't match the length of a valid probe");
         }
-        if probe_name.is_empty() ||
-            probe_name[0] as usize != probe_prefix_len + PROBE_KEY_B64_LEN ||
-            !probe_name[1..].starts_with(PROBE_PREFIX)
+        if probe_name.is_empty()
+            || probe_name[0] as usize != probe_prefix_len + PROBE_KEY_B64_LEN
+            || !probe_name[1..].starts_with(PROBE_PREFIX)
         {
             return Err("Probe prefix doesn't match");
         }

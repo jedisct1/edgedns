@@ -1,16 +1,16 @@
 //! A Client Query represents a question sent from the Udp and Tcp listeners
 //! to a Resolver. It does *not* represent a question sent to an upstream server.
 
+use super::{DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE};
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use coarsetime::Instant;
 use dns::{self, NormalizedQuestion};
 use futures::sync::mpsc::Sender;
-use futures::{future, Future};
 use futures::Sink;
+use futures::{future, Future};
 use std::io;
 use std::net::{self, SocketAddr};
 use std::sync::Arc;
-use super::{DNS_MAX_TCP_SIZE, DNS_MAX_UDP_SIZE, DNS_QUERY_MIN_SIZE};
 use varz::Varz;
 
 #[derive(Clone, Debug)]
@@ -45,9 +45,9 @@ impl ClientQuery {
             proto: ClientQueryProtocol::UDP,
             client_addr: Some(client_addr),
             tcpclient_tx: None,
-            normalized_question: normalized_question,
+            normalized_question,
             ts: Instant::recent(),
-            varz: varz,
+            varz,
         }
     }
 
@@ -60,7 +60,7 @@ impl ClientQuery {
             proto: ClientQueryProtocol::TCP,
             client_addr: None,
             tcpclient_tx: Some(tcpclient_tx),
-            normalized_question: normalized_question,
+            normalized_question,
             ts: Instant::recent(),
             varz: varz.clone(),
         }
@@ -74,9 +74,9 @@ impl ClientQuery {
         let normalized_question = &self.normalized_question;
         let packet_len = packet.len();
         let mut refused_packet;
-        let mut packet = if packet_len < DNS_QUERY_MIN_SIZE ||
-            (self.proto == ClientQueryProtocol::UDP && packet_len > DNS_MAX_UDP_SIZE) ||
-            (self.proto == ClientQueryProtocol::TCP && packet_len > DNS_MAX_TCP_SIZE)
+        let packet = if packet_len < DNS_QUERY_MIN_SIZE
+            || (self.proto == ClientQueryProtocol::UDP && packet_len > DNS_MAX_UDP_SIZE)
+            || (self.proto == ClientQueryProtocol::TCP && packet_len > DNS_MAX_TCP_SIZE)
         {
             refused_packet = dns::build_refused_packet(normalized_question).unwrap();
             refused_packet.as_mut()
@@ -84,14 +84,14 @@ impl ClientQuery {
             packet
         };
         let tc_packet;
-        let packet = if self.proto == ClientQueryProtocol::UDP &&
-            packet.len() > normalized_question.payload_size as usize
+        let packet = if self.proto == ClientQueryProtocol::UDP
+            && packet.len() > normalized_question.payload_size as usize
         {
             tc_packet = dns::build_tc_packet(normalized_question).unwrap();
             tc_packet.as_ref()
         } else {
-            dns::set_tid(&mut packet, normalized_question.tid);
-            dns::overwrite_qname(&mut packet, &normalized_question.qname);
+            dns::set_tid(packet, normalized_question.tid);
+            dns::overwrite_qname(packet, &normalized_question.qname);
             packet
         };
         match self.proto {
@@ -112,9 +112,7 @@ impl ClientQuery {
                 return Box::new(
                     self.tcpclient_tx
                         .clone()
-                        .expect(
-                            "Response sent using TCP but no associated TCP client channel",
-                        )
+                        .expect("Response sent using TCP but no associated TCP client channel")
                         .send(resolver_response)
                         .map(|_| {})
                         .map_err(|_| io::Error::last_os_error()),

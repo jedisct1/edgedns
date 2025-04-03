@@ -8,8 +8,8 @@ use hyper::server::{Http, Request, Response, Server, Service};
 use hyper::{StatusCode, Uri};
 use prometheus::{self, Encoder, TextEncoder};
 use std::io;
-use std::sync::Arc;
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 use varz::{StartInstant, Varz};
 

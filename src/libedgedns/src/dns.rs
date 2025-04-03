@@ -5,7 +5,7 @@ use rand::random;
 use std::fmt;
 use std::io::Write;
 
-use super::{DNS_UDP_NOEDNS0_MAX_SIZE, DNS_QUERY_MIN_SIZE};
+use super::{DNS_QUERY_MIN_SIZE, DNS_UDP_NOEDNS0_MAX_SIZE};
 
 pub const DNS_CLASS_CH: u16 = 3;
 pub const DNS_CLASS_IN: u16 = 1;
@@ -234,22 +234,19 @@ pub fn question(packet: &[u8]) -> Result<QuestionRR, &'static str> {
     if packet_len <= DNS_OFFSET_QUESTION {
         return Err("Short packet");
     }
-    let (offset, labels_count) = match skip_name(packet, DNS_OFFSET_QUESTION) {
-        Ok(offset_and_labels) => offset_and_labels,
-        Err(e) => return Err(e),
-    };
+    let (offset, labels_count) = skip_name(packet, DNS_OFFSET_QUESTION)?;
     assert!(offset > DNS_OFFSET_QUESTION);
     let qname = &packet[DNS_OFFSET_QUESTION..offset - 1];
     if 4 > packet_len - offset {
         return Err("Short packet");
     }
-    let qtype = (packet[offset] as u16) << 8 | packet[offset + 1] as u16;
-    let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
+    let qtype = ((packet[offset] as u16) << 8) | packet[offset + 1] as u16;
+    let qclass = ((packet[offset + 2] as u16) << 8) | packet[offset + 3] as u16;
     let question_rr = QuestionRR {
-        qname: qname,
-        qtype: qtype,
-        qclass: qclass,
-        labels_count: labels_count,
+        qname,
+        qtype,
+        qclass,
+        labels_count,
     };
     Ok(question_rr)
 }
@@ -281,8 +278,7 @@ fn skip_name(packet: &[u8], offset: usize) -> Result<(usize, u16), &'static str>
         if name_len > DNS_MAX_HOSTNAME_LEN {
             info!(
                 "Name too long: {} bytes > {}",
-                name_len,
-                DNS_MAX_HOSTNAME_LEN
+                name_len, DNS_MAX_HOSTNAME_LEN
             );
             return Err("Name too long");
         }
@@ -325,13 +321,13 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
         return None;
     }
     debug_assert!(DNS_OFFSET_EDNS_PAYLOAD_SIZE > DNS_OFFSET_EDNS_TYPE);
-    if packet[offset + DNS_OFFSET_EDNS_TYPE] != (DNS_TYPE_OPT >> 8) as u8 ||
-        packet[offset + DNS_OFFSET_EDNS_TYPE + 1] != DNS_TYPE_OPT as u8
+    if packet[offset + DNS_OFFSET_EDNS_TYPE] != (DNS_TYPE_OPT >> 8) as u8
+        || packet[offset + DNS_OFFSET_EDNS_TYPE + 1] != DNS_TYPE_OPT as u8
     {
         return None;
     }
-    let mut payload_size = ((packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE] as u16) << 8) |
-        packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE + 1] as u16;
+    let mut payload_size = ((packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE] as u16) << 8)
+        | packet[offset + DNS_OFFSET_EDNS_PAYLOAD_SIZE + 1] as u16;
     if offset >= packet_len - DNS_OFFSET_EDNS_DO {
         return None;
     }
@@ -340,8 +336,8 @@ fn parse_edns0(packet: &[u8]) -> Option<EDNS0> {
         payload_size = DNS_UDP_NOEDNS0_MAX_SIZE as u16;
     }
     Some(EDNS0 {
-        payload_size: payload_size,
-        dnssec: dnssec,
+        payload_size,
+        dnssec,
     })
 }
 
@@ -377,7 +373,7 @@ impl NormalizedQuestion {
             self.dnssec
         };
         NormalizedQuestionKey {
-            dnssec: dnssec,
+            dnssec,
             qname_lc: qname_lc(&self.qname),
             qtype: self.qtype,
             qclass: self.qclass,
@@ -441,10 +437,7 @@ pub fn normalize(packet: &[u8], is_question: bool) -> Result<NormalizedQuestion,
     if qdcount(packet) != 1 {
         return Err("Unsupported number of questions");
     }
-    let question = match question(packet) {
-        Ok(question) => question,
-        Err(e) => return Err(e),
-    };
+    let question = question(packet)?;
     let mut normalized_question = NormalizedQuestion {
         tid: tid(packet),
         flags: flags(packet),
@@ -495,7 +488,7 @@ pub fn min_ttl(
     if 4 > packet_len - offset {
         return Err("Short packet");
     }
-    let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
+    let qclass = ((packet[offset + 2] as u16) << 8) | packet[offset + 3] as u16;
     if qclass != DNS_CLASS_IN {
         return Err("Unsupported query class");
     }
@@ -513,11 +506,13 @@ pub fn min_ttl(
         if 10 > packet_len - offset {
             return Err("Short packet");
         }
-        let qtype = (packet[offset] as u16) << 8 | packet[offset + 1] as u16;
-        let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
-        let ttl = (packet[offset + 4] as u32) << 24 | (packet[offset + 5] as u32) << 16 |
-            (packet[offset + 6] as u32) << 8 | packet[offset + 7] as u32;
-        let rdlen = ((packet[offset + 8] as u16) << 8 | packet[offset + 9] as u16) as usize;
+        let qtype = ((packet[offset] as u16) << 8) | packet[offset + 1] as u16;
+        let qclass = ((packet[offset + 2] as u16) << 8) | packet[offset + 3] as u16;
+        let ttl = ((packet[offset + 4] as u32) << 24)
+            | ((packet[offset + 5] as u32) << 16)
+            | ((packet[offset + 6] as u32) << 8)
+            | packet[offset + 7] as u32;
+        let rdlen = (((packet[offset + 8] as u16) << 8) | packet[offset + 9] as u16) as usize;
         offset += 10;
         if qtype != DNS_TYPE_OPT {
             if qclass != DNS_CLASS_IN {
@@ -557,7 +552,7 @@ pub fn set_ttl(packet: &mut [u8], ttl: u32) -> Result<(), &'static str> {
     if 4 > packet_len - offset {
         return Err("Short packet");
     }
-    let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
+    let qclass = ((packet[offset + 2] as u16) << 8) | packet[offset + 3] as u16;
     if qclass != DNS_CLASS_IN {
         return Err("Unsupported query class");
     }
@@ -573,15 +568,15 @@ pub fn set_ttl(packet: &mut [u8], ttl: u32) -> Result<(), &'static str> {
         if 10 > packet_len - offset {
             return Err("Short packet");
         }
-        let qtype = (packet[offset] as u16) << 8 | packet[offset + 1] as u16;
-        let qclass = (packet[offset + 2] as u16) << 8 | packet[offset + 3] as u16;
+        let qtype = ((packet[offset] as u16) << 8) | packet[offset + 1] as u16;
+        let qclass = ((packet[offset + 2] as u16) << 8) | packet[offset + 3] as u16;
         if qtype != DNS_TYPE_OPT || qclass != DNS_CLASS_IN {
             packet[offset + 4] = (ttl >> 24) as u8;
             packet[offset + 5] = (ttl >> 16) as u8;
             packet[offset + 6] = (ttl >> 8) as u8;
             packet[offset + 7] = ttl as u8;
         }
-        let rdlen = ((packet[offset + 8] as u16) << 8 | packet[offset + 9] as u16) as usize;
+        let rdlen = (((packet[offset + 8] as u16) << 8) | packet[offset + 9] as u16) as usize;
         offset += 10;
         if rdlen > packet_len - offset {
             return Err("Record length would exceed packet length");
@@ -794,10 +789,8 @@ pub fn build_query_packet(
     let mut qname = qname_lc(&normalized_question.qname);
     let qname_len = qname.len();
     let force_dnssec = if qname_len == 0 { true } else { force_dnssec };
-    if force_dnssec || normalized_question.dnssec {
-        if qname_len > 0 {
-            qname[qname_len - 1] &= !0x20;
-        }
+    if (force_dnssec || normalized_question.dnssec) && qname_len > 0 {
+        qname[qname_len - 1] &= !0x20;
     }
     let capacity = DNS_HEADER_SIZE + qname_len + 1 + 15;
     let mut packet = Vec::with_capacity(capacity);
@@ -829,8 +822,8 @@ pub fn build_query_packet(
     packet.extend_from_slice(&edns_rcode_rdlen); // EDNS rcode + rdlen
 
     let normalized_question_minimal = NormalizedQuestionMinimal {
-        qname: qname,
-        tid: tid,
+        qname,
+        tid,
         qtype: normalized_question.qtype,
         qclass: normalized_question.qclass,
     };

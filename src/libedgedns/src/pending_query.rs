@@ -36,14 +36,14 @@ impl PendingQuery {
     ) -> Self {
         let varz = client_query.varz.clone();
         PendingQuery {
-            normalized_question_minimal: normalized_question_minimal,
+            normalized_question_minimal,
             local_port: net_ext_udp_socket.local_addr().unwrap().port(),
             client_queries: vec![client_query.clone()],
             ts: Instant::recent(),
-            upstream_server_idx: upstream_server_idx,
+            upstream_server_idx,
             probed_upstream_server_idx: None,
-            done_tx: done_tx,
-            varz: varz,
+            done_tx,
+            varz,
         }
     }
 }
@@ -56,6 +56,6 @@ pub struct PendingQueries {
 impl PendingQueries {
     pub fn new() -> Self {
         let map_arc = Arc::new(RwLock::new(HashMap::new()));
-        PendingQueries { map_arc: map_arc }
+        PendingQueries { map_arc }
     }
 }

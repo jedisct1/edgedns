@@ -7,30 +7,30 @@
 //! unresponsive after too many timeouts, and bringing them back to life after
 //! regular probes have been successfully received.
 
+use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use cache::Cache;
 use client_query::ClientQuery;
 use coarsetime::{Duration, Instant};
 use config::Config;
 use dns::{self, NormalizedQuestion, NormalizedQuestionKey, NormalizedQuestionMinimal};
-use futures::Future;
-use futures::Stream;
 use futures::future;
 use futures::sync::mpsc::Receiver;
 use futures::sync::oneshot;
+use futures::Future;
+use futures::Stream;
 use jumphash::JumpHasher;
 use parking_lot::RwLock;
 use pending_query::{PendingQueries, PendingQuery};
-use rand::distributions::{IndependentSample, Range};
 use rand;
+use rand::distributions::{IndependentSample, Range};
 use resolver::{LoadBalancingMode, ResolverCore};
 use std::io;
 use std::net;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::Arc;
 use std::time;
-use super::{UPSTREAM_PROBES_DELAY_MS, UPSTREAM_QUERY_MAX_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use tokio_timer::{wheel, Timer};
 use upstream_server::UpstreamServer;
@@ -86,7 +86,7 @@ impl ClientQueriesHandler {
             upstream_servers_live_arc: resolver_core.upstream_servers_live_arc.clone(),
             waiting_clients_count: resolver_core.waiting_clients_count.clone(),
             jumphasher: resolver_core.jumphasher,
-            timer: timer,
+            timer,
             varz: resolver_core.varz.clone(),
         }
     }
@@ -185,10 +185,12 @@ impl ClientQueriesHandler {
         let offline_servers: Vec<_> = upstream_servers
             .iter()
             .enumerate()
-            .filter_map(|(idx, upstream_server)| if upstream_server.offline {
-                Some(idx)
-            } else {
-                None
+            .filter_map(|(idx, upstream_server)| {
+                if upstream_server.offline {
+                    Some(idx)
+                } else {
+                    None
+                }
             })
             .collect();
         if offline_servers.is_empty() {
@@ -201,8 +203,8 @@ impl ClientQueriesHandler {
             offline_servers[random_offline_server_range.ind_sample(&mut rng)];
         let random_offline_server = &mut upstream_servers[random_offline_server_idx];
         if let Some(last_probe_ts) = random_offline_server.last_probe_ts {
-            if last_probe_ts.elapsed_since_recent() <
-                Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
+            if last_probe_ts.elapsed_since_recent()
+                < Duration::from_millis(UPSTREAM_PROBES_DELAY_MS)
             {
                 return Ok(None);
             }
@@ -210,7 +212,7 @@ impl ClientQueriesHandler {
         info!("Sending probe to {}", random_offline_server.remote_addr);
         random_offline_server.last_probe_ts = Some(Instant::recent());
         net_ext_udp_socket
-            .send_to(query_packet, &random_offline_server.socket_addr)
+            .send_to(query_packet, random_offline_server.socket_addr)
             .map(|_| Some(random_offline_server_idx))
     }
 
@@ -265,8 +267,7 @@ impl ClientQueriesHandler {
         let mut map = self.pending_queries.map_arc.write();
         debug!(
             "Sending {:?} to {:?}",
-            pending_query.normalized_question_minimal,
-            upstream_server.socket_addr
+            pending_query.normalized_question_minimal, upstream_server.socket_addr
         );
         self.varz.inflight_queries.inc();
         upstream_server.prepare_send(&self.config);
@@ -274,11 +275,10 @@ impl ClientQueriesHandler {
             upstream_server.pending_queries_count.saturating_add(1);
         debug!(
             "queries_count for server {}: {}",
-            upstream_server_idx,
-            upstream_server.pending_queries_count
+            upstream_server_idx, upstream_server.pending_queries_count
         );
         map.insert(key, pending_query);
-        let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
+        let _ = net_ext_udp_socket.send_to(&query_packet, upstream_server.socket_addr);
         self.varz.upstream_sent.inc();
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(
@@ -320,7 +320,9 @@ impl ClientQueriesHandler {
         let mut map = self.pending_queries.map_arc.write();
         let key = normalized_question.key();
         let pending_query = match map.get_mut(&key) {
-            None => return Box::new(future::ok(())) as Box<dyn Future<Item = (), Error = io::Error>>,
+            None => {
+                return Box::new(future::ok(())) as Box<dyn Future<Item = (), Error = io::Error>>
+            }
             Some(pending_query) => pending_query,
         };
         let mut upstream_servers = self.upstream_servers_arc.write();
@@ -331,8 +333,7 @@ impl ClientQueriesHandler {
             .saturating_sub(1);
         debug!(
             "Decrementing the number of pending queries for upstream {}: {}",
-            upstream_server_idx,
-            upstream_servers[upstream_server_idx].pending_queries_count
+            upstream_server_idx, upstream_servers[upstream_server_idx].pending_queries_count
         );
 
         let nq = normalized_question.new_pending_query(
@@ -347,7 +348,8 @@ impl ClientQueriesHandler {
             match nq {
                 Ok(x) => x,
                 Err(_) => {
-                    return Box::new(future::ok(())) as Box<dyn Future<Item = (), Error = io::Error>>
+                    return Box::new(future::ok(()))
+                        as Box<dyn Future<Item = (), Error = io::Error>>
                 }
             };
         let upstream_server = &mut upstream_servers[upstream_server_idx];
@@ -362,13 +364,12 @@ impl ClientQueriesHandler {
         pending_query.ts = Instant::recent();
         pending_query.upstream_server_idx = upstream_server_idx;
         pending_query.done_tx = done_tx;
-        let _ = net_ext_udp_socket.send_to(&query_packet, &upstream_server.socket_addr);
+        let _ = net_ext_udp_socket.send_to(&query_packet, upstream_server.socket_addr);
         upstream_server.pending_queries_count =
             upstream_server.pending_queries_count.saturating_add(1);
         debug!(
             "New attempt: upstream server {} queries count: {}",
-            upstream_server_idx,
-            upstream_server.pending_queries_count
+            upstream_server_idx, upstream_server.pending_queries_count
         );
         let done_rx = done_rx.map_err(|_| ());
         let timeout = self.timer.timeout(
@@ -401,8 +402,11 @@ impl ClientQueriesHandler {
                         upstream_server_idx,
                         upstream_servers[upstream_server_idx].pending_queries_count
                     );
-                    upstream_servers[upstream_server_idx]
-                        .record_failure(&config, &handle, &net_ext_udp_sockets_rc);
+                    upstream_servers[upstream_server_idx].record_failure(
+                        &config,
+                        &handle,
+                        &net_ext_udp_sockets_rc,
+                    );
                     *upstream_servers_live_arc.write() =
                         UpstreamServer::live_servers(&mut upstream_servers);
                 }
@@ -481,16 +485,13 @@ impl NormalizedQuestion {
     > {
         let (query_packet, normalized_question_minimal) =
             dns::build_query_packet(self, false).expect("Unable to build a new query packet");
-        let upstream_server_idx = match self.pick_upstream(
+        let upstream_server_idx = self.pick_upstream(
             upstream_servers,
             upstream_servers_live,
             jumphasher,
             is_retry,
             lbmode,
-        ) {
-            Err(e) => return Err(e),
-            Ok(upstream_server_idx) => upstream_server_idx,
-        };
+        )?;
         let mut rng = rand::thread_rng();
         let random_token_range = Range::new(0usize, net_ext_udp_sockets.len());
         let random_token = random_token_range.ind_sample(&mut rng);

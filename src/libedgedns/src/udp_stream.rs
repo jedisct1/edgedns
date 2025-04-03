@@ -2,12 +2,12 @@
 //!
 //! This provides a consistent interface with TCP sockets.
 
+use super::DNS_MAX_UDP_SIZE;
 use futures::{Async, Poll, Stream};
 use net::SocketAddr;
 use std::io;
 use std::net;
 use std::rc::Rc;
-use super::DNS_MAX_UDP_SIZE;
 use tokio_core::net::UdpSocket;
 use tokio_core::reactor::Handle;
 

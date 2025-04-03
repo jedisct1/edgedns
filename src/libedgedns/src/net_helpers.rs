@@ -1,16 +1,18 @@
 //! Unix-specific helpers to create sockets with specific options
 
+use super::{TCP_BACKLOG, UDP_BUFFER_SIZE};
 use bpf;
 use nix::fcntl::FcntlArg::F_SETFL;
 use nix::fcntl::{fcntl, O_NONBLOCK};
-use nix::sys::socket::{bind, listen, setsockopt, socket, sockopt, AddressFamily, InetAddr,
-                       SockAddr, SockFlag, SockLevel, SockType};
+use nix::sys::socket::{
+    bind, listen, setsockopt, socket, sockopt, AddressFamily, InetAddr, SockAddr, SockFlag,
+    SockLevel, SockType,
+};
 use socket_priority;
-use std::net::{self, SocketAddr, UdpSocket};
 use std::io;
+use std::net::{self, SocketAddr, UdpSocket};
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::str::FromStr;
-use super::{TCP_BACKLOG, UDP_BUFFER_SIZE};
 
 #[inline]
 pub fn socket_tcp_v4() -> io::Result<RawFd> {

@@ -5,13 +5,15 @@
 //! The number of in-flight queries for individual servers is also present,
 //! so that we can use this information for balancing the load.
 
+use super::{
+    UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MAX_TIMEOUT_MS,
+    UPSTREAM_QUERY_MIN_TIMEOUT_MS,
+};
 use coarsetime::{Duration, Instant};
 use config::Config;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::Arc;
-use super::{UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT, UPSTREAM_QUERY_MAX_TIMEOUT_MS,
-            UPSTREAM_QUERY_MIN_TIMEOUT_MS};
 use tokio_core::reactor::Handle;
 use upstream_probe::UpstreamProbe;
 use varz::Varz;
@@ -39,7 +41,7 @@ impl UpstreamServer {
         };
         let upstream_server = UpstreamServer {
             remote_addr: remote_addr.to_owned(),
-            socket_addr: socket_addr,
+            socket_addr,
             pending_queries_count: 0,
             failures: 0,
             last_successful_response_instant: Instant::now(),
@@ -59,9 +61,9 @@ impl UpstreamServer {
     }
 
     pub fn prepare_send(&mut self, config: &Config) {
-        if self.offline ||
-            self.last_successful_response_instant.elapsed_since_recent() <
-                config.upstream_max_failure_duration
+        if self.offline
+            || self.last_successful_response_instant.elapsed_since_recent()
+                < config.upstream_max_failure_duration
         {
             return;
         }
@@ -78,8 +80,8 @@ impl UpstreamServer {
             return;
         }
         self.failures = self.failures.saturating_add(1);
-        if self.last_successful_response_instant.elapsed_since_recent() <
-            config.upstream_max_failure_duration
+        if self.last_successful_response_instant.elapsed_since_recent()
+            < config.upstream_max_failure_duration
         {
             return;
         }
@@ -126,9 +128,9 @@ impl UpstreamServer {
         let timeout = match self.rtt_est {
             None => UPSTREAM_QUERY_MAX_TIMEOUT_MS,
             Some(rtt_est) => {
-                let timeout = ((rtt_est +
-                    self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT) *
-                    1000.0) as u64;
+                let timeout = ((rtt_est
+                    + self.rtt_dev_est * UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT)
+                    * 1000.0) as u64;
                 if timeout < UPSTREAM_QUERY_MIN_TIMEOUT_MS {
                     UPSTREAM_QUERY_MIN_TIMEOUT_MS
                 } else if timeout > UPSTREAM_QUERY_MAX_TIMEOUT_MS {

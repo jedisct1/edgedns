@@ -10,20 +10,20 @@
 //!
 //! Timeouts are currently handled by the Resolvers themselves.
 
+use super::EdgeDNSContext;
 use cache::Cache;
 use client_query::*;
 use dns;
-use futures::Sink;
 use futures::future::{self, Future};
 use futures::oneshot;
 use futures::stream::Stream;
 use futures::sync::mpsc::Sender;
+use futures::Sink;
 use std::io;
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
 use std::sync::{mpsc, Arc};
 use std::thread;
-use super::EdgeDNSContext;
 use tokio_core::reactor::{Core, Handle};
 use udp_stream::*;
 use varz::Varz;
@@ -65,7 +65,7 @@ impl UdpAcceptor {
     ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         self.varz.client_queries_udp.inc();
         let count = packet.len();
-        if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
+        if !(DNS_QUERY_MIN_SIZE..=DNS_QUERY_MAX_SIZE).contains(&count) {
             info!("Short query using UDP");
             self.varz.client_queries_errors.inc();
             return Box::new(future::ok(())) as Box<dyn Future<Item = _, Error = _>>;
@@ -90,7 +90,8 @@ impl UdpAcceptor {
             self.varz.client_queries_expired.inc();
         }
         debug!("Sending query to the resolver");
-        let fut_resolver_query = self.resolver_tx
+        let fut_resolver_query = self
+            .resolver_tx
             .clone()
             .send(client_query)
             .map_err(|_| io::Error::last_os_error())
@@ -107,11 +108,10 @@ impl UdpAcceptor {
                 .try_clone()
                 .expect("Unable to clone UDP socket"),
             handle,
-        ).expect("Cannot create a UDP stream")
-            .for_each(move |(packet, client_addr)| {
-                self.fut_process_query(packet, client_addr)
-            })
-            .map_err(|_| io::Error::last_os_error())
+        )
+        .expect("Cannot create a UDP stream")
+        .for_each(move |(packet, client_addr)| self.fut_process_query(packet, client_addr))
+        .map_err(|_| io::Error::last_os_error())
     }
 }
 
@@ -143,11 +143,11 @@ impl UdpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let udp_acceptor_core = UdpAcceptorCore {
-                    net_udp_socket: net_udp_socket,
-                    cache: cache,
-                    resolver_tx: resolver_tx,
+                    net_udp_socket,
+                    cache,
+                    resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
-                    varz: varz,
+                    varz,
                 };
                 let udp_acceptor = UdpAcceptor::new(&udp_acceptor_core);
                 udp_acceptor_core

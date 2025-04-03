@@ -19,8 +19,8 @@
 use clockpro_cache::*;
 use coarsetime::{Duration, Instant};
 use config::Config;
-use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
 use dns;
+use dns::{NormalizedQuestion, NormalizedQuestionKey, DNS_CLASS_IN, DNS_RCODE_NXDOMAIN};
 use parking_lot::Mutex;
 use std::sync::Arc;
 
@@ -55,10 +55,7 @@ impl Cache {
     pub fn new(config: Config) -> Cache {
         let arc = ClockProCache::new(config.cache_size).unwrap();
         let arc_mx = Arc::new(Mutex::new(arc));
-        Cache {
-            config: config,
-            arc_mx: arc_mx,
-        }
+        Cache { config, arc_mx }
     }
 
     pub fn stats(&self) -> CacheStats {
@@ -85,10 +82,7 @@ impl Cache {
         let now = Instant::recent();
         let duration = Duration::from_secs(ttl as u64);
         let expiration = now + duration;
-        let cache_entry = CacheEntry {
-            expiration: expiration,
-            packet: packet,
-        };
+        let cache_entry = CacheEntry { expiration, packet };
         let mut cache = self.arc_mx.lock();
         cache.insert(normalized_question_key, cache_entry)
     }
@@ -97,7 +91,7 @@ impl Cache {
         let mut cache = self.arc_mx.lock();
         cache
             .get_mut(normalized_question_key)
-            .and_then(|res| Some(res.clone()))
+            .map(|res| res.clone())
     }
 
     /// get2() does a couple things before checking that a key is present in the cache.
@@ -147,8 +141,8 @@ impl Cache {
                     if let Some(shifted_cache_entry) = shifted_cache_entry {
                         debug!("Shifted query cached");
                         let shifted_packet = shifted_cache_entry.packet;
-                        if shifted_packet.len() >= dns::DNS_HEADER_SIZE &&
-                            dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN
+                        if shifted_packet.len() >= dns::DNS_HEADER_SIZE
+                            && dns::rcode(&shifted_packet) == DNS_RCODE_NXDOMAIN
                         {
                             debug!("Shifted query returned NXDOMAIN");
                             return Some(CacheEntry {
@@ -164,15 +158,15 @@ impl Cache {
     }
 
     fn handle_special_queries(&self, normalized_question: &NormalizedQuestion) -> Option<Vec<u8>> {
-        if normalized_question.qclass == dns::DNS_CLASS_IN &&
-            normalized_question.qtype == dns::DNS_TYPE_ANY
+        if normalized_question.qclass == dns::DNS_CLASS_IN
+            && normalized_question.qtype == dns::DNS_TYPE_ANY
         {
             debug!("ANY query");
             let packet = dns::build_any_packet(normalized_question, self.config.max_ttl).unwrap();
             return Some(packet);
         }
-        if normalized_question.qclass == dns::DNS_CLASS_CH &&
-            normalized_question.qtype == dns::DNS_TYPE_TXT
+        if normalized_question.qclass == dns::DNS_CLASS_CH
+            && normalized_question.qtype == dns::DNS_TYPE_TXT
         {
             debug!("CHAOS TXT");
             let packet =

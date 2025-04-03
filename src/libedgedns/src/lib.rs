@@ -2,7 +2,10 @@
 //! the service.
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
-#![cfg_attr(feature = "clippy", allow(identity_op, ptr_arg, collapsible_if, let_and_return))]
+#![cfg_attr(
+    feature = "clippy",
+    allow(identity_op, ptr_arg, collapsible_if, let_and_return)
+)]
 #![allow(dead_code, unused_imports, unused_variables)]
 
 extern crate base64;
@@ -42,8 +45,8 @@ extern crate hyper;
 extern crate prometheus;
 
 mod cache;
-mod client_query;
 mod client_queries_handler;
+mod client_query;
 mod config;
 pub mod dns;
 mod ext_response;
@@ -70,8 +73,8 @@ use net_helpers::*;
 use privdrop::PrivDrop;
 use resolver::*;
 use std::net;
-use std::sync::Arc;
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 use tcp_acceptor::*;
 use tcp_arbitrator::TcpArbitrator;
@@ -97,10 +100,10 @@ const FAILURE_TTL: u32 = 30;
 const TCP_BACKLOG: usize = 1024;
 const UDP_BUFFER_SIZE: usize = 16 * 1024 * 1024;
 const UPSTREAM_TOTAL_TIMEOUT_MS: u64 = 5 * 1000;
-const UPSTREAM_QUERY_MIN_TIMEOUT_MS: u64 = 1 * 1000;
+const UPSTREAM_QUERY_MIN_TIMEOUT_MS: u64 = 1000;
 const UPSTREAM_QUERY_MAX_TIMEOUT_MS: u64 = UPSTREAM_TOTAL_TIMEOUT_MS * 3 / 4;
 const UPSTREAM_QUERY_MAX_DEVIATION_COEFFICIENT: f64 = 4.0;
-const UPSTREAM_PROBES_DELAY_MS: u64 = 1 * 1000;
+const UPSTREAM_PROBES_DELAY_MS: u64 = 1000;
 
 #[cfg(feature = "webservice")]
 const WEBSERVICE_THREADS: usize = 1;
@@ -173,12 +176,12 @@ impl EdgeDNS {
         let edgedns_context = EdgeDNSContext {
             config: config.clone(),
             listen_addr: config.listen_addr.to_owned(),
-            udp_socket: udp_socket,
-            tcp_listener: tcp_listener,
-            cache: cache,
-            varz: varz,
-            tcp_arbitrator: tcp_arbitrator,
-            dnstap_sender: dnstap_sender,
+            udp_socket,
+            tcp_listener,
+            cache,
+            varz,
+            tcp_arbitrator,
+            dnstap_sender,
         };
         let resolver_tx =
             ResolverCore::spawn(&edgedns_context).expect("Unable to spawn the resolver");
@@ -189,7 +192,8 @@ impl EdgeDNS {
                 &edgedns_context,
                 resolver_tx.clone(),
                 service_ready_tx.clone(),
-            ).expect("Unable to spawn a UDP listener");
+            )
+            .expect("Unable to spawn a UDP listener");
             tasks.push(udp_acceptor);
             service_ready_rx.recv().unwrap();
         }
@@ -198,7 +202,8 @@ impl EdgeDNS {
                 &edgedns_context,
                 resolver_tx.clone(),
                 service_ready_tx.clone(),
-            ).expect("Unable to spawn a TCP listener");
+            )
+            .expect("Unable to spawn a TCP listener");
             tasks.push(tcp_listener);
             service_ready_rx.recv().unwrap();
         }
@@ -208,7 +213,9 @@ impl EdgeDNS {
             service_ready_rx.recv().unwrap();
         }
         Self::privileges_drop(&config);
-        log_dnstap.map(|mut x| x.start());
+        if let Some(mut x) = log_dnstap {
+            x.start()
+        }
         info!("EdgeDNS is ready to process requests");
         for task in tasks {
             let _ = task.join();

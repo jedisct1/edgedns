@@ -2,24 +2,24 @@
 //!
 //! This is a rewrite of the original mio-based code.
 
+use super::EdgeDNSContext;
+use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE, MAX_TCP_IDLE_MS};
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use bytes::BufMut;
 use cache::Cache;
 use client_query::*;
 use dns::{self, NormalizedQuestion};
 use futures::future::{self, Future};
-use futures::Sink;
 use futures::stream::Stream;
 use futures::sync::mpsc::{channel, Sender};
+use futures::Sink;
 use std::cell::RefCell;
 use std::io::{self, Read, Write};
 use std::net::{self, SocketAddr};
 use std::rc::Rc;
-use std::time;
 use std::sync::{mpsc, Arc};
 use std::thread;
-use super::EdgeDNSContext;
-use super::{DNS_QUERY_MAX_SIZE, DNS_QUERY_MIN_SIZE, MAX_TCP_IDLE_MS};
+use std::time;
 use tcp_arbitrator::TcpArbitrator;
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::{Core, Handle};
@@ -62,7 +62,7 @@ impl TcpClientQuery {
     pub fn new(tcp_acceptor: &TcpAcceptor, wh: WriteHalf<TcpStream>) -> Self {
         TcpClientQuery {
             timer: tcp_acceptor.timer.clone(),
-            wh: wh,
+            wh,
             handle: tcp_acceptor.handle.clone(),
             resolver_tx: tcp_acceptor.resolver_tx.clone(),
             cache: tcp_acceptor.cache.clone(),
@@ -87,7 +87,7 @@ impl TcpClientQuery {
                     warn!("No resolver response - TX part of the channel closed");
                     future::err(())
                 }
-                Some(resolver_response) => future::ok(resolver_response),         
+                Some(resolver_response) => future::ok(resolver_response),
             })
             .and_then(|resolver_response| {
                 let wh = wh_cell.into_inner();
@@ -144,7 +144,7 @@ impl TcpAcceptor {
         let (rh, wh) = client.split();
         let fut_expected_len = read_exact(rh, vec![0u8; 2]).and_then(move |(rh, len_buf)| {
             let expected_len = BigEndian::read_u16(&len_buf) as usize;
-            if expected_len < DNS_QUERY_MIN_SIZE || expected_len > DNS_QUERY_MAX_SIZE {
+            if !(DNS_QUERY_MIN_SIZE..=DNS_QUERY_MAX_SIZE).contains(&expected_len) {
                 info!("Suspicious query length: {}", expected_len);
                 varz.client_queries_errors.inc();
                 return future::err(io::Error::new(
@@ -173,7 +173,8 @@ impl TcpAcceptor {
             };
             tcp_client_query.fut_process_query(normalized_question)
         });
-        let fut_timeout = self.timer
+        let fut_timeout = self
+            .timer
             .timeout(fut_packet, time::Duration::from_millis(MAX_TCP_IDLE_MS));
         let mut tcp_arbitrator = self.tcp_arbitrator.clone();
         let fut_with_timeout = fut_timeout.then(move |_| {
@@ -199,7 +200,8 @@ impl TcpAcceptor {
                 .expect("Unable to clone a TCP socket"),
             &self.net_tcp_listener.local_addr().unwrap(),
             handle,
-        ).expect("Unable to create a tokio TCP listener");
+        )
+        .expect("Unable to create a tokio TCP listener");
         let handle = handle.clone();
         tcp_listener
             .incoming()
@@ -244,14 +246,14 @@ impl TcpAcceptorCore {
             .spawn(move || {
                 let event_loop = Core::new().unwrap();
                 let tcp_acceptor_core = TcpAcceptorCore {
-                    timer: timer,
+                    timer,
                     handle: event_loop.handle(),
-                    net_tcp_listener: net_tcp_listener,
-                    cache: cache,
-                    resolver_tx: resolver_tx,
+                    net_tcp_listener,
+                    cache,
+                    resolver_tx,
                     service_ready_tx: Some(service_ready_tx),
-                    varz: varz,
-                    tcp_arbitrator: tcp_arbitrator,
+                    varz,
+                    tcp_arbitrator,
                 };
                 let tcp_acceptor = TcpAcceptor::new(&tcp_acceptor_core);
                 tcp_acceptor_core

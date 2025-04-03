@@ -4,6 +4,7 @@
 //! The `ResolverCore` class is also responsible for binding the UDP sockets dedicated
 //! to communicating with upstream resolvers.
 
+use super::EdgeDNSContext;
 use cache::Cache;
 use client_queries_handler::ClientQueriesHandler;
 use client_query::ClientQuery;
@@ -11,9 +12,9 @@ use coarsetime::{Duration, Instant};
 use config::Config;
 use dns::{NormalizedQuestionKey, NormalizedQuestionMinimal};
 use ext_response::ExtResponse;
-use futures::Future;
 use futures::sync::mpsc::{channel, Receiver, Sender};
 use futures::sync::oneshot;
+use futures::Future;
 use jumphash::JumpHasher;
 use log_dnstap;
 use net_helpers::*;
@@ -21,16 +22,15 @@ use nix::sys::socket::{bind, setsockopt, sockopt, InetAddr, SockAddr};
 use parking_lot::RwLock;
 use pending_query::{PendingQueries, PendingQuery};
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::io;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::io::Cursor;
 use std::net;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::os::unix::io::FromRawFd;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
 use std::thread;
-use super::EdgeDNSContext;
 use tokio_core::reactor::{Core, Handle};
 use upstream_server::UpstreamServer;
 use varz::Varz;
@@ -90,9 +90,7 @@ impl ResolverCore {
         let upstream_servers: Vec<UpstreamServer> = config
             .upstream_servers
             .iter()
-            .map(|s| {
-                UpstreamServer::new(s).expect("Invalid upstream server address")
-            })
+            .map(|s| UpstreamServer::new(s).expect("Invalid upstream server address"))
             .collect();
         let upstream_servers_live: Vec<usize> = (0..config.upstream_servers.len()).collect();
         let upstream_servers_live_arc = Arc::new(RwLock::new(upstream_servers_live));
@@ -115,18 +113,18 @@ impl ResolverCore {
                 let resolver_core = ResolverCore {
                     config: Rc::new(config),
                     handle: handle.clone(),
-                    dnstap_sender: dnstap_sender,
-                    net_udp_socket: net_udp_socket,
+                    dnstap_sender,
+                    net_udp_socket,
                     net_ext_udp_sockets_rc: Rc::new(net_ext_udp_sockets),
-                    pending_queries: pending_queries,
-                    upstream_servers_arc: upstream_servers_arc,
-                    upstream_servers_live_arc: upstream_servers_live_arc,
+                    pending_queries,
+                    upstream_servers_arc,
+                    upstream_servers_live_arc,
                     waiting_clients_count: Rc::new(AtomicUsize::new(0)),
-                    cache: cache,
-                    varz: varz,
-                    decrement_ttl: decrement_ttl,
-                    lbmode: lbmode,
-                    upstream_max_failure_duration: upstream_max_failure_duration,
+                    cache,
+                    varz,
+                    decrement_ttl,
+                    lbmode,
+                    upstream_max_failure_duration,
                     jumphasher: JumpHasher::default(),
                 };
                 info!("Registering UDP ports...");
