@@ -146,7 +146,7 @@ impl ClientQueriesHandler {
     fn maybe_respond_with_stale_entry(
         &mut self,
         client_query: &ClientQuery,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         let normalized_question = &client_query.normalized_question;
         let cache_entry = self.cache.get2(normalized_question);
         if let Some(mut cache_entry) = cache_entry {
@@ -164,7 +164,7 @@ impl ClientQueriesHandler {
     fn maybe_respond_to_all_clients_with_stale_entry(
         &mut self,
         pending_query: &PendingQuery,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         let mut fut = Vec::with_capacity(pending_query.client_queries.len());
         for client_query in &pending_query.client_queries {
             fut.push(self.maybe_respond_with_stale_entry(client_query));
@@ -217,7 +217,7 @@ impl ClientQueriesHandler {
     fn fut_process_client_query(
         &mut self,
         client_query: ClientQuery,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         debug!("Incoming client query");
         if self.upstream_servers_live_arc.read().is_empty() {
             return self.maybe_respond_with_stale_entry(&client_query);
@@ -315,12 +315,12 @@ impl ClientQueriesHandler {
     fn fut_retry_query(
         &self,
         normalized_question: NormalizedQuestion,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         debug!("timeout");
         let mut map = self.pending_queries.map_arc.write();
         let key = normalized_question.key();
         let pending_query = match map.get_mut(&key) {
-            None => return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>,
+            None => return Box::new(future::ok(())) as Box<dyn Future<Item = (), Error = io::Error>>,
             Some(pending_query) => pending_query,
         };
         let mut upstream_servers = self.upstream_servers_arc.write();
@@ -347,7 +347,7 @@ impl ClientQueriesHandler {
             match nq {
                 Ok(x) => x,
                 Err(_) => {
-                    return Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>
+                    return Box::new(future::ok(())) as Box<dyn Future<Item = (), Error = io::Error>>
                 }
             };
         let upstream_server = &mut upstream_servers[upstream_server_idx];
@@ -415,10 +415,10 @@ impl ClientQueriesHandler {
                     waiting_clients_count.fetch_sub(pending_query.client_queries.len(), Relaxed);
                     return fut;
                 }
-                Box::new(future::ok(())) as Box<Future<Item = (), Error = io::Error>>
+                Box::new(future::ok(())) as Box<dyn Future<Item = (), Error = io::Error>>
             });
         debug!("retrying...");
-        Box::new(fut) as Box<Future<Item = (), Error = io::Error>>
+        Box::new(fut) as Box<dyn Future<Item = (), Error = io::Error>>
     }
 }
 

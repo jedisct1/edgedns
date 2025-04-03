@@ -70,7 +70,7 @@ impl ClientQuery {
         &self,
         packet: &mut [u8],
         net_udp_socket: Option<&net::UdpSocket>,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         let normalized_question = &self.normalized_question;
         let packet_len = packet.len();
         let mut refused_packet;

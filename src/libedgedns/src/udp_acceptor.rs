@@ -62,20 +62,20 @@ impl UdpAcceptor {
         &mut self,
         packet: Rc<Vec<u8>>,
         client_addr: SocketAddr,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         self.varz.client_queries_udp.inc();
         let count = packet.len();
         if count < DNS_QUERY_MIN_SIZE || count > DNS_QUERY_MAX_SIZE {
             info!("Short query using UDP");
             self.varz.client_queries_errors.inc();
-            return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
+            return Box::new(future::ok(())) as Box<dyn Future<Item = _, Error = _>>;
         }
         let normalized_question = match dns::normalize(&packet, true) {
             Ok(normalized_question) => normalized_question,
             Err(e) => {
                 debug!("Error while parsing the question: {}", e);
                 self.varz.client_queries_errors.inc();
-                return Box::new(future::ok(())) as Box<Future<Item = _, Error = _>>;
+                return Box::new(future::ok(())) as Box<dyn Future<Item = _, Error = _>>;
             }
         };
         let cache_entry = self.cache.get2(&normalized_question);
@@ -95,7 +95,7 @@ impl UdpAcceptor {
             .send(client_query)
             .map_err(|_| io::Error::last_os_error())
             .map(move |_| {});
-        Box::new(fut_resolver_query) as Box<Future<Item = _, Error = _>>
+        Box::new(fut_resolver_query) as Box<dyn Future<Item = _, Error = _>>
     }
 
     fn fut_process_stream<'a>(
@@ -133,7 +133,7 @@ impl UdpAcceptorCore {
         edgedns_context: &EdgeDNSContext,
         resolver_tx: Sender<ClientQuery>,
         service_ready_tx: mpsc::SyncSender<u8>,
-    ) -> io::Result<(thread::JoinHandle<()>)> {
+    ) -> io::Result<thread::JoinHandle<()>> {
         let net_udp_socket = edgedns_context.udp_socket.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();

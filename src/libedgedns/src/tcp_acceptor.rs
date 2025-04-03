@@ -73,7 +73,7 @@ impl TcpClientQuery {
     fn fut_process_query(
         mut self,
         normalized_question: NormalizedQuestion,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         let (tcpclient_tx, tcpclient_rx) = channel(1);
         let cache_entry = self.cache.get2(&normalized_question);
         let client_query = ClientQuery::tcp(tcpclient_tx, normalized_question, self.varz.clone());
@@ -130,7 +130,7 @@ impl TcpAcceptor {
         &mut self,
         client: TcpStream,
         client_addr: SocketAddr,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         let (session_rx, session_idx) = match self.tcp_arbitrator.new_session(&client_addr) {
             Ok(r) => r,
             Err(_) => return Box::new(future::err(io::Error::last_os_error())),
@@ -168,7 +168,7 @@ impl TcpAcceptor {
                     return Box::new(future::err(io::Error::new(
                         io::ErrorKind::InvalidInput,
                         "Suspicious query",
-                    ))) as Box<Future<Item = _, Error = _>>;
+                    ))) as Box<dyn Future<Item = _, Error = _>>;
                 }
             };
             tcp_client_query.fut_process_query(normalized_question)
@@ -186,7 +186,7 @@ impl TcpAcceptor {
             .select(fut_with_timeout)
             .map(|_| {})
             .map_err(|_| io::Error::last_os_error());
-        Box::new(fut) as Box<Future<Item = _, Error = _>>
+        Box::new(fut) as Box<dyn Future<Item = _, Error = _>>
     }
 
     fn fut_process_stream<'a>(
@@ -230,7 +230,7 @@ impl TcpAcceptorCore {
         edgedns_context: &EdgeDNSContext,
         resolver_tx: Sender<ClientQuery>,
         service_ready_tx: mpsc::SyncSender<u8>,
-    ) -> io::Result<(thread::JoinHandle<()>)> {
+    ) -> io::Result<thread::JoinHandle<()>> {
         let net_tcp_listener = edgedns_context.tcp_listener.try_clone()?;
         let cache = edgedns_context.cache.clone();
         let varz = edgedns_context.varz.clone();

@@ -409,7 +409,7 @@ pub fn qname_lc(qname: &[u8]) -> Vec<u8> {
         offset += 1;
         for i in 0..label_len {
             res[offset + i] = match qname[offset + i] {
-                c @ 0x41...0x5a => c | 0x20,
+                c @ 0x41..=0x5a => c | 0x20,
                 c => c,
             };
         }

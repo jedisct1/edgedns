@@ -107,7 +107,7 @@ impl ExtResponse {
         let mut upstream_servers = self.upstream_servers_arc.write();
         if client_addr != upstream_servers[pending_query.upstream_server_idx].socket_addr {
             if let Some(probed_upstream_server_idx) = pending_query.probed_upstream_server_idx {
-                let mut probed_upstream_server = &mut upstream_servers[probed_upstream_server_idx];
+                let probed_upstream_server = &mut upstream_servers[probed_upstream_server_idx];
                 if client_addr == probed_upstream_server.socket_addr {
                     probed_upstream_server.record_success_after_failure();
                 } else {
@@ -239,7 +239,7 @@ impl ExtResponse {
         &mut self,
         packet: Rc<Vec<u8>>,
         client_addr: SocketAddr,
-    ) -> Box<Future<Item = (), Error = io::Error>> {
+    ) -> Box<dyn Future<Item = (), Error = io::Error>> {
         debug!("received on an external socket {:?}", packet);
         if packet.len() < DNS_QUERY_MIN_SIZE {
             info!("Short response received over UDP");
