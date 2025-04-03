@@ -28,7 +28,7 @@ cargo install
 
 # Quickstart
 
-1. Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/0.3.0/edgedns.toml) configuration file
+1. Edit a copy of the [`edgedns.toml`](https://github.com/jedisct1/edgedns/blob/master/edgedns.toml) configuration file
 2. Run `edgedns -c /path/to/edgedns.toml`
 
 On Linux, you may use that
